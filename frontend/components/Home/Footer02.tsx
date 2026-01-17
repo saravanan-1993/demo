@@ -36,22 +36,17 @@ export default function Footer02() {
     <div className="bg-gray-950 text-gray-400 py-3 sm:py-4">
       <div className="container mx-auto px-3 sm:px-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
-          <div className="flex flex-col-2 items-center sm:items-start gap-1">
-            <p className="text-xs sm:text-sm text-center sm:text-left">
-              © {currentYear} {companySettings?.companyName || "Leats"}. All rights reserved.
-            </p>
-            <p className="text-xs sm:text-sm text-center sm:text-left">
-              Developed with ❤️ by{" "}
-              <a
-                href="https://mntfuture.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#e63946] hover:underline font-medium"
-              >
-                MNT
-              </a>
-            </p>
-          </div>
+          <p className="text-xs sm:text-sm text-center sm:text-left">
+            © {currentYear} {companySettings?.companyName || "Leats"}. All rights reserved. Developed with ❤️ by{" "}
+            <a
+              href="https://mntfuture.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#e63946] hover:underline font-medium"
+            >
+              MNT
+            </a>
+          </p>
           <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-center">
             <span className="text-xs sm:text-sm">We Accept:</span>
             <div className="flex items-center gap-1.5 sm:gap-2">
