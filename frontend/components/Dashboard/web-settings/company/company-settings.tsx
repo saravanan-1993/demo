@@ -117,7 +117,7 @@ export const CompanySettings = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* Basic Information */}
       <Card>
         <CardHeader>
@@ -283,6 +283,7 @@ export const CompanySettings = () => {
               onChange={(e) => handleChange("mapIframe", e.target.value)}
               placeholder='<iframe src="https://www.google.com/maps/embed?pb=..." width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy"></iframe>'
               rows={4}
+              className="w-full break-all"
             />
             <p className="text-xs text-muted-foreground">
               Paste the complete iframe embed code from Google Maps. This will be displayed on the contact page.
