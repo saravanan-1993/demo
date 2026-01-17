@@ -12,6 +12,7 @@ const bannerRoutes = require('./web/bannerRoutes');
 const companyRoutes = require('./web/companyRoutes');
 const seoRoutes = require('./web/seoRoutes');
 const policyRoutes = require('./web/policyRoutes');
+const contactRoutes = require('./web/contactRoutes');
 
 // Finance routes
 const gstRateRoutes = require('./finance/gstRateRoutes');
@@ -105,6 +106,7 @@ router.use('/web/banners', bannerRoutes);
 router.use('/web/company', companyRoutes);
 router.use('/web/seo', seoRoutes);
 router.use('/web/policies', policyRoutes);
+router.use('/web/contact', contactRoutes);
 
 // Finance routes
 router.use('/finance/gst-rates', gstRateRoutes);

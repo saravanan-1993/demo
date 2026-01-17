@@ -2,6 +2,8 @@
 
 import { IconMapPin, IconPhone, IconMail } from '@tabler/icons-react';
 import { useState, useEffect, useRef } from 'react';
+import axiosInstance from '@/lib/axios';
+import { toast } from 'sonner';
 import {
   getCompanySettings,
   type CompanySettings,
@@ -10,6 +12,7 @@ import {
 export default function ContactSection() {
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', message: '' });
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const companySettingsCacheRef = useRef<CompanySettings | null>(null);
 
   // Fetch company settings
@@ -33,9 +36,31 @@ export default function ContactSection() {
     fetchSettings();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
+    
+    setIsSubmitting(true);
+    
+    try {
+      const response = await axiosInstance.post('/api/web/contact', formData);
+
+      if (response.data.success) {
+        // Show success toast
+        toast.success(response.data.message || 'Your message has been sent successfully!');
+        
+        // Reset form
+        setFormData({ name: '', email: '', phone: '', message: '' });
+      } else {
+        // Show error toast
+        toast.error(response.data.error || 'Failed to send your message. Please try again.');
+      }
+    } catch (error: any) {
+      console.error('Error submitting contact form:', error);
+      const errorMessage = error.response?.data?.error || 'An error occurred. Please try again later.';
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -129,9 +154,10 @@ export default function ContactSection() {
             ></textarea>
             <button
               type="submit"
-              className="w-full bg-[#E63946] text-white py-2.5 sm:py-3 rounded-lg font-semibold hover:bg-[#C62E39] text-sm sm:text-base"
+              disabled={isSubmitting}
+              className="w-full bg-[#E63946] text-white py-2.5 sm:py-3 rounded-lg font-semibold hover:bg-[#C62E39] disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base transition-colors"
             >
-              Send Message
+              {isSubmitting ? 'Sending...' : 'Send Message'}
             </button>
           </form>
         </div>
