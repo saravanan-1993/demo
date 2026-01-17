@@ -54,11 +54,42 @@ export default function Header() {
   const { user, isAuthenticated, logout } = useAuthContext();
   const currencySymbol = useCurrency();
   const router = useRouter();
+  const [authKey, setAuthKey] = useState(0);
 
   // Handle client-side hydration
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Force re-render when auth state changes
+  useEffect(() => {
+    const handleAuthChange = () => {
+      console.log('🔄 Header: Auth change detected, forcing re-render');
+      console.log('🔍 Header: Current user:', user?.name, 'isAuthenticated:', isAuthenticated);
+      setAuthKey(prev => prev + 1);
+      // Force a small delay to ensure localStorage is fully updated
+      setTimeout(() => {
+        setAuthKey(prev => prev + 1);
+      }, 50);
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('auth-refresh', handleAuthChange);
+      window.addEventListener('storage', handleAuthChange);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('auth-refresh', handleAuthChange);
+        window.removeEventListener('storage', handleAuthChange);
+      }
+    };
+  }, [user, isAuthenticated]);
+
+  // Log when user or auth state changes
+  useEffect(() => {
+    console.log('👤 Header: User state changed:', user?.name, 'isAuthenticated:', isAuthenticated);
+  }, [user, isAuthenticated]);
 
   // Close search results when clicking outside
   useEffect(() => {

@@ -78,6 +78,11 @@ export const SignIn = () => {
           localStorage.setItem("token", token);
           localStorage.setItem("user", JSON.stringify(user));
           
+          // Trigger auth refresh event to update AuthProvider immediately
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('auth-refresh'));
+          }
+          
           // If "Remember me" is not checked, we'll clear on browser close
           // by setting a flag that the auth provider can check
           if (!rememberMe) {
@@ -89,8 +94,10 @@ export const SignIn = () => {
           // Redirect based on role
           if (user.role === "admin") {
             router.replace("/dashboard");
+            router.refresh();
           } else {
             router.replace("/");
+            router.refresh();
           }
         } else {
           setErrors((prev) => ({

@@ -77,22 +77,42 @@ function GoogleCallbackContent() {
 
         if (authData.success) {
           // Store token and user data
+          console.log('✅ Google Callback: Auth successful, storing data');
           localStorage.setItem("token", authData.data.token);
           localStorage.setItem("user", JSON.stringify(authData.data.user));
+          console.log('📦 Google Callback: Data stored in localStorage');
 
           // Trigger auth refresh event to update AuthProvider immediately
           if (typeof window !== 'undefined') {
+            console.log('📢 Google Callback: Dispatching auth-refresh event');
             window.dispatchEvent(new CustomEvent('auth-refresh'));
+            // Also trigger storage event for cross-tab sync
+            window.dispatchEvent(new StorageEvent('storage', {
+              key: 'user',
+              newValue: JSON.stringify(authData.data.user),
+              url: window.location.href
+            }));
+            console.log('📢 Google Callback: Events dispatched');
           }
 
           // Redirect based on role
           const user = authData.data.user;
           if (user.role === 'admin') {
             setStatus("Success! Redirecting to dashboard...");
-            setTimeout(() => router.push("/dashboard"), 1000);
+            console.log('🔄 Google Callback: Redirecting to dashboard');
+            // Use replace instead of push to avoid back button issues
+            setTimeout(() => {
+              router.replace("/dashboard");
+              router.refresh();
+            }, 500);
           } else {
             setStatus("Success! Redirecting to home...");
-            setTimeout(() => router.push("/"), 1000);
+            console.log('🔄 Google Callback: Redirecting to home');
+            // Use replace instead of push and refresh to ensure state updates
+            setTimeout(() => {
+              router.replace("/");
+              router.refresh();
+            }, 500);
           }
         } else {
           throw new Error(authData.error || "Authentication failed");
