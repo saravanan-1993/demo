@@ -131,9 +131,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     const handleAuthRefresh = () => {
+      console.log('🔄 AuthProvider: Auth refresh event received');
       // Force re-check auth state
       const token = localStorage.getItem("token");
       const userData = localStorage.getItem("user");
+      
+      console.log('🔍 AuthProvider: Token exists:', !!token, 'User data exists:', !!userData);
       
       if (!token || !userData) {
         setUser(null);
@@ -141,9 +144,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         try {
           const parsedUser = JSON.parse(userData);
+          console.log('✅ AuthProvider: Setting user:', parsedUser.name);
           setUser(parsedUser);
           setIsAuthenticated(true);
         } catch (error) {
+          console.error('❌ AuthProvider: Error parsing user data:', error);
           setUser(null);
           setIsAuthenticated(false);
         }

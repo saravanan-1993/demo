@@ -34,6 +34,11 @@ function GoogleAuthSuccessContent() {
         localStorage.setItem("token", token);
         localStorage.setItem("user", JSON.stringify(user));
 
+        // Trigger auth refresh event to update AuthProvider immediately
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('auth-refresh'));
+        }
+
         // Track Google authentication success
         const isNewUser = searchParams.get("new_user") === "true";
         
@@ -48,11 +53,13 @@ function GoogleAuthSuccessContent() {
         // Redirect based on role
         setTimeout(() => {
           if (user.role === 'admin') {
-            router.push("/dashboard");
+            router.replace("/dashboard");
+            router.refresh();
           } else {
-            router.push("/");
+            router.replace("/");
+            router.refresh();
           }
-        }, 1000);
+        }, 500);
 
       } catch (error) {
         console.error("Google auth success error:", error);
