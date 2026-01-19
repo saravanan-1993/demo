@@ -558,6 +558,9 @@ model OnlineProduct {
   warrantyDetails        String?
   countryOfOrigin        String  @default("India")
 
+  // Frequently Bought Together (Add-ons)
+  frequentlyBoughtTogether Json[] @default([]) // Array of { productId, variantIndex, isDefaultSelected }
+
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

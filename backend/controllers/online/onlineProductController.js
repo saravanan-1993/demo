@@ -366,6 +366,11 @@ const createOnlineProduct = async (req, res) => {
 
       // Cutting Styles (array of cutting style IDs)
       cuttingStyles: Array.isArray(productData.cuttingStyles) ? productData.cuttingStyles : [],
+
+      // Frequently Bought Together
+      frequentlyBoughtTogether: Array.isArray(productData.frequentlyBoughtTogether) 
+        ? productData.frequentlyBoughtTogether 
+        : [],
     };
 
     // Convert date strings to ISO-8601 DateTime for create as well
@@ -533,6 +538,13 @@ const updateOnlineProduct = async (req, res) => {
       updateData.cuttingStyles = Array.isArray(updateData.cuttingStyles) ? updateData.cuttingStyles : [];
     }
 
+    // Handle frequently bought together - ensure it's an array
+    if (updateData.frequentlyBoughtTogether !== undefined) {
+      updateData.frequentlyBoughtTogether = Array.isArray(updateData.frequentlyBoughtTogether) 
+        ? updateData.frequentlyBoughtTogether 
+        : [];
+    }
+
     // Convert date strings to ISO-8601 DateTime
     if (updateData.expiryDate && typeof updateData.expiryDate === 'string') {
       updateData.expiryDate = updateData.expiryDate ? new Date(updateData.expiryDate).toISOString() : null;
@@ -618,10 +630,101 @@ const deleteOnlineProduct = async (req, res) => {
   }
 };
 
+/**
+ * Get frequently bought together products for a specific product
+ * GET /api/online/online-products/:id/frequently-bought-together
+ */
+const getFrequentlyBoughtTogether = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get the main product
+    const product = await prisma.onlineProduct.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        frequentlyBoughtTogether: true,
+      },
+    });
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    if (!product.frequentlyBoughtTogether || product.frequentlyBoughtTogether.length === 0) {
+      return res.json({
+        success: true,
+        data: [],
+      });
+    }
+
+    // Extract product IDs from frequently bought together
+    const addonProductIds = product.frequentlyBoughtTogether.map(item => item.productId);
+
+    // Fetch all add-on products
+    const addonProducts = await prisma.onlineProduct.findMany({
+      where: {
+        id: { in: addonProductIds },
+        productStatus: "active", // Only show active products
+      },
+    });
+
+    // Map add-on products with their configuration
+    const addonsWithDetails = await Promise.all(
+      product.frequentlyBoughtTogether.map(async (addon) => {
+        const addonProduct = addonProducts.find(p => p.id === addon.productId);
+        
+        if (!addonProduct) return null;
+
+        // Get the specific variant
+        const variant = addonProduct.variants[addon.variantIndex];
+        
+        if (!variant) return null;
+
+        // Convert variant images to presigned URLs
+        const variantWithUrls = await convertVariantImagesToUrls([variant]);
+
+        return {
+          productId: addonProduct.id,
+          variantIndex: addon.variantIndex,
+          isDefaultSelected: addon.isDefaultSelected || false,
+          product: {
+            id: addonProduct.id,
+            shortDescription: addonProduct.shortDescription,
+            brand: addonProduct.brand,
+            category: addonProduct.category,
+            subCategory: addonProduct.subCategory,
+          },
+          variant: variantWithUrls[0],
+        };
+      })
+    );
+
+    // Filter out null values (products that don't exist or are inactive)
+    const validAddons = addonsWithDetails.filter(Boolean);
+
+    res.json({
+      success: true,
+      data: validAddons,
+    });
+  } catch (error) {
+    console.error("Error fetching frequently bought together:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch frequently bought together products",
+      error: process.env.NODE_ENV === "development" ? error.message : "Internal server error",
+    });
+  }
+};
+
 module.exports = {
   getAllOnlineProducts,
   getOnlineProductById,
   createOnlineProduct,
   updateOnlineProduct,
   deleteOnlineProduct,
+  getFrequentlyBoughtTogether,
 };

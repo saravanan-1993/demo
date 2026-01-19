@@ -70,8 +70,30 @@ export interface Product {
   returnWindowDays: number;
   warrantyDetails?: string;
   countryOfOrigin: string;
+  frequentlyBoughtTogether?: FrequentlyBoughtTogetherItem[]; // Add-ons
   createdAt: string;
   updatedAt: string;
+}
+
+export interface FrequentlyBoughtTogetherItem {
+  productId: string;
+  variantIndex: number;
+  isDefaultSelected: boolean;
+}
+
+export interface FrequentlyBoughtTogetherAddon {
+  productId: string;
+  variantIndex: number;
+  isDefaultSelected: boolean;
+  product: {
+    id: string;
+    shortDescription: string;
+    brand: string;
+    category: string;
+    subCategory: string;
+    stockStatus: string;
+  };
+  variant: ProductVariant;
 }
 
 export interface ProductsResponse {
@@ -143,5 +165,17 @@ export const getHomepageProducts = async (params?: {
   limit?: number;
 }): Promise<{ success: boolean; data: Product[]; count: number }> => {
   const response = await axiosInstance.get("/api/online/frontend/homepage-products", { params });
+  return response.data;
+};
+
+/**
+ * Get frequently bought together products for a specific product
+ */
+export const getFrequentlyBoughtTogether = async (
+  productId: string
+): Promise<{ success: boolean; data: FrequentlyBoughtTogetherAddon[] }> => {
+  const response = await axiosInstance.get(
+    `/api/online/frontend/products/${productId}/frequently-bought-together`
+  );
   return response.data;
 };

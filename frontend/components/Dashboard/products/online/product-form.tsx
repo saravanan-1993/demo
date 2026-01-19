@@ -18,6 +18,7 @@ import {
   VisibilitySEOTab,
   ComplianceTab,
   AdditionalFieldsTab,
+  FrequentlyBoughtTogetherTab,
 } from "./tabs";
 
 import { ProductFormState, ProductVariant } from "@/types/product";
@@ -91,6 +92,9 @@ const getInitialFormState = (): ProductFormState => ({
   returnWindowDays: 7,
   warrantyDetails: "",
   countryOfOrigin: "India",
+
+  // Tab 8: Frequently Bought Together
+  frequentlyBoughtTogether: [],
 });
 
 export function ProductForm({ id }: ProductFormProps) {
@@ -572,7 +576,7 @@ export function ProductForm({ id }: ProductFormProps) {
         </CardHeader>
         <CardContent className="px-2 sm:px-4 lg:px-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 mb-6 sm:mb-8 h-auto gap-1 sm:gap-0 p-1">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 mb-6 sm:mb-8 h-auto gap-1 sm:gap-0 p-1">
               <TabsTrigger value="basic" className="text-xs sm:text-sm py-2 relative">
                 Basic Details
                 {hasAttemptedSubmit && tabErrors.basic > 0 && (
@@ -626,6 +630,14 @@ export function ProductForm({ id }: ProductFormProps) {
                 {hasAttemptedSubmit && tabErrors.additional > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                     {tabErrors.additional}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="addons" className="text-xs sm:text-sm py-2 relative">
+                Add-ons
+                {hasAttemptedSubmit && tabErrors.addons > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {tabErrors.addons}
                   </span>
                 )}
               </TabsTrigger>
@@ -700,6 +712,13 @@ export function ProductForm({ id }: ProductFormProps) {
 
             <TabsContent value="additional" className="space-y-4">
               <AdditionalFieldsTab
+                formData={formData}
+                onChange={handleFieldChange}
+              />
+            </TabsContent>
+
+            <TabsContent value="addons" className="space-y-4">
+              <FrequentlyBoughtTogetherTab
                 formData={formData}
                 onChange={handleFieldChange}
               />

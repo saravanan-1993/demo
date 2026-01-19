@@ -474,8 +474,127 @@ const getHomepageProducts = async (req, res) => {
   }
 };
 
+/**
+ * Get frequently bought together products for frontend
+ * GET /api/online/frontend/products/:id/frequently-bought-together
+ */
+const getFrequentlyBoughtTogether = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    console.log(`[Frontend Products] Fetching frequently bought together for product: ${id}`);
+
+    // Get the main product
+    const product = await prisma.onlineProduct.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        productStatus: true,
+        frequentlyBoughtTogether: true,
+      },
+    });
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    // Only show for active products
+    if (product.productStatus !== "active") {
+      return res.status(404).json({
+        success: false,
+        message: "Product not available",
+      });
+    }
+
+    if (!product.frequentlyBoughtTogether || product.frequentlyBoughtTogether.length === 0) {
+      return res.json({
+        success: true,
+        data: [],
+      });
+    }
+
+    // Extract product IDs
+    const addonProductIds = product.frequentlyBoughtTogether.map(item => item.productId);
+
+    // Fetch all add-on products (only active ones)
+    const addonProducts = await prisma.onlineProduct.findMany({
+      where: {
+        id: { in: addonProductIds },
+        productStatus: "active",
+      },
+      select: {
+        id: true,
+        category: true,
+        subCategory: true,
+        brand: true,
+        shortDescription: true,
+        variants: true,
+        defaultMRP: true,
+        defaultSellingPrice: true,
+        stockStatus: true,
+      },
+    });
+
+    // Map add-on products with their configuration
+    const addonsWithDetails = await Promise.all(
+      product.frequentlyBoughtTogether.map(async (addon) => {
+        const addonProduct = addonProducts.find(p => p.id === addon.productId);
+        
+        if (!addonProduct) return null;
+
+        // Get the specific variant
+        const variant = addonProduct.variants[addon.variantIndex];
+        
+        if (!variant) return null;
+
+        // Check stock availability
+        if (variant.variantStockQuantity <= 0) return null;
+
+        // Convert variant images to presigned URLs
+        const variantWithUrls = await convertVariantImagesToUrls([variant]);
+
+        return {
+          productId: addonProduct.id,
+          variantIndex: addon.variantIndex,
+          isDefaultSelected: addon.isDefaultSelected || false,
+          product: {
+            id: addonProduct.id,
+            shortDescription: addonProduct.shortDescription,
+            brand: addonProduct.brand,
+            category: addonProduct.category,
+            subCategory: addonProduct.subCategory,
+            stockStatus: addonProduct.stockStatus,
+          },
+          variant: variantWithUrls[0],
+        };
+      })
+    );
+
+    // Filter out null values
+    const validAddons = addonsWithDetails.filter(Boolean);
+
+    console.log(`[Frontend Products] Found ${validAddons.length} valid add-ons`);
+
+    res.json({
+      success: true,
+      data: validAddons,
+    });
+  } catch (error) {
+    console.error("[Frontend Products] Error fetching frequently bought together:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch frequently bought together products",
+      error: process.env.NODE_ENV === "development" ? error.message : "Internal server error",
+    });
+  }
+};
+
 module.exports = {
   getProducts,
   getProductById,
   getHomepageProducts,
+  getFrequentlyBoughtTogether,
 };

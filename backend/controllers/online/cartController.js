@@ -287,6 +287,13 @@ const updateCartItem = async (req, res) => {
     const { inventoryProductId } = req.params;
     const { quantity } = req.body;
 
+    console.log('[updateCartItem] Request:', {
+      userId,
+      inventoryProductId,
+      quantity,
+      selectedCuttingStyle
+    });
+
     if (!userId) {
       return res.status(400).json({
         success: false,
@@ -305,6 +312,8 @@ const updateCartItem = async (req, res) => {
     const customer = await prisma.customer.findUnique({
       where: { userId }
     });
+
+    console.log('[updateCartItem] Customer found:', customer?.id);
 
     if (!customer) {
       return res.status(404).json({
@@ -329,19 +338,61 @@ const updateCartItem = async (req, res) => {
       });
     }
 
-    // Find the cart item
-    const existingItem = await prisma.cart.findFirst({
+    // Find the cart item using a more robust lookup
+    // We fetch all items for this product and filter in memory to handle 
+    // inconsistencies between null/undefined/empty string in selectedCuttingStyle
+    const candidates = await prisma.cart.findMany({
       where: {
         customerId: customer.id,
-        inventoryProductId,
-        selectedCuttingStyle: selectedCuttingStyle || null
+        inventoryProductId
       }
     });
 
+    // Try finding match treating null/undefined/"" as equivalent
+    const targetStyle = selectedCuttingStyle || null;
+    
+    const existingItem = candidates.find(item => {
+      const itemStyle = item.selectedCuttingStyle || null;
+      return itemStyle === targetStyle;
+    });
+
+      console.log('[updateCartItem] Existing item found:', existingItem?.id);
+
     if (!existingItem) {
+      console.log('[updateCartItem] Cart item not found in candidates. Debugging...');
+      console.log('[updateCartItem] Query params:', {
+          customerId: customer.id,
+          inventoryProductId,
+          selectedCuttingStyle: selectedCuttingStyle || null
+      });
+      
+      console.log('[updateCartItem] Candidates found:', candidates.map(item => ({
+        id: item.id,
+        inventoryProductId: item.inventoryProductId,
+        selectedCuttingStyle: item.selectedCuttingStyle || '(falsy)',
+        matchesTarget: (item.selectedCuttingStyle || null) === (selectedCuttingStyle || null)
+      })));
+      
+      // Fallback search to see what else is there (if candidates was empty)
+      if (candidates.length === 0) {
+          const allCartItems = await prisma.cart.findMany({
+            where: { customerId: customer.id }
+          });
+          console.log('[updateCartItem] All cart items for user:', allCartItems.length);
+      }
+      
       return res.status(404).json({
         success: false,
-        error: 'Cart item not found'
+        error: 'Cart item not found',
+        debug: {
+            message: 'Item not found in candidates',
+            searchedFor: { inventoryProductId, selectedCuttingStyle: selectedCuttingStyle || null },
+            candidatesCount: candidates.length,
+            candidates: candidates.map(item => ({
+              id: item.id,
+              selectedCuttingStyle: item.selectedCuttingStyle
+            }))
+        }
       });
     }
 
@@ -390,6 +441,8 @@ const updateCartItem = async (req, res) => {
       }
     });
 
+    console.log('[updateCartItem] Cart item updated successfully');
+
     res.json({
       success: true,
       data: cartItem,
@@ -411,9 +464,11 @@ const updateCartItem = async (req, res) => {
  */
 const removeFromCart = async (req, res) => {
   try {
-    const userId = req.query.userId || req.body.userId;
-    const selectedCuttingStyle = req.query.selectedCuttingStyle || req.body.selectedCuttingStyle;
+    const userId = req.query.userId || req.body?.userId;
+    const selectedCuttingStyle = req.query.selectedCuttingStyle || req.body?.selectedCuttingStyle || null;
     const { inventoryProductId } = req.params;
+
+    console.log('Remove from cart request:', { userId, inventoryProductId, selectedCuttingStyle });
 
     if (!userId) {
       return res.status(400).json({
@@ -422,10 +477,19 @@ const removeFromCart = async (req, res) => {
       });
     }
 
+    if (!inventoryProductId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Inventory Product ID is required'
+      });
+    }
+
     // Find customer
     const customer = await prisma.customer.findUnique({
       where: { userId }
     });
+
+    console.log('Customer found:', customer?.id);
 
     if (!customer) {
       return res.status(404).json({
@@ -434,19 +498,34 @@ const removeFromCart = async (req, res) => {
       });
     }
 
-    await prisma.cart.deleteMany({
-      where: {
-        customerId: customer.id,
-        inventoryProductId,
-        selectedCuttingStyle: selectedCuttingStyle || null
-      }
+    // Build where clause
+    const whereClause = {
+      customerId: customer.id,
+      inventoryProductId: inventoryProductId
+    };
+
+    // Only add selectedCuttingStyle to where clause if it's provided
+    if (selectedCuttingStyle) {
+      whereClause.selectedCuttingStyle = selectedCuttingStyle;
+    }
+
+    console.log('Delete where clause:', whereClause);
+
+    const deleteResult = await prisma.cart.deleteMany({
+      where: whereClause
     });
+
+    console.log('Delete result:', deleteResult);
 
     res.json({
       success: true,
-      message: 'Item removed from cart'
+      message: 'Item removed from cart',
+      deletedCount: deleteResult.count
     });
   } catch (error) {
+    console.error('Error removing from cart - Full error:', error);
+    console.error('Error stack:', error.stack);
+    
     if (error.code === 'P2025') {
       return res.status(404).json({
         success: false,
@@ -454,11 +533,11 @@ const removeFromCart = async (req, res) => {
       });
     }
 
-    console.error('Error removing from cart:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to remove item from cart',
-      message: error.message
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };
@@ -688,11 +767,14 @@ const syncCart = async (req, res) => {
   }
 };
 
+
+
 module.exports = {
   getCart,
   addToCart,
   updateCartItem,
   removeFromCart,
   clearCart,
-  syncCart
+  syncCart,
+
 };

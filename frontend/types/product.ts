@@ -98,6 +98,18 @@ export interface ProductFormData {
   returnWindowDays: number;
   warrantyDetails: string;
   countryOfOrigin: string;
+
+  // Tab 8: Frequently Bought Together (Add-ons)
+  frequentlyBoughtTogether?: FrequentlyBoughtTogetherItem[];
+}
+
+/**
+ * Frequently Bought Together item structure
+ */
+export interface FrequentlyBoughtTogetherItem {
+  productId: string;
+  variantIndex: number;
+  isDefaultSelected: boolean;
 }
 
 /**

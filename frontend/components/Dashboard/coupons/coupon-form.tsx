@@ -9,9 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog } from "@/components/ui/dialog";
+import { MultipleSelect, MultipleSelectContent, MultipleSelectItem } from "@/components/ui/multiple-select";
 import { toast } from "sonner";
 import { Wand2 } from "lucide-react";
 import { useCurrency } from "@/hooks/useCurrency";
+
+interface CategoryOption {
+  id: string;
+  name: string;
+}
 
 interface Coupon {
   id: string;
@@ -36,6 +42,8 @@ interface CouponFormProps {
 }
 
 export function CouponForm({ coupon, onClose }: CouponFormProps) {
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<Set<React.Key>>(new Set());
   const [formData, setFormData] = useState({
     code: "",
     description: "",
@@ -48,13 +56,32 @@ export function CouponForm({ coupon, onClose }: CouponFormProps) {
     validUntil: "",
     minOrderValue: "",
     maxDiscountAmount: "",
-    applicableCategories: "",
     isActive: true,
   });
 
   const currencySymbol = useCurrency();
 
   const [loading, setLoading] = useState(false);
+
+  // Fetch categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await axiosInstance.get("/api/online/category-subcategory/unique");
+        if (response.data.success) {
+          const categoryOptions = response.data.data.map((cat: { id: string; categoryName: string }) => ({
+            id: cat.categoryName, // Use categoryName as id for selection
+            name: cat.categoryName,
+          }));
+          setCategories(categoryOptions);
+        }
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+        toast.error("Failed to load categories");
+      }
+    };
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     if (coupon) {
@@ -74,9 +101,13 @@ export function CouponForm({ coupon, onClose }: CouponFormProps) {
           : "",
         minOrderValue: coupon.minOrderValue?.toString() || "",
         maxDiscountAmount: coupon.maxDiscountAmount?.toString() || "",
-        applicableCategories: coupon.applicableCategories?.join(", ") || "",
         isActive: coupon.isActive ?? true,
       });
+      
+      // Set selected categories
+      if (coupon.applicableCategories && coupon.applicableCategories.length > 0) {
+        setSelectedCategories(new Set(coupon.applicableCategories));
+      }
     }
   }, [coupon]);
 
@@ -109,9 +140,7 @@ export function CouponForm({ coupon, onClose }: CouponFormProps) {
         maxDiscountAmount: formData.maxDiscountAmount
           ? parseFloat(formData.maxDiscountAmount)
           : null,
-        applicableCategories: formData.applicableCategories
-          ? formData.applicableCategories.split(",").map((c) => c.trim())
-          : [],
+        applicableCategories: Array.from(selectedCategories) as string[],
       };
 
       if (coupon) {
@@ -344,19 +373,23 @@ export function CouponForm({ coupon, onClose }: CouponFormProps) {
 
             <div>
               <Label htmlFor="applicableCategories">
-                Applicable Categories (comma-separated)
+                Applicable Categories
               </Label>
-              <Input
-                id="applicableCategories"
-                value={formData.applicableCategories}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    applicableCategories: e.target.value,
-                  })
-                }
-                placeholder="Electronics, Fashion, Books"
-              />
+              <MultipleSelect
+                className="w-full"
+                placeholder="Select categories (leave empty for all)"
+                aria-label="Select categories"
+                selectedKeys={selectedCategories}
+                onSelectionChange={(keys) => setSelectedCategories(keys as Set<React.Key>)}
+              >
+                <MultipleSelectContent items={categories}>
+                  {(item) => (
+                    <MultipleSelectItem id={item.id} textValue={item.name}>
+                      <span className="text-sm">{item.name}</span>
+                    </MultipleSelectItem>
+                  )}
+                </MultipleSelectContent>
+              </MultipleSelect>
               <p className="text-sm text-gray-500 mt-1">
                 Leave empty to apply to all categories
               </p>

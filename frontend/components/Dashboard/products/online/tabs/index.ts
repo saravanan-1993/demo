@@ -6,3 +6,4 @@ export { InventoryTab } from "./inventory-tab";
 export { VisibilitySEOTab } from "./visibility-seo-tab";
 export { ComplianceTab } from "./compliance-tab";
 export { AdditionalFieldsTab } from "./additional-fields-tab";
+export { FrequentlyBoughtTogetherTab } from "./frequently-bought-together-tab";
