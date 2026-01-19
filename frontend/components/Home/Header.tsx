@@ -64,8 +64,6 @@ export default function Header() {
   // Force re-render when auth state changes
   useEffect(() => {
     const handleAuthChange = () => {
-      console.log('🔄 Header: Auth change detected, forcing re-render');
-      console.log('🔍 Header: Current user:', user?.name, 'isAuthenticated:', isAuthenticated);
       setAuthKey(prev => prev + 1);
       // Force a small delay to ensure localStorage is fully updated
       setTimeout(() => {
@@ -84,11 +82,6 @@ export default function Header() {
         window.removeEventListener('storage', handleAuthChange);
       }
     };
-  }, [user, isAuthenticated]);
-
-  // Log when user or auth state changes
-  useEffect(() => {
-    console.log('👤 Header: User state changed:', user?.name, 'isAuthenticated:', isAuthenticated);
   }, [user, isAuthenticated]);
 
   // Close search results when clicking outside
