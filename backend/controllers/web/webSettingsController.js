@@ -14,7 +14,8 @@ const getWebSettings = async (req, res) => {
     }
 
     // Use proxy endpoints instead of presigned URLs to avoid CORS issues
-    const protocol = req.protocol;
+    // Check for forwarded protocol (for proxies like Vercel, Heroku, etc.)
+    const protocol = req.get('x-forwarded-proto') || req.protocol;
     const host = req.get('host');
     const baseUrl = `${protocol}://${host}`;
     
