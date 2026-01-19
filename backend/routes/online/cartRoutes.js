@@ -6,7 +6,8 @@ const {
   updateCartItem,
   removeFromCart,
   clearCart,
-  syncCart
+  syncCart,
+
 } = require('../../controllers/online/cartController');
 
 // Get user's cart
@@ -17,6 +18,8 @@ router.post('/', addToCart);
 
 // Sync local cart to database (on login)
 router.post('/sync', syncCart);
+
+
 
 // Update cart item quantity
 router.put('/:inventoryProductId', updateCartItem);

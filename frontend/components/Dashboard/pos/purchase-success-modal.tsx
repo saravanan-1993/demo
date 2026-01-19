@@ -18,6 +18,18 @@ interface PurchaseSuccessModalProps {
   orderDate: string;
   cartItems: CartItem[];
   customer: Customer | null;
+  companySettings: {
+    companyName: string;
+    logoUrl: string;
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+    phone: string;
+    email: string;
+    gstNumber?: string;
+  } | null;
   subtotal: number;
   total: number;
   roundingOff: number;
@@ -32,6 +44,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
   orderDate,
   cartItems,
   customer,
+  companySettings,
   subtotal,
   total,
   roundingOff,
@@ -181,10 +194,20 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
         <body>
           <!-- Invoice Header -->
           <div class="invoice-header">
-            <h1>LEATS</h1>
-            <p>9A, Erukku St, Navath Nagar, Gandhipuram,</p>
-            <p>Coimbatore, 641012</p>
-            <p>Phone: +91 1234567890</p>
+            ${companySettings?.logoUrl ? `
+              <div style="position: relative; width: 160px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                <img 
+                  src="${companySettings.logoUrl}" 
+                  alt="Company Logo" 
+                  style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;" 
+                  crossorigin="anonymous"
+                  referrerpolicy="no-referrer"
+                />
+              </div>
+            ` : `<h1>${companySettings?.companyName || 'LEATS'}</h1>`}
+            ${companySettings?.address ? `<p>${companySettings.address}</p>` : ''}
+            ${companySettings?.city || companySettings?.state || companySettings?.zipCode ? `<p>${[companySettings?.city, companySettings?.state, companySettings?.zipCode].filter(Boolean).join(', ')}</p>` : ''}
+            ${companySettings?.gstNumber ? `<p>GSTIN: ${companySettings.gstNumber}</p>` : ''}
           </div>
 
           <!-- Invoice Info -->
@@ -266,7 +289,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
           <!-- Footer -->
           <div class="footer">
             <p style="font-weight: bold; margin: 3px 0;">Thank You, Please Come Again!</p>
-            <p style="margin: 3px 0;">LEATS</p>
+            <p style="margin: 3px 0;">${companySettings?.companyName || 'LEATS'}</p>
             <p style="margin: 3px 0;">Powered by POS System</p>
           </div>
         </body>
@@ -328,11 +351,17 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
 
       // Header
       pdf.setFontSize(14);
-      addCenteredText('LEATS', 14);
+      addCenteredText(companySettings?.companyName || 'LEATS', 14);
       pdf.setFontSize(8);
-      addCenteredText('9A, Erukku St, Navath Nagar', 8);
-      addCenteredText('Gandhipuram, Coimbatore, 641012', 8);
-      addCenteredText('Phone: +91 1234567890', 8);
+      if (companySettings?.address) {
+        addCenteredText(companySettings.address, 8);
+      }
+      if (companySettings?.city || companySettings?.state || companySettings?.zipCode) {
+        addCenteredText([companySettings?.city, companySettings?.state, companySettings?.zipCode].filter(Boolean).join(', '), 8);
+      }
+      if (companySettings?.gstNumber) {
+        addCenteredText(`GSTIN: ${companySettings.gstNumber}`, 8);
+      }
       
       yPos += 3;
       pdf.line(5, yPos, pageWidth - 5, yPos);
@@ -445,7 +474,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
       // Footer
       pdf.setFontSize(9);
       addCenteredText('Thank You, Please Come Again!', 9);
-      addCenteredText('LEATS', 8);
+      addCenteredText(companySettings?.companyName || 'LEATS', 8);
 
       // Download PDF
       pdf.save(`Invoice-${invoiceNumber}.pdf`);
@@ -474,10 +503,25 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
             <div ref={printRef}>
             {/* Invoice Header */}
             <div className="text-center border-b-2 border-dashed border-gray-800 pb-3 mb-3">
-              <h1 className="text-lg font-bold mb-1">LEATS</h1>
-              <p className="text-xs leading-tight">9A, Erukku St, Navath Nagar, Gandhipuram,</p>
-              <p className="text-xs leading-tight">Coimbatore, 641012</p>
-              <p className="text-xs leading-tight">Phone: +91 1234567890</p>
+              {companySettings?.logoUrl ? (
+                <div className="relative w-40 h-20 flex items-center justify-center overflow-hidden mx-auto">
+                  <img 
+                    src={companySettings.logoUrl} 
+                    alt="Company Logo" 
+                    className="max-w-full max-h-full object-contain"
+                    style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '100%' }}
+                  />
+                </div>
+              ) : (
+                <h1 className="text-lg font-bold mb-1">{companySettings?.companyName || 'LEATS'}</h1>
+              )}
+              {companySettings?.address && <p className="text-xs leading-tight">{companySettings.address}</p>}
+              {(companySettings?.city || companySettings?.state || companySettings?.zipCode) && (
+                <p className="text-xs leading-tight">
+                  {[companySettings?.city, companySettings?.state, companySettings?.zipCode].filter(Boolean).join(', ')}
+                </p>
+              )}
+              {companySettings?.gstNumber && <p className="text-xs leading-tight">GSTIN: {companySettings.gstNumber}</p>}
             </div>
 
             {/* Invoice Info */}
@@ -593,7 +637,7 @@ export const PurchaseSuccessModal: React.FC<PurchaseSuccessModalProps> = ({
             {/* Footer */}
             <div className="text-center mt-4 pt-3 border-t-2 border-dashed border-gray-800">
               <p className="text-xs font-bold mb-1">Thank You, Please Come Again!</p>
-              <p className="text-xs">LEATS</p>
+              <p className="text-xs">{companySettings?.companyName || 'LEATS'}</p>
               <p className="text-xs mt-2">Powered by POS System</p>
             </div>
           </div>

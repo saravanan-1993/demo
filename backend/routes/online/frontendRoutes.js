@@ -16,6 +16,7 @@ const {
   getProducts,
   getProductById,
   getHomepageProducts,
+  getFrequentlyBoughtTogether,
 } = require("../../controllers/online/frontend/frontendProductsController");
 
 // ============================================
@@ -33,6 +34,7 @@ router.get("/subcategories/:id", getSubcategoryById);
 // Products Routes
 router.get("/products", getProducts);
 router.get("/products/:id", getProductById);
+router.get("/products/:id/frequently-bought-together", getFrequentlyBoughtTogether);
 
 // Homepage Products Route - Get products by homepage badge
 router.get("/homepage-products", getHomepageProducts);

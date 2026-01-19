@@ -48,6 +48,20 @@ export const POSInterface = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [currencySymbol, setCurrencySymbol] = useState<string>("₹");
   const [currency, setCurrency] = useState<string>("INR");
+  
+  // Company Settings
+  const [companySettings, setCompanySettings] = useState<{
+    companyName: string;
+    logoUrl: string;
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+    phone: string;
+    email: string;
+    gstNumber?: string;
+  } | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null
   );
@@ -75,7 +89,7 @@ export const POSInterface = () => {
   const [heldOrders, setHeldOrders] = useState<HeldOrder[]>([]);
   const [showHeldOrders, setShowHeldOrders] = useState(false);
 
-  // Fetch admin currency on mount
+  // Fetch admin currency and company settings on mount
   React.useEffect(() => {
     const fetchAdminCurrency = async () => {
       try {
@@ -95,7 +109,39 @@ export const POSInterface = () => {
         // Keep defaults
       }
     };
+    
+    const loadCompanySettings = async () => {
+      try {
+        // Fetch both web settings (for logo) and admin settings (for company details)
+        const [webSettingsResponse, adminResponse] = await Promise.all([
+          axiosInstance.get("/api/web/web-settings"),
+          axiosInstance.get("/api/auth/admin/settings")
+        ]);
+        
+        if (webSettingsResponse.data.success || adminResponse.data.success) {
+          const adminData = adminResponse.data.data || {};
+          
+          // Combine both settings
+          setCompanySettings({
+            companyName: adminData.companyName || 'Company',
+            logoUrl: webSettingsResponse.data.data?.logoUrl || '',
+            address: adminData.address || '',
+            city: adminData.city || '',
+            state: adminData.state || '',
+            zipCode: adminData.zipCode || '',
+            country: adminData.country || '',
+            phone: '',
+            email: '',
+            gstNumber: adminData.gstNumber || '',
+          });
+        }
+      } catch (error) {
+        console.error("Error loading settings:", error);
+      }
+    };
+    
     fetchAdminCurrency();
+    loadCompanySettings();
   }, []);
 
   // Format currency helper
@@ -436,6 +482,7 @@ export const POSInterface = () => {
           orderDate={lastOrderDate}
           cartItems={completedCartItems}
           customer={completedCustomer}
+          companySettings={companySettings}
           subtotal={completedTotals.subtotal}
           total={completedTotals.total}
           roundingOff={completedTotals.roundingOff}

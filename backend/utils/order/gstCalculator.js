@@ -43,14 +43,23 @@ const calculateGSTBreakdown = (items, gstType) => {
   let totalIGST = 0;
 
   const itemsWithGST = items.map((item) => {
-    const itemTotal = item.quantity * item.unitPrice;
+    // Treat unitPrice as Tax Inclusive
+    const finalLinePrice = item.quantity * item.unitPrice;
     const gstRate = item.gstPercentage || 0;
 
-    console.log("🔍 calculateGSTBreakdown - Item:", {
+    // Back-calculate Base Price and Tax
+    // Final = Base * (1 + Rate/100)
+    // Base = Final / (1 + Rate/100)
+    const baseLinePrice = finalLinePrice / (1 + gstRate / 100);
+    const totalItemGstAmount = finalLinePrice - baseLinePrice;
+
+    console.log("🔍 calculateGSTBreakdown - Item (Inclusive):", {
       productName: item.productName,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
-      itemTotal,
+      finalLinePrice,
+      baseLinePrice,
+      totalItemGstAmount,
       gstRate,
       gstType,
     });
@@ -60,35 +69,21 @@ const calculateGSTBreakdown = (items, gstType) => {
     let igstAmount = 0;
 
     if (gstType === "cgst_sgst") {
-      // Split GST rate in half for CGST and SGST
-      const halfRate = gstRate / 2;
-      cgstAmount = (itemTotal * halfRate) / 100;
-      sgstAmount = (itemTotal * halfRate) / 100;
-      console.log("🔍 CGST+SGST calculation:", { halfRate, cgstAmount, sgstAmount });
+      // Split GST amount in half for CGST and SGST
+      cgstAmount = totalItemGstAmount / 2;
+      sgstAmount = totalItemGstAmount / 2;
     } else {
-      // Full rate for IGST
-      igstAmount = (itemTotal * gstRate) / 100;
-      console.log("🔍 IGST calculation:", { gstRate, igstAmount });
+      // Full amount for IGST
+      igstAmount = totalItemGstAmount;
     }
-
-    const totalGstAmount = cgstAmount + sgstAmount + igstAmount;
-    const totalPrice = itemTotal + totalGstAmount;
 
     totalCGST += cgstAmount;
     totalSGST += sgstAmount;
     totalIGST += igstAmount;
 
-    console.log("🔍 Item GST calculated:", {
-      cgstAmount,
-      sgstAmount,
-      igstAmount,
-      totalGstAmount,
-      totalPrice,
-    });
-
     return {
       ...item,
-      itemTotal,
+      itemTotal: baseLinePrice, // Used for subtotal (Tax Exclusive)
       gstType,
       cgstPercentage: gstType === "cgst_sgst" ? gstRate / 2 : 0,
       sgstPercentage: gstType === "cgst_sgst" ? gstRate / 2 : 0,
@@ -96,8 +91,8 @@ const calculateGSTBreakdown = (items, gstType) => {
       cgstAmount,
       sgstAmount,
       igstAmount,
-      totalGstAmount,
-      totalPrice,
+      totalGstAmount: totalItemGstAmount,
+      totalPrice: finalLinePrice, // Inclusive Total
     };
   });
 

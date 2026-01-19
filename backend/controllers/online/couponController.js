@@ -487,3 +487,117 @@ exports.getCouponStats = async (req, res) => {
     });
   }
 };
+
+// Get available coupons for user
+exports.getAvailableCoupons = async (req, res) => {
+  try {
+    const { userId, orderValue } = req.query;
+
+    if (!userId || !orderValue) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: userId, orderValue"
+      });
+    }
+
+    const orderVal = parseFloat(orderValue);
+
+    // Check if user is first-time user
+    const userOrderCount = await prisma.onlineOrder.count({
+      where: { userId }
+    });
+
+    const isFirstTimeUser = userOrderCount === 0;
+
+    // Get all active coupons
+    const now = new Date();
+    const allCoupons = await prisma.coupon.findMany({
+      where: {
+        isActive: true,
+        validFrom: { lte: now },
+        validUntil: { gte: now }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+
+    // Filter coupons based on user eligibility
+    const availableCoupons = [];
+
+    for (const coupon of allCoupons) {
+      // Check if coupon has reached max usage
+      if (coupon.maxUsageCount && coupon.currentUsageCount >= coupon.maxUsageCount) {
+        continue;
+      }
+
+      // Check first-time user only coupons
+      if (coupon.usageType === "first-time-user-only" && !isFirstTimeUser) {
+        continue;
+      }
+
+      // Check user-specific usage limit
+      if (coupon.maxUsagePerUser) {
+        const userUsageCount = await prisma.couponUsage.count({
+          where: {
+            couponId: coupon.id,
+            userId
+          }
+        });
+
+        if (userUsageCount >= coupon.maxUsagePerUser) {
+          continue;
+        }
+      }
+
+      // Check minimum order value
+      if (coupon.minOrderValue && orderVal < coupon.minOrderValue) {
+        continue;
+      }
+
+      // Calculate potential discount
+      let discountAmount = 0;
+      if (coupon.discountType === "percentage") {
+        discountAmount = (orderVal * coupon.discountValue) / 100;
+        if (coupon.maxDiscountAmount && discountAmount > coupon.maxDiscountAmount) {
+          discountAmount = coupon.maxDiscountAmount;
+        }
+      } else {
+        discountAmount = coupon.discountValue;
+      }
+
+      if (discountAmount > orderVal) {
+        discountAmount = orderVal;
+      }
+
+      availableCoupons.push({
+        id: coupon.id,
+        code: coupon.code,
+        description: coupon.description,
+        discountType: coupon.discountType,
+        discountValue: coupon.discountValue,
+        usageType: coupon.usageType,
+        minOrderValue: coupon.minOrderValue,
+        maxDiscountAmount: coupon.maxDiscountAmount,
+        estimatedDiscount: parseFloat(discountAmount.toFixed(2)),
+        isFirstTimeUserOnly: coupon.usageType === "first-time-user-only"
+      });
+    }
+
+    // Sort by estimated discount (highest first)
+    availableCoupons.sort((a, b) => b.estimatedDiscount - a.estimatedDiscount);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        isFirstTimeUser,
+        coupons: availableCoupons
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching available coupons:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch available coupons",
+      error: error.message
+    });
+  }
+};

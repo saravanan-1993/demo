@@ -54,9 +54,11 @@ interface OrderItem {
   productName: string;
   variantName?: string;
   displayName?: string;
+  selectedCuttingStyle?: string;
   quantity: number;
   unitPrice?: number;
   total?: number;
+  totalPrice?: number; // API returns this field
   gstPercentage?: number;
   gstAmount?: number;
   sku?: string;
@@ -142,10 +144,60 @@ export function OnlineOrders() {
     totalRevenue: 0,
   });
 
+  // Company Settings
+  const [companySettings, setCompanySettings] = useState<{
+    companyName: string;
+    logoUrl: string;
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+    phone: string;
+    email: string;
+    gstNumber?: string;
+  } | null>(null);
+
   useEffect(() => {
     loadOrders();
+    loadCompanySettings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, statusFilter, paymentStatusFilter, paymentMethodFilter]);
+
+  const loadCompanySettings = async () => {
+    try {
+      // Fetch both web settings (for logo) and admin settings (for company details)
+      const [webSettingsResponse, adminResponse] = await Promise.all([
+        axiosInstance.get("/api/web/web-settings"),
+        axiosInstance.get("/api/auth/admin/settings")
+      ]);
+      
+      if (webSettingsResponse.data.success || adminResponse.data.success) {
+        console.log('Settings loaded:', { 
+          webSettings: webSettingsResponse.data.data,
+          admin: adminResponse.data.data 
+        });
+        
+        const adminData = adminResponse.data.data || {};
+        
+        // Combine both settings
+        setCompanySettings({
+          companyName: adminData.companyName || 'Company',
+          logoUrl: webSettingsResponse.data.data?.logoUrl || '', // Logo from web settings
+          address: adminData.address || '',
+          city: adminData.city || '',
+          state: adminData.state || '',
+          zipCode: adminData.zipCode || '',
+          country: adminData.country || '',
+          phone: '', // Admin settings doesn't have phone
+          email: '', // Admin settings doesn't have email
+          gstNumber: adminData.gstNumber || '',
+        });
+      }
+    } catch (error) {
+      console.error("Error loading settings:", error);
+    }
+  };
 
   const loadOrders = async () => {
     try {
@@ -275,12 +327,19 @@ export function OnlineOrders() {
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px;">
             <!-- Logo Section -->
             <div>
-              <div style="width: 160px; height: 80px; background-color: rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center; border-radius: 4px;">
-                <div>
-                  <div style="color: #e22a2a; font-weight: bold; font-size: 18px;">LEATS</div>
-                  <div style="color: #64748b; font-size: 12px;">Daily Fresh Delivery</div>
+              ${companySettings?.logoUrl ? `
+                <div style="width: 160px; height: 80px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                  <img 
+                    src="${companySettings.logoUrl}" 
+                    alt="Company Logo" 
+                    style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;" 
+                  />
                 </div>
-              </div>
+              ` : `
+                <div style="width: 160px; height: 80px; background-color: rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center; border-radius: 4px;">
+                  <div style="color: #e22a2a; font-weight: bold; font-size: 18px;">${companySettings?.companyName || 'COMPANY'}</div>
+                </div>
+              `}
             </div>
             
             <!-- Title and Details -->
@@ -309,12 +368,11 @@ export function OnlineOrders() {
             <div>
               <p style="font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px;">BILL FROM</p>
               <div>
-                <p style="font-weight: bold; color: black; font-size: 16px; margin-bottom: 8px;">Ecommerce Surface</p>
-                <p style="font-size: 14px; color: #64748b; line-height: 1.5; margin-bottom: 4px;">Street Address</p>
-                <p style="font-size: 14px; color: #64748b; line-height: 1.5; margin-bottom: 4px;">City, State, ZIP Code</p>
-                <p style="font-size: 14px; color: #64748b; line-height: 1.5; margin-bottom: 4px;">India</p>
-                <p style="font-size: 14px; color: #64748b; line-height: 1.5; margin-bottom: 4px;">Phone: +91 1234567890</p>
-                <p style="font-size: 14px; color: #64748b; line-height: 1.5;">Email: contact@company.com</p>
+                <p style="font-weight: bold; color: black; font-size: 16px; margin-bottom: 8px;">${companySettings?.companyName || 'Company Name'}</p>
+                ${companySettings?.address ? `<p style="font-size: 14px; color: #64748b; line-height: 1.5; margin-bottom: 4px;">${companySettings.address}</p>` : ''}
+                ${companySettings?.city || companySettings?.state || companySettings?.zipCode ? `<p style="font-size: 14px; color: #64748b; line-height: 1.5; margin-bottom: 4px;">${[companySettings?.city, companySettings?.state, companySettings?.zipCode].filter(Boolean).join(', ')}</p>` : ''}
+                ${companySettings?.country ? `<p style="font-size: 14px; color: #64748b; line-height: 1.5; margin-bottom: 4px;">${companySettings.country}</p>` : ''}
+                ${companySettings?.gstNumber ? `<p style="font-size: 14px; color: #64748b; line-height: 1.5; margin-bottom: 4px;">GSTIN: ${companySettings.gstNumber}</p>` : ''}
               </div>
             </div>
             
@@ -353,15 +411,15 @@ export function OnlineOrders() {
             <tbody>
               ${order.items.map((item, index) => {
                 const unitPrice = item.unitPrice || 0;
-                const totalAmount = item.total || (item.quantity * unitPrice);
+                const totalAmount = item.totalPrice || item.total || (item.quantity * unitPrice);
                 const gstPercentage = item.gstPercentage || 0;
                 
                 return `
                   <tr style="border-bottom: 1px solid #e5e7eb; ${index % 2 === 1 ? 'background-color: #f8fafc;' : ''}">
                     <td style="padding: 12px 8px; color: #64748b; text-align: center;">${index + 1}</td>
                     <td style="padding: 12px 8px;">
-                      <div style="font-weight: 600; color: #1f2937; margin-bottom: 4px;">${item.productName}</div>
-                      ${item.variantName && item.variantName !== item.productName ? `<div style="font-size: 11px; color: #9ca3af;">${item.displayName || item.variantName}</div>` : ''}
+                      <div style="font-weight: 600; color: #1f2937; margin-bottom: 4px;">${item.displayName || item.variantName || item.productName}</div>
+                      ${item.selectedCuttingStyle ? `<div style="font-size: 11px; color: #9ca3af;">Cutting: ${item.selectedCuttingStyle}</div>` : ''}
                       ${(item.sku || item.itemCode) ? `<div style="font-size: 11px; color: #9ca3af;">SKU: ${item.sku || item.itemCode}</div>` : ''}
                     </td>
                     <td style="padding: 12px 8px; text-align: center; color: #64748b;">${item.hsnCode || '-'}</td>
@@ -920,15 +978,17 @@ export function OnlineOrders() {
                       className="flex justify-between p-2 bg-gray-50 rounded"
                     >
                       <div>
-                        <p className="font-medium">{item.productName}</p>
-                        <p className="text-sm text-gray-600">
-                          {item.displayName || item.variantName}
-                        </p>
+                        <p className="font-medium">{item.displayName || item.variantName || item.productName}</p>
+                        {item.selectedCuttingStyle && (
+                          <p className="text-xs text-gray-500">
+                            Cutting: {item.selectedCuttingStyle}
+                          </p>
+                        )}
                         <p className="text-sm">Qty: {item.quantity}</p>
                       </div>
                       <p className="font-semibold">
                         {currencySymbol}
-                        {(item.total || 0).toFixed(2)}
+                        {(item.totalPrice || item.total || 0).toFixed(2)}
                       </p>
                     </div>
                   ))}
@@ -996,6 +1056,7 @@ export function OnlineOrders() {
       {/* Invoice View Modal */}
       <InvoiceView
         order={selectedOrder}
+        companySettings={companySettings}
         isOpen={showInvoiceModal}
         onClose={() => setShowInvoiceModal(false)}
       />

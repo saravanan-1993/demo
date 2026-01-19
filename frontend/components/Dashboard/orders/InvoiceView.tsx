@@ -10,17 +10,22 @@ import {
 } from "@/components/ui/dialog";
 import { Printer, Download } from "lucide-react";
 import { useCurrency } from "@/hooks/useCurrency";
-import axiosInstance from "@/lib/axios";
 
 interface OrderItem {
   productName: string;
   variantName?: string;
   displayName?: string;
+  selectedCuttingStyle?: string;
   quantity: number;
   unitPrice?: number;
   total?: number;
+  totalPrice?: number; // API returns this field
   gstPercentage?: number;
   gstAmount?: number;
+  totalGstAmount?: number; // Total GST for the item
+  igstAmount?: number;
+  cgstAmount?: number;
+  sgstAmount?: number;
 }
 
 interface OnlineOrder {
@@ -71,11 +76,23 @@ interface OnlineOrder {
 
 interface InvoiceViewProps {
   order: OnlineOrder | null;
+  companySettings: {
+    companyName: string;
+    logoUrl: string;
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+    phone: string;
+    email: string;
+    gstNumber?: string;
+  } | null;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function InvoiceView({ order, isOpen, onClose }: InvoiceViewProps) {
+export function InvoiceView({ order, companySettings, isOpen, onClose }: InvoiceViewProps) {
   const currencySymbol = useCurrency();
   const printRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -107,15 +124,15 @@ export function InvoiceView({ order, isOpen, onClose }: InvoiceViewProps) {
     const itemsHtml = order.items.map(item => `
       <div style="margin: 5px 0;">
         <div style="display: grid; grid-template-columns: 2fr 0.5fr 1fr 1.2fr 1fr; gap: 4px; font-size: 11px;">
-          <span style="font-weight: bold;">${item.productName}</span>
+          <span style="font-weight: bold;">${item.displayName || item.variantName || item.productName}</span>
           <span style="text-align: center;">${item.quantity}</span>
           <span style="text-align: right;">${formatCurrency(item.unitPrice)}</span>
-          <span style="text-align: right;">${item.gstPercentage ? `${formatCurrency(item.gstAmount || 0)}(${item.gstPercentage}%)` : '-'}</span>
-          <span style="text-align: right; font-weight: bold;">${formatCurrency(item.total)}</span>
+          <span style="text-align: right;">${item.gstPercentage ? `${formatCurrency(item.totalGstAmount || item.igstAmount || item.gstAmount || 0)}(${item.gstPercentage}%)` : '-'}</span>
+          <span style="text-align: right; font-weight: bold;">${formatCurrency(item.totalPrice || item.total)}</span>
         </div>
-        ${(item.displayName || item.variantName) && (item.displayName || item.variantName) !== '-' ? `
+        ${item.selectedCuttingStyle ? `
           <div style="font-size: 10px; color: #333; margin-left: 4px;">
-            Variant: ${item.displayName || item.variantName}
+            Cutting: ${item.selectedCuttingStyle}
           </div>
         ` : ''}
       </div>
@@ -221,10 +238,17 @@ export function InvoiceView({ order, isOpen, onClose }: InvoiceViewProps) {
         <body>
           <!-- Invoice Header -->
           <div class="invoice-header">
-            <h1>LEATS</h1>
-            <p>9A, Erukku St, Navath Nagar, Gandhipuram,</p>
-            <p>Coimbatore, 641012</p>
-            <p>Phone: +91 1234567890</p>
+            ${companySettings?.logoUrl ? `
+              <div style="position: relative; width: 160px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                <img 
+                  src="${companySettings.logoUrl}" 
+                  alt="Company Logo" 
+                  style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;" 
+                  crossorigin="anonymous"
+                  referrerpolicy="no-referrer"
+                /'}
+              </div>
+            ` : ''}
           </div>
 
           <!-- Invoice Info -->
@@ -344,7 +368,7 @@ export function InvoiceView({ order, isOpen, onClose }: InvoiceViewProps) {
           <!-- Footer -->
           <div class="footer">
             <p style="font-weight: bold; margin: 3px 0;">Thank You, Please Come Again!</p>
-            <p style="margin: 3px 0;">LEATS</p>
+            <p style="margin: 3px 0;">${companySettings?.companyName || 'LEATS'}</p>
             <p style="margin: 3px 0;">Powered by E-Commerce System</p>
           </div>
         </body>
@@ -382,6 +406,16 @@ export function InvoiceView({ order, isOpen, onClose }: InvoiceViewProps) {
       // Create the thermal print HTML
       tempDiv.innerHTML = generateThermalPrintHTML(order);
       document.body.appendChild(tempDiv);
+
+      // Ensure logo is CORS-friendly for html2canvas
+      const logoImg = tempDiv.querySelector('img') as HTMLImageElement;
+      if (logoImg && companySettings?.logoUrl) {
+        logoImg.crossOrigin = "anonymous";
+        logoImg.referrerPolicy = "no-referrer";
+        logoImg.src = companySettings.logoUrl;
+        // Wait for logo to load
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
 
       // Wait for rendering
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -433,9 +467,10 @@ export function InvoiceView({ order, isOpen, onClose }: InvoiceViewProps) {
       // Download the PDF
       pdf.save(`invoice-${order.orderNumber}.pdf`);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error downloading PDF:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
+      const axiosError = error as { response?: { data?: { message?: string } }; message?: string };
+      const errorMessage = axiosError.response?.data?.message || axiosError.message || 'Unknown error';
       alert(`Failed to download PDF: ${errorMessage}`);
     } finally {
       setIsDownloading(false);
@@ -458,15 +493,15 @@ export function InvoiceView({ order, isOpen, onClose }: InvoiceViewProps) {
     const itemsHtml = order.items.map(item => `
       <div style="margin: 5px 0;">
         <div style="display: grid; grid-template-columns: 2fr 0.5fr 1fr 1.2fr 1fr; gap: 4px; font-size: 11px;">
-          <span style="font-weight: bold;">${item.productName}</span>
+          <span style="font-weight: bold;">${item.displayName || item.variantName || item.productName}</span>
           <span style="text-align: center;">${item.quantity}</span>
           <span style="text-align: right;">${formatCurrency(item.unitPrice)}</span>
-          <span style="text-align: right;">${item.gstPercentage ? `${formatCurrency(item.gstAmount || 0)}(${item.gstPercentage}%)` : '-'}</span>
-          <span style="text-align: right; font-weight: bold;">${formatCurrency(item.total)}</span>
+          <span style="text-align: right;">${item.gstPercentage ? `${formatCurrency(item.totalGstAmount || item.igstAmount || item.gstAmount || 0)}(${item.gstPercentage}%)` : '-'}</span>
+          <span style="text-align: right; font-weight: bold;">${formatCurrency(item.totalPrice || item.total)}</span>
         </div>
-        ${(item.displayName || item.variantName) && (item.displayName || item.variantName) !== '-' ? `
+        ${item.selectedCuttingStyle ? `
           <div style="font-size: 10px; color: #333; margin-left: 4px;">
-            Variant: ${item.displayName || item.variantName}
+            Cutting: ${item.selectedCuttingStyle}
           </div>
         ` : ''}
       </div>
@@ -475,10 +510,17 @@ export function InvoiceView({ order, isOpen, onClose }: InvoiceViewProps) {
     return `
       <!-- Invoice Header -->
       <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px;">
-        <h1 style="font-size: 18px; font-weight: bold; margin: 0 0 5px 0;">LEATS</h1>
-        <p style="margin: 2px 0; font-size: 11px;">9A, Erukku St, Navath Nagar, Gandhipuram,</p>
-        <p style="margin: 2px 0; font-size: 11px;">Coimbatore, 641012</p>
-        <p style="margin: 2px 0; font-size: 11px;">Phone: +91 1234567890</p>
+        ${companySettings?.logoUrl ? `
+          <div style="position: relative; width: 160px; height: 80px; margin: 0 auto; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+            <img 
+              src="${companySettings.logoUrl}" 
+              alt="Company Logo" 
+              style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;" 
+              crossorigin="anonymous"
+              referrerpolicy="no-referrer"
+            />
+          </div>
+        ` : ''}
       </div>
 
       <!-- Invoice Info -->
@@ -598,8 +640,7 @@ export function InvoiceView({ order, isOpen, onClose }: InvoiceViewProps) {
       <!-- Footer -->
       <div style="text-align: center; margin-top: 15px; padding-top: 10px; border-top: 2px dashed #000; font-size: 10px;">
         <p style="font-weight: bold; margin: 3px 0;">Thank You, Please Come Again!</p>
-        <p style="margin: 3px 0;">LEATS</p>
-        <p style="margin: 3px 0;">Powered by E-Commerce System</p>
+        
       </div>
     `;
   };
@@ -630,10 +671,16 @@ export function InvoiceView({ order, isOpen, onClose }: InvoiceViewProps) {
             <div ref={printRef}>
               {/* Invoice Header */}
               <div className="text-center border-b-2 border-dashed border-gray-800 pb-3 mb-3">
-                <h1 className="text-lg font-bold mb-1">LEATS</h1>
-                <p className="text-xs leading-tight">9A, Erukku St, Navath Nagar, Gandhipuram,</p>
-                <p className="text-xs leading-tight">Coimbatore, 641012</p>
-                <p className="text-xs leading-tight">Phone: +91 1234567890</p>
+                {companySettings?.logoUrl && (
+                  <div className="relative w-40 h-20 flex items-center justify-center overflow-hidden mx-auto">
+                    <img 
+                      src={companySettings.logoUrl} 
+                      alt="Company Logo" 
+                      className="max-w-full max-h-full object-contain"
+                      style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '100%' }}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Invoice Info */}
@@ -692,15 +739,15 @@ export function InvoiceView({ order, isOpen, onClose }: InvoiceViewProps) {
                   return (
                     <div key={index} className="mb-2">
                       <div className="grid grid-cols-[2fr_0.5fr_1fr_1.2fr_1fr] gap-1 text-xs">
-                        <span className="font-semibold text-left">{item.productName}</span>
+                        <span className="font-semibold text-left">{item.displayName || item.variantName || item.productName}</span>
                         <span className="text-center">{item.quantity}</span>
                         <span className="text-right">{formatCurrency(item.unitPrice)}</span>
-                        <span className="text-right">{item.gstPercentage ? `${formatCurrency(item.gstAmount || 0)}(${item.gstPercentage}%)` : '-'}</span>
-                        <span className="text-right font-semibold">{formatCurrency(item.total)}</span>
+                        <span className="text-right">{item.gstPercentage ? `${formatCurrency(item.totalGstAmount || item.igstAmount || item.gstAmount || 0)}(${item.gstPercentage}%)` : '-'}</span>
+                        <span className="text-right font-semibold">{formatCurrency(item.totalPrice || item.total)}</span>
                       </div>
-                      {(item.displayName || item.variantName) && (item.displayName || item.variantName) !== '-' && (
+                      {item.selectedCuttingStyle && (
                         <div className="text-xs text-gray-600 ml-1">
-                          Variant: {item.displayName || item.variantName}
+                          Cutting: {item.selectedCuttingStyle}
                         </div>
                       )}
                     </div>
@@ -792,8 +839,6 @@ export function InvoiceView({ order, isOpen, onClose }: InvoiceViewProps) {
               {/* Footer */}
               <div className="text-center mt-4 pt-3 border-t-2 border-dashed border-gray-800">
                 <p className="text-xs font-bold mb-1">Thank You, Please Come Again!</p>
-                <p className="text-xs">LEATS</p>
-                <p className="text-xs mt-2">Powered by E-Commerce System</p>
               </div>
             </div>
           </div>

@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import type { Product } from '@/services/online-services/frontendProductService';
 import * as cartService from '@/services/online-services/frontendCartService';
+import type { CartItemResponse } from '@/services/online-services/frontendCartService';
 import { toast } from 'sonner';
 import { useAuthContext } from '@/components/providers/auth-provider';
 
@@ -52,7 +53,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       const response = await cartService.getCart(user.id);
-      setItems(response.data.map(item => ({
+      
+      const validatedItems = response.data.map((item: CartItemResponse) => ({
         productId: item.productId,
         inventoryProductId: item.inventoryProductId,
         variantIndex: item.variantIndex,
@@ -66,7 +68,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         variantMRP: item.variantMRP,
         variantImage: item.variantImage,
         selectedCuttingStyle: item.selectedCuttingStyle,
-      })));
+      }));
+      
+      setItems(validatedItems);
     } catch (error) {
       console.error('Error loading cart from backend:', error);
       
@@ -94,6 +98,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setIsInitialized(true);
     }
   }, [user?.id, user?.role, isAuthenticated, loadCart, authLoading]);
+
+  // Add cart validation on mount - check if cart is empty but should have items
+  useEffect(() => {
+    if (!isInitialized || !isAuthenticated || user?.role !== 'user') return;
+    
+    // If cart is empty after loading, it might have been cleared
+    // This is normal, but we log it for debugging
+    if (items.length === 0) {
+      console.log('Cart is empty after loading');
+    }
+  }, [isInitialized, items.length, isAuthenticated, user?.role]);
 
   const addToCart = async (product: Product, variantIndex: number, cuttingStyle?: string) => {
     // Check if user is authenticated and is a customer (not admin)
@@ -331,7 +346,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
               (item.selectedCuttingStyle || null) === (selectedCuttingStyle || null)
     );
 
-    if (!targetItem) return;
+    if (!targetItem) {
+      console.error('Target item not found in cart:', { productId, inventoryProductId, selectedCuttingStyle });
+      return;
+    }
+
+    console.log('Updating cart item:', {
+      productId,
+      inventoryProductId,
+      quantity,
+      selectedCuttingStyle,
+      targetItem
+    });
 
     // Calculate total quantity for this variant across all cutting styles (excluding current item)
     const otherItemsQuantity = items
@@ -361,12 +387,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
       await cartService.updateCartItem(user.id, inventoryProductId, quantity, selectedCuttingStyle);
     } catch (error) {
       console.error('Error updating cart:', error);
-      // Revert on error
-      setItems(previousItems);
       
       // Handle specific error cases
       if (error && typeof error === 'object' && 'response' in error) {
         const axiosError = error as { response?: { status?: number; data?: { error?: string } } };
+        
+        // Handle 404 - Cart item not found (stale data)
+        if (axiosError.response?.status === 404) {
+          // Don't show multiple toasts, just refresh silently
+          console.log('Cart item not found, refreshing cart from server...');
+          await loadCart();
+          toast.info('Cart updated from server', {
+            duration: 2000,
+          });
+          return;
+        }
         
         // Handle 404 Customer not found error
         if (axiosError.response?.status === 404 && 
@@ -374,10 +409,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
           toast.error('Account setup in progress. Please refresh the page and try again.', {
             duration: 4000,
           });
+          // Reload cart from server
+          await loadCart();
           return;
         }
       }
       
+      // Revert on other errors
+      setItems(previousItems);
       toast.error('Failed to update cart');
     }
   };

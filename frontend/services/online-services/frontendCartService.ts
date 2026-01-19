@@ -19,6 +19,7 @@ export interface CartItemResponse {
   shortDescription: string;
   brand: string;
   variantName: string;
+  displayName?: string; // Added to match backend response
   variantSellingPrice: number;
   variantMRP: number;
   variantImage: string;
@@ -106,3 +107,5 @@ export const syncCart = async (userId: string, items: Omit<CartItemRequest, 'use
   });
   return response.data;
 };
+
+

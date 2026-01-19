@@ -8,6 +8,18 @@ router.post("/", couponController.createCoupon);
 // Get all coupons
 router.get("/", couponController.getAllCoupons);
 
+// Validate coupon
+router.post("/validate", couponController.validateCoupon);
+
+// Get available coupons for user (must be before /:id route)
+router.get("/available", couponController.getAvailableCoupons);
+
+// Apply coupon (record usage)
+router.post("/apply", couponController.applyCoupon);
+
+// Get coupon statistics (must be before /:id route)
+router.get("/:id/stats", couponController.getCouponStats);
+
 // Get coupon by ID
 router.get("/:id", couponController.getCouponById);
 
@@ -16,14 +28,5 @@ router.put("/:id", couponController.updateCoupon);
 
 // Delete coupon
 router.delete("/:id", couponController.deleteCoupon);
-
-// Validate coupon
-router.post("/validate", couponController.validateCoupon);
-
-// Apply coupon (record usage)
-router.post("/apply", couponController.applyCoupon);
-
-// Get coupon statistics
-router.get("/:id/stats", couponController.getCouponStats);
 
 module.exports = router;

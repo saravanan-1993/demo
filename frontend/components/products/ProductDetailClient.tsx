@@ -22,10 +22,13 @@ import {
 import {
   getProductById,
   getProducts,
+  getFrequentlyBoughtTogether,
   type Product,
+  type FrequentlyBoughtTogetherAddon,
 } from "@/services/online-services/frontendProductService";
 import { generateCategorySlug } from "@/lib/slugify";
 import DynamicProductCard from "@/components/Home/DynamicProductCard";
+import FrequentlyBoughtTogether from "@/components/Product/FrequentlyBoughtTogether";
 import { useWishlist } from "@/context/WishlistContext";
 import { useCart } from "@/context/CartContext";
 import { toast } from "sonner";
@@ -46,6 +49,7 @@ export default function ProductDetailClient({
 
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [frequentlyBoughtTogether, setFrequentlyBoughtTogether] = useState<FrequentlyBoughtTogetherAddon[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedVariant, setSelectedVariant] = useState(0);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -104,6 +108,19 @@ export default function ProductDetailClient({
       }
     };
     fetchRelatedProducts();
+
+    // Fetch frequently bought together
+    const fetchFrequentlyBoughtTogether = async () => {
+      try {
+        const response = await getFrequentlyBoughtTogether(product.id);
+        if (response.success && response.data.length > 0) {
+          setFrequentlyBoughtTogether(response.data);
+        }
+      } catch (err) {
+        console.error("Error fetching frequently bought together:", err);
+      }
+    };
+    fetchFrequentlyBoughtTogether();
   }, [product]);
 
   // Close share menu on scroll - only when scrolled significantly (150px)
@@ -145,6 +162,42 @@ export default function ProductDetailClient({
     }
 
     await addToCart(product, selectedVariant, selectedCuttingStyle);
+  };
+
+  const handleAddMultipleToCart = async (items: Array<{ inventoryProductId: string; quantity: number }>) => {
+    try {
+      // Add main product first
+      const mainItem = items.find(item => item.inventoryProductId === currentVariant?.inventoryProductId);
+      if (mainItem && product) {
+        await addToCart(product, selectedVariant, selectedCuttingStyle);
+      }
+
+      // Add addon products
+      const addonItems = items.filter(item => item.inventoryProductId !== currentVariant?.inventoryProductId);
+      
+      for (const addonItem of addonItems) {
+        // Find the addon product details from frequentlyBoughtTogether
+        const addon = frequentlyBoughtTogether.find(
+          fbt => fbt.variant.inventoryProductId === addonItem.inventoryProductId
+        );
+        
+        if (addon) {
+          // Create a product object for the addon
+          const addonProduct: Product = {
+            ...addon.product,
+            id: addon.productId,
+            variants: [addon.variant],
+            enableVariants: true,
+          } as Product;
+          
+          // Add the addon product to cart
+          await addToCart(addonProduct, addon.variantIndex, "");
+        }
+      }
+    } catch (error) {
+      console.error("Error adding multiple items:", error);
+      throw error;
+    }
   };
 
   const handleIncrement = () => {
@@ -814,6 +867,25 @@ export default function ProductDetailClient({
             </div>
           </div>
         </div>
+
+        {/* Frequently Bought Together Section - Above Product Description */}
+        {frequentlyBoughtTogether.length > 0 && currentVariant && (
+          <div className="mb-4 sm:mb-6">
+            <FrequentlyBoughtTogether
+              mainProduct={{
+                id: product.id,
+                name: currentVariant.displayName || product.shortDescription,
+                price: price,
+                mrp: mrp,
+                image: currentImage,
+                inventoryProductId: inventoryProductId,
+                variantIndex: selectedVariant,
+              }}
+              addons={frequentlyBoughtTogether}
+              onAddToCart={handleAddMultipleToCart}
+            />
+          </div>
+        )}
 
         {/* Product Information Section - Professional E-commerce Style */}
         <div className="bg-white rounded-lg mb-4 sm:mb-6">
