@@ -164,8 +164,8 @@ export default function DynamicProductCard({
 
   return (
     <div
-      className="bg-white border border-gray-200 rounded-lg hover:shadow-lg transition-shadow group relative overflow-visible"
-      style={{ height: "auto", minHeight: "340px" }}
+      className="bg-white border border-gray-200 rounded-lg hover:shadow-lg transition-shadow group relative overflow-visible flex flex-col"
+      style={{ minHeight: '420px' }}
     >
       {/* Wishlist Icon */}
       <button
@@ -195,15 +195,18 @@ export default function DynamicProductCard({
         href={productUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="block overflow-hidden rounded-t-lg"
+        className="block overflow-hidden rounded-t-lg flex-shrink-0 bg-white"
       >
-        <div className="relative aspect-square bg-gray-50 p-2 sm:p-4">
+        <div className="relative aspect-square w-full flex items-center justify-center">
           {productImage ? (
             <Image
               src={productImage}
               alt={product.shortDescription}
-              fill
-              className="object-contain p-1 sm:p-2"
+              width={300}
+              height={300}
+              sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+              className="w-full h-full object-contain p-4"
+              style={{ maxWidth: '100%', maxHeight: '100%' }}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-gray-400 text-sm">
@@ -214,7 +217,7 @@ export default function DynamicProductCard({
       </Link>
 
       {/* Product Info */}
-      <div className="p-2 sm:p-3 flex flex-col">
+      <div className="p-2 sm:p-3 flex flex-col flex-1">
         {/* Brand */}
         <p className="text-[10px] sm:text-xs text-gray-500 mb-0.5">
           {product.brand}
@@ -401,8 +404,11 @@ export default function DynamicProductCard({
           )}
         </div>
 
-        {/* Add to Cart Button */}
-        <div className="flex items-center gap-2 mt-auto">
+        {/* Spacer to push button to bottom */}
+        <div className="flex-1"></div>
+
+        {/* Add to Cart Button - Always at bottom */}
+        <div className="flex items-center gap-2">
           {quantity === 0 ? (
             <button
               onClick={handleAddToCart}
