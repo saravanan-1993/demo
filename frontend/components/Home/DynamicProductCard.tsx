@@ -195,15 +195,18 @@ export default function DynamicProductCard({
         href={productUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="block overflow-hidden rounded-t-lg"
+        className="block overflow-hidden rounded-t-lg flex-shrink-0 bg-white"
       >
-        <div className="relative aspect-square bg-gray-50 p-2 sm:p-4">
+        <div className="relative aspect-square w-full flex items-center justify-center">
           {productImage ? (
             <Image
               src={productImage}
               alt={product.shortDescription}
-              fill
-              className="object-contain p-1 sm:p-2"
+              width={300}
+              height={300}
+              sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+              className="w-full h-full object-contain p-4"
+              style={{ maxWidth: '100%', maxHeight: '100%' }}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-gray-400 text-sm">
