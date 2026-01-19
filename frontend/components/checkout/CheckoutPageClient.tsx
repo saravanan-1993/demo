@@ -82,6 +82,7 @@ export default function CheckoutPageClient() {
   const [isCODAvailable, setIsCODAvailable] = useState(true);
   const [codUnavailableProducts, setCodUnavailableProducts] = useState<string[]>([]);
   const [showCODModal, setShowCODModal] = useState(false);
+  const [activePaymentGateways, setActivePaymentGateways] = useState<string[]>([]);
   
   // Coupon state
   const [couponCode, setCouponCode] = useState('');
@@ -211,6 +212,7 @@ export default function CheckoutPageClient() {
     loadAddresses();
     checkCODAvailability();
     fetchAvailableCoupons();
+    fetchActivePaymentGateways();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, user?.id, items.length, router, authLoading, isInitialized]);
 
@@ -313,6 +315,22 @@ export default function CheckoutPageClient() {
       }
     } catch (error) {
       console.error('Error fetching available coupons:', error);
+    }
+  };
+
+  const fetchActivePaymentGateways = async () => {
+    try {
+      const response = await axiosInstance.get('/api/payment-gateway/active');
+      
+      if (response.data.success) {
+        const activeGatewayNames = response.data.data.map((g: { name: string }) => g.name);
+        setActivePaymentGateways(activeGatewayNames);
+        console.log('Active payment gateways:', activeGatewayNames);
+      }
+    } catch (error) {
+      console.error('Error fetching active payment gateways:', error);
+      // Default to empty array on error
+      setActivePaymentGateways([]);
     }
   };
 
@@ -703,7 +721,17 @@ export default function CheckoutPageClient() {
   const paymentMethods = [
     { id: 'cod', name: 'Cash on Delivery', description: 'Pay when you receive', icon: '💵' },
     { id: 'online', name: 'Pay Now', description: 'Secure online payment', icon: '💳' },
-  ];
+  ].filter(method => {
+    // Filter based on active payment gateways from backend
+    if (method.id === 'cod') {
+      return activePaymentGateways.includes('cod');
+    }
+    if (method.id === 'online') {
+      // Show online payment if either Razorpay or Stripe is active
+      return activePaymentGateways.includes('razorpay') || activePaymentGateways.includes('stripe');
+    }
+    return false;
+  });
 
   // Format phone number for display
   const formatPhone = (phone: string) => {
