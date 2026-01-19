@@ -4,7 +4,6 @@ import Script from "next/script";
 import "./globals.css";
 
 import { AuthProvider } from "@/components/providers/auth-provider";
-import { CurrencyProvider } from "@/components/providers/currency-provider";
 import { CompanyProvider } from "@/components/providers/company-provider";
 import { Toaster } from "sonner";
 import FaviconUpdater from "@/components/FaviconUpdater";
