@@ -74,7 +74,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           
           // Auto-refresh user data if country is missing (for existing logged-in users)
           if (parsedUser.role === "admin" && !parsedUser.country) {
-            console.log("🔄 Country data missing, refreshing user data...");
             try {
               const response = await axiosInstance.get("/api/auth/admin/me");
               if (response.data.success) {
@@ -84,7 +83,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 };
                 localStorage.setItem("user", JSON.stringify(freshUserData));
                 setUser(freshUserData);
-                console.log("✅ User data refreshed with country:", freshUserData.country);
               }
             } catch (refreshError) {
               console.error("Failed to refresh user data:", refreshError);
@@ -131,12 +129,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     const handleAuthRefresh = () => {
-      console.log('🔄 AuthProvider: Auth refresh event received');
       // Force re-check auth state
       const token = localStorage.getItem("token");
       const userData = localStorage.getItem("user");
-      
-      console.log('🔍 AuthProvider: Token exists:', !!token, 'User data exists:', !!userData);
       
       if (!token || !userData) {
         setUser(null);
@@ -144,11 +139,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         try {
           const parsedUser = JSON.parse(userData);
-          console.log('✅ AuthProvider: Setting user:', parsedUser.name);
           setUser(parsedUser);
           setIsAuthenticated(true);
         } catch (error) {
-          console.error('❌ AuthProvider: Error parsing user data:', error);
+          console.error('Error parsing user data:', error);
           setUser(null);
           setIsAuthenticated(false);
         }
@@ -178,21 +172,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('auth-refresh'));
     }
-    
-    // Track login event for analytics
-    if (typeof window !== 'undefined') {
-      console.log('📊 User login detected, will track analytics for user:', userData.id);
-    }
   };
 
   const logout = async () => {
     try {
       await axiosInstance.post("/api/auth/logout");
-      
-      // Track logout event for analytics
-      if (typeof window !== 'undefined' && user) {
-        console.log('📊 User logout detected, will track analytics for user:', user.id);
-      }
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
@@ -205,7 +189,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const updateUser = (userData: User) => {
-    console.log("Updating user data:", userData);
     localStorage.setItem("user", JSON.stringify(userData));
     setUser(userData);
   };
@@ -215,7 +198,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (user?.role === "admin") {
         const response = await axiosInstance.get("/api/auth/admin/me");
         if (response.data.success) {
-          console.log("Refreshed user data:", response.data.data);
           updateUser(response.data.data);
           return response.data.data;
         }
