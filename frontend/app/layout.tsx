@@ -27,13 +27,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <FaviconUpdater />
-      </head>
+      <head></head>
       <body
         className={`${poppins.variable} font-sans antialiased`}
         suppressHydrationWarning
       >
+        <FaviconUpdater />
         {/* Razorpay Checkout Script */}
         <Script
           src="https://checkout.razorpay.com/v1/checkout.js"
