@@ -11,6 +11,11 @@ export interface KPICardsData {
     online: number;
     offline: number;
   };
+  trends: {
+    orders: number;
+    revenue: number;
+    avgOrderValue: number;
+  };
 }
 
 export interface OrderOperationsData {
@@ -20,6 +25,7 @@ export interface OrderOperationsData {
   shipped: number;
   delivered: number;
   cancelled: number;
+  completed: number;
 }
 
 export interface DailyInsightsData {
@@ -37,23 +43,40 @@ export interface DailyInsightsData {
     hour: string;
     orders: number;
   }>;
+  salesTimeSeries?: Array<{
+    date: string;
+    sales: number;
+    revenue: number;
+    orders: number;
+  }>;
 }
 
 export interface DeliveryPerformanceData {
   avgDeliveryTime: number;
   activeRiders: number;
+  availableRiders?: number;
   totalDeliveries: number;
+  successfulDeliveries?: number;
   failedAttempts: number;
+  successRate?: number;
+  pending?: number;
+  assigned?: number;
+  pickedUp?: number;
+  inTransit?: number;
+  delivered?: number;
 }
 
 export interface PaymentFinanceData {
   paymentSplit: {
     cod: number;
     prepaid: number;
+    codAmount: number;
+    prepaidAmount: number;
   };
   pendingCOD: number;
   failedPayments: number;
   refundsPending: number;
+  outstandingBills?: number;
   monthlyData?: Array<{
     period: string;
     month: string;
@@ -63,7 +86,19 @@ export interface PaymentFinanceData {
     orders: number;
     tax: number;
     discount: number;
+    netRevenue: number;
+    profit: number;
+    purchaseCost?: number;
   }>;
+  summary?: {
+    totalRevenue: number;
+    totalTax: number;
+    totalDiscount: number;
+    netRevenue: number;
+    totalExpenses: number;
+    profit: number;
+    profitMargin?: string;
+  };
 }
 
 export interface WarehouseAlertsData {
@@ -76,7 +111,19 @@ export interface WarehouseAlertsData {
 export interface EODClosingData {
   dailyThroughput: number;
   totalCash: number;
+  totalSales?: number;
+  totalItems?: number;
+  totalStockQuantity?: number;
+  closingStockValue?: number;
+  completedOrders?: number;
   readyToClose: boolean;
+  stockByStatus?: {
+    inStock: number;
+    lowStock: number;
+    outOfStock: number;
+    inStockQty: number;
+    lowStockQty: number;
+  };
 }
 
 export interface DashboardData {

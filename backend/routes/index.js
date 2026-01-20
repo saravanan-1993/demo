@@ -3,6 +3,9 @@ const express = require('express');
 // Auth routes
 const authRoutes = require('./auth/authRoutes');
 
+// Dashboard routes
+const dashboardRoutes = require('./dashboard/dashboardRoutes');
+
 // Email routes
 const emailConfigRoutes = require('./email/emailConfigRoutes');
 
@@ -96,6 +99,9 @@ router.get('/health', (req, res) => {
 
 // Auth routes
 router.use('/auth', authRoutes);
+
+// Dashboard routes
+router.use('/dashboard', dashboardRoutes);
 
 // Email routes
 router.use('/email/dashboard/settings/email-configuration', emailConfigRoutes);
