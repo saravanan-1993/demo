@@ -7,13 +7,14 @@ import { dashboardService } from "@/services/dashboard/dashboardService";
 import type { DashboardData } from "@/types/dashboard";
 import { KPICards } from "./KPICards";
 import { OrderOperations } from "./OrderOperations";
-import { DailyInsights } from "./DailyInsights";
+import { SalesAnalytics } from "./SalesAnalytics";
+import { TopProducts } from "./TopProducts";
 import { DeliveryPerformance } from "./DeliveryPerformance";
 import { PaymentFinance } from "./PaymentFinance";
 import { WarehouseAlerts } from "./WarehouseAlerts";
 import { EODClosing } from "./EODClosing";
 import { toast } from "sonner";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { AdvancedDateRangePicker } from "@/components/ui/advanced-date-range-picker";
 import { DateRange } from "react-day-picker";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw } from "lucide-react";
@@ -23,7 +24,25 @@ export default function Dashboard() {
   const { isLoading: authLoading } = useAuth();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  
+  // Default to today
+  const getDefaultDateRange = (): DateRange => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const date = today.getDate();
+    
+    // Create dates in local timezone
+    const todayStart = new Date(year, month, date, 0, 0, 0, 0);
+    const todayEnd = new Date(year, month, date, 23, 59, 59, 999);
+    
+    return {
+      from: todayStart,
+      to: todayEnd
+    };
+  };
+  
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(getDefaultDateRange());
 
   // Normalized date range for components (ensures both from and to are defined)
   const normalizedDateRange = dateRange?.from && dateRange?.to 
@@ -36,7 +55,7 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load data when date range changes (but not on initial mount)
+  // Load data when date range changes
   useEffect(() => {
     // Skip initial mount
     if (dashboardData !== null) {
@@ -49,43 +68,45 @@ export default function Dashboard() {
     try {
       setLoading(true);
       
-      // Only pass dates if a custom range is selected
       let startDate: string | undefined;
       let endDate: string | undefined;
       
+      // Always use the current dateRange state
       if (dateRange?.from && dateRange?.to) {
-        // Check if it's today's date
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // Format dates in local timezone (YYYY-MM-DD)
+        const formatLocalDate = (date: Date) => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
         
-        const fromDate = new Date(dateRange.from);
-        fromDate.setHours(0, 0, 0, 0);
-        
-        const toDate = new Date(dateRange.to);
-        toDate.setHours(0, 0, 0, 0);
-        
-        // Only pass dates if it's not today
-        const isToday = fromDate.getTime() === today.getTime() && 
-                       toDate.getTime() === today.getTime();
-        
-        if (!isToday) {
-          startDate = dateRange.from.toISOString().split('T')[0];
-          endDate = dateRange.to.toISOString().split('T')[0];
-        }
+        startDate = formatLocalDate(dateRange.from);
+        endDate = formatLocalDate(dateRange.to);
       }
+      
+      console.log('📅 Loading dashboard data:', { startDate, endDate });
       
       const data = await dashboardService.getDashboardData(startDate, endDate);
       setDashboardData(data);
+      
+      // Show success toast only on manual refresh
+      if (dashboardData !== null) {
+        toast.success('Dashboard data refreshed');
+      }
     } catch (error) {
       console.error('Error loading dashboard data:', error);
-      toast.error('Failed to load dashboard data');
+      toast.error('Failed to load dashboard data. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDateRangeChange = (range: DateRange | undefined) => {
-    setDateRange(range);
+    // Only update if both dates are selected (complete range)
+    if (range?.from && range?.to) {
+      setDateRange(range);
+    }
   };
 
   const handleRefresh = () => {
@@ -108,7 +129,7 @@ export default function Dashboard() {
             </Badge>
           </div>
           <div className="flex items-center gap-3">
-            <DateRangePicker
+            <AdvancedDateRangePicker
               dateRange={dateRange}
               onDateRangeChange={handleDateRangeChange}
             />
@@ -148,12 +169,18 @@ export default function Dashboard() {
               {/* Order Operations */}
               <OrderOperations data={dashboardData.orderOperations} dateRange={normalizedDateRange} />
 
-              {/* Daily Insights */}
-              <DailyInsights data={dashboardData.dailyInsights} dateRange={normalizedDateRange} />
+              {/* Sales Analytics */}
+              <SalesAnalytics data={dashboardData.dailyInsights} dateRange={normalizedDateRange} />
 
               {/* Delivery Performance */}
               <DeliveryPerformance data={dashboardData.deliveryPerformance} dateRange={normalizedDateRange} />
+            </div>
 
+            {/* Top Products - Full Width */}
+            <TopProducts data={dashboardData.dailyInsights} dateRange={normalizedDateRange} />
+
+            {/* Finance and Alerts Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Payment & Finance */}
               <PaymentFinance data={dashboardData.paymentFinance} dateRange={normalizedDateRange} />
 
