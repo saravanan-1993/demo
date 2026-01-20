@@ -263,13 +263,23 @@ export default function Footer01() {
               {companySettings?.phone && (
                 <li className="flex items-center gap-2">
                   <span>📞</span>
-                  <span>{companySettings.phone}</span>
+                  <a 
+                    href={`tel:${companySettings.phone}`}
+                    className="hover:text-[#e63946] transition-colors hover:underline"
+                  >
+                    {companySettings.phone}
+                  </a>
                 </li>
               )}
               {companySettings?.email && (
                 <li className="flex items-center gap-2">
                   <span>✉️</span>
-                  <span>{companySettings.email}</span>
+                  <a 
+                    href={`mailto:${companySettings.email}`}
+                    className="hover:text-[#e63946] transition-colors hover:underline"
+                  >
+                    {companySettings.email}
+                  </a>
                 </li>
               )}
             </ul>
