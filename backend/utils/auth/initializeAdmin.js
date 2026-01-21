@@ -44,19 +44,37 @@ async function initializeAdmin() {
     const hashedPassword = await bcrypt.hash(adminPassword, saltRounds);
     console.log("✅ Password hashed successfully");
 
-    // Create admin user
+    // Create admin user with duplicate handling
     console.log("💾 Attempting to create admin in database...");
-    const adminUser = await prisma.admin.create({
-      data: {
-        email: adminEmail,
-        password: hashedPassword,
-        name: "Admin User",
-        isVerified: true,
-        isActive: true,
-        provider: "local",
-      },
-    });
-    console.log("✅ Admin record created in database!");
+    let adminUser;
+    try {
+      adminUser = await prisma.admin.create({
+        data: {
+          email: adminEmail,
+          password: hashedPassword,
+          name: "Admin User",
+          isVerified: true,
+          isActive: true,
+          provider: "local",
+        },
+      });
+      console.log("✅ Admin record created in database!");
+    } catch (createError) {
+      // Check if error is due to duplicate email
+      if (createError.code === 'P2002' || createError.message.includes('Unique constraint')) {
+        console.log("ℹ️  Admin with this email already exists (created by concurrent request)");
+        // Fetch the existing admin
+        adminUser = await prisma.admin.findUnique({
+          where: { email: adminEmail }
+        });
+        if (!adminUser) {
+          throw new Error("Admin exists but could not be fetched");
+        }
+      } else {
+        // Re-throw if it's a different error
+        throw createError;
+      }
+    }
 
     console.log("✅ Admin user created successfully!");
     console.log(`   ID: ${adminUser.id}`);
@@ -64,29 +82,41 @@ async function initializeAdmin() {
 
     // Create default working hours (24/7 operation)
     console.log("⏰ Creating default working hours...");
-    const defaultWorkingHours = [
-      { day: "Monday", enabled: true, startTime: "00:00", endTime: "23:59" },
-      { day: "Tuesday", enabled: true, startTime: "00:00", endTime: "23:59" },
-      { day: "Wednesday", enabled: true, startTime: "00:00", endTime: "23:59" },
-      { day: "Thursday", enabled: true, startTime: "00:00", endTime: "23:59" },
-      { day: "Friday", enabled: true, startTime: "00:00", endTime: "23:59" },
-      { day: "Saturday", enabled: true, startTime: "00:00", endTime: "23:59" },
-      { day: "Sunday", enabled: true, startTime: "00:00", endTime: "23:59" },
-    ];
-
-    const workingHoursData = defaultWorkingHours.map((wh) => ({
-      adminId: adminUser.id,
-      day: wh.day,
-      enabled: wh.enabled,
-      startTime: wh.startTime,
-      endTime: wh.endTime,
-    }));
-
-    await prisma.workingHour.createMany({
-      data: workingHoursData,
+    
+    // Check if working hours already exist for this admin
+    const existingWorkingHours = await prisma.workingHour.count({
+      where: { adminId: adminUser.id }
     });
 
-    console.log("✅ Default working hours (24/7) configured!");
+    if (existingWorkingHours === 0) {
+      const defaultWorkingHours = [
+        { day: "Monday", enabled: true, startTime: "00:00", endTime: "23:59" },
+        { day: "Tuesday", enabled: true, startTime: "00:00", endTime: "23:59" },
+        { day: "Wednesday", enabled: true, startTime: "00:00", endTime: "23:59" },
+        { day: "Thursday", enabled: true, startTime: "00:00", endTime: "23:59" },
+        { day: "Friday", enabled: true, startTime: "00:00", endTime: "23:59" },
+        { day: "Saturday", enabled: true, startTime: "00:00", endTime: "23:59" },
+        { day: "Sunday", enabled: true, startTime: "00:00", endTime: "23:59" },
+      ];
+
+      const workingHoursData = defaultWorkingHours.map((wh) => ({
+        adminId: adminUser.id,
+        day: wh.day,
+        enabled: wh.enabled,
+        startTime: wh.startTime,
+        endTime: wh.endTime,
+      }));
+
+      await prisma.workingHour.createMany({
+        data: workingHoursData,
+        skipDuplicates: true, // Skip if already exists
+      });
+
+      console.log("✅ Default working hours (24/7) configured!");
+    } else {
+      console.log("ℹ️  Working hours already configured for this admin");
+    }
+    
     console.log(`📧 Email: ${adminEmail}`);
     console.log("⚠️  Please complete onboarding wizard on first login");
     
