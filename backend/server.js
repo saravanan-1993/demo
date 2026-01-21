@@ -10,6 +10,79 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Initialize database and admin BEFORE setting up middleware (for Vercel)
+let initializationPromise = null;
+
+async function initializeApp() {
+  if (initializationPromise) {
+    return initializationPromise;
+  }
+
+  initializationPromise = (async () => {
+    try {
+      console.log("═══════════════════════════════════════════════════");
+      console.log("🚀 Initializing Monolith E-Commerce Backend...");
+      console.log("═══════════════════════════════════════════════════");
+      
+      // Connect to database
+      console.log("📡 Connecting to database...");
+      await connectDB();
+      console.log("✅ Database connected successfully");
+      
+      // Auto-initialize admin user
+      console.log("\n👤 Initializing admin user...");
+      try {
+        const { initializeAdmin } = require("./utils/auth/initializeAdmin");
+        const initResult = await initializeAdmin();
+        
+        if (initResult.success) {
+          console.log("✅ Admin initialization completed successfully");
+          if (initResult.admin) {
+            console.log(`   📧 Admin Email: ${initResult.admin.email}`);
+            console.log(`   🆔 Admin ID: ${initResult.admin.id}`);
+          }
+        } else {
+          console.error("⚠️  Admin initialization failed:", initResult.message);
+          if (initResult.error) {
+            console.error("   Error details:", initResult.error.message);
+          }
+          console.error("   You can manually initialize admin by visiting: /api/init/admin");
+        }
+      } catch (initError) {
+        console.error("❌ Critical error during admin initialization:");
+        console.error("   Error:", initError.message);
+        console.error("   You can manually initialize admin by visiting: /api/init/admin");
+      }
+      
+      // Initialize Firebase Admin SDK
+      console.log("\n🔥 Initializing Firebase Admin SDK...");
+      try {
+        initializeFirebase();
+        console.log("✅ Firebase Admin SDK initialized");
+      } catch (firebaseError) {
+        console.error("⚠️ Firebase initialization failed:", firebaseError.message);
+        console.log("📱 Push notifications will not be available");
+      }
+      
+      console.log("═══════════════════════════════════════════════════");
+      console.log("✅ Initialization Complete");
+      console.log("═══════════════════════════════════════════════════\n");
+      
+      return true;
+    } catch (error) {
+      console.error("❌ Initialization failed:");
+      console.error("   Error details:", error.message);
+      console.error("   Stack:", error.stack);
+      return false;
+    }
+  })();
+
+  return initializationPromise;
+}
+
+// Run initialization immediately (for Vercel serverless)
+initializeApp();
+
 // Import routes
 const routes = require("./routes");
 
