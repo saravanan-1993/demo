@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { requestNotificationPermission } from '@/lib/firebase';
 import { saveFCMToken } from '@/lib/fcmTokenService';
 
-export default function GoogleAuthSuccess() {
+function GoogleAuthSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
@@ -126,5 +126,22 @@ export default function GoogleAuthSuccess() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function GoogleAuthSuccess() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg p-8 shadow-sm max-w-md w-full text-center">
+          <div className="h-16 w-16 mx-auto mb-4 animate-spin rounded-full border-4 border-gray-200 border-t-[#E63946]" />
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">
+            Loading...
+          </h2>
+        </div>
+      </div>
+    }>
+      <GoogleAuthSuccessContent />
+    </Suspense>
   );
 }
