@@ -33,13 +33,19 @@ async function initializeAdmin() {
     }
 
     console.log("🌱 Creating default admin user...");
+    console.log("📝 Admin data to be created:");
+    console.log("   Email:", adminEmail);
+    console.log("   Name: Admin User");
+    console.log("   Provider: local");
 
     // Hash the admin password
     const saltRounds = 12;
+    console.log("🔐 Hashing password with salt rounds:", saltRounds);
     const hashedPassword = await bcrypt.hash(adminPassword, saltRounds);
     console.log("✅ Password hashed successfully");
 
     // Create admin user
+    console.log("💾 Attempting to create admin in database...");
     const adminUser = await prisma.admin.create({
       data: {
         email: adminEmail,
@@ -50,6 +56,7 @@ async function initializeAdmin() {
         provider: "local",
       },
     });
+    console.log("✅ Admin record created in database!");
 
     console.log("✅ Admin user created successfully!");
     console.log(`   ID: ${adminUser.id}`);
