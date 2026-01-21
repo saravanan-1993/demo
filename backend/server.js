@@ -95,6 +95,12 @@ app.use((err, req, res, next) => {
 // Start server
 app.listen(PORT, async () => {
   try {
+    console.log("═══════════════════════════════════════════════════");
+    console.log("🚀 Starting Monolith E-Commerce Backend...");
+    console.log("═══════════════════════════════════════════════════");
+    
+    // Connect to database
+    console.log("📡 Connecting to database...");
     await connectDB();
     
     // Initialize Firebase Admin SDK
@@ -107,15 +113,16 @@ app.listen(PORT, async () => {
     }
     
     // Auto-initialize admin user on first database connection
+    console.log("👤 Initializing admin user...");
     const { initializeAdmin } = require("./utils/auth/initializeAdmin");
     await initializeAdmin();
     
     console.log("═══════════════════════════════════════════════════");
-    console.log("🚀 Monolith E-Commerce Backend Started Successfully");
+    console.log("✅ Monolith E-Commerce Backend Started Successfully");
     console.log("═══════════════════════════════════════════════════");
     console.log(`📍 Port: ${PORT}`);
     console.log(`🌐 Frontend: ${process.env.FRONTEND_URL || "http://localhost:3000"}`);
-    console.log(`🗄️  Database: ${process.env.MONGO_URL?.split('/').pop() || "monolith-ecommerce"}`);
+    console.log(`🗄️  Database: ${process.env.MONGO_URL?.split('/').pop()?.split('?')[0] || "monolith-ecommerce"}`);
     console.log("═══════════════════════════════════════════════════");
     console.log("📡 API Routes:");
     console.log("   /api/auth/* - Authentication endpoints");
@@ -123,6 +130,7 @@ app.listen(PORT, async () => {
     console.log("═══════════════════════════════════════════════════");
   } catch (error) {
     console.error("❌ Failed to start server:", error);
+    console.error("   Error details:", error.message);
     process.exit(1);
   }
 });
