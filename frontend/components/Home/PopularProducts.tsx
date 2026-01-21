@@ -52,11 +52,6 @@ export default function PopularProducts() {
     fetchProducts();
   }, [activeCategory]);
 
-  // Don't render section if no products and not loading
-  if (!loading && products.length === 0) {
-    return null;
-  }
-
   return (
     <section className="py-4 sm:py-6 md:py-8 bg-white">
       <div className="container mx-auto px-3 sm:px-4">
@@ -118,6 +113,26 @@ export default function PopularProducts() {
         ) : error ? (
           <div className="text-center py-8 text-gray-500">
             {error}
+          </div>
+        ) : products.length === 0 ? (
+          <div className="text-center py-12 sm:py-16">
+            <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-full mb-4">
+              <svg className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+              </svg>
+            </div>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2">No Products Available</h3>
+            <p className="text-sm sm:text-base text-gray-500 mb-4">
+              {activeCategory 
+                ? `No bestseller products found in "${activeCategory}" category.`
+                : 'No bestseller products available at the moment.'}
+            </p>
+            <button
+              onClick={() => setActiveCategory('')}
+              className="inline-flex items-center px-4 py-2 bg-[#e63946] text-white rounded-lg hover:bg-[#d62839] transition-colors text-sm sm:text-base"
+            >
+              View All Categories
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">

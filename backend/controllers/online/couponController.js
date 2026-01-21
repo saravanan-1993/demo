@@ -241,7 +241,17 @@ exports.validateCoupon = async (req, res) => {
   try {
     const { code, userId, orderValue, categories } = req.body;
 
+    // Log the request for debugging
+    console.log('📋 Coupon validation request:', {
+      code,
+      userId,
+      orderValue,
+      categories,
+      body: req.body
+    });
+
     if (!code || !userId || !orderValue) {
+      console.log('❌ Missing required fields:', { code: !!code, userId: !!userId, orderValue: !!orderValue });
       return res.status(400).json({
         success: false,
         message: "Missing required fields: code, userId, orderValue"
@@ -253,7 +263,10 @@ exports.validateCoupon = async (req, res) => {
       where: { code: code.toUpperCase() }
     });
 
+    console.log('🔍 Coupon lookup result:', coupon ? `Found: ${coupon.code}` : 'Not found');
+
     if (!coupon) {
+      console.log('❌ Coupon not found in database');
       return res.status(404).json({
         success: false,
         message: "Invalid coupon code"
@@ -262,6 +275,7 @@ exports.validateCoupon = async (req, res) => {
 
     // Check if coupon is active
     if (!coupon.isActive) {
+      console.log('❌ Coupon is not active');
       return res.status(400).json({
         success: false,
         message: "This coupon is no longer active"
@@ -271,12 +285,14 @@ exports.validateCoupon = async (req, res) => {
     // Check validity dates
     const now = new Date();
     if (now < coupon.validFrom) {
+      console.log('❌ Coupon not yet valid. Valid from:', coupon.validFrom);
       return res.status(400).json({
         success: false,
         message: "This coupon is not yet valid"
       });
     }
     if (now > coupon.validUntil) {
+      console.log('❌ Coupon expired. Valid until:', coupon.validUntil);
       return res.status(400).json({
         success: false,
         message: "This coupon has expired"
@@ -285,6 +301,7 @@ exports.validateCoupon = async (req, res) => {
 
     // Check max usage count
     if (coupon.maxUsageCount && coupon.currentUsageCount >= coupon.maxUsageCount) {
+      console.log('❌ Max usage count reached:', coupon.currentUsageCount, '/', coupon.maxUsageCount);
       return res.status(400).json({
         success: false,
         message: "This coupon has reached its maximum usage limit"
@@ -300,7 +317,10 @@ exports.validateCoupon = async (req, res) => {
         }
       });
 
+      console.log('👤 User usage check:', userUsageCount, '/', coupon.maxUsagePerUser);
+
       if (userUsageCount >= coupon.maxUsagePerUser) {
+        console.log('❌ User exceeded max usage per user');
         return res.status(400).json({
           success: false,
           message: "You have already used this coupon the maximum number of times"
@@ -314,7 +334,10 @@ exports.validateCoupon = async (req, res) => {
         where: { userId }
       });
 
+      console.log('🆕 First-time user check. Order count:', userOrderCount);
+
       if (userOrderCount > 0) {
+        console.log('❌ Not a first-time user');
         return res.status(400).json({
           success: false,
           message: "This coupon is only valid for first-time users"
@@ -324,6 +347,7 @@ exports.validateCoupon = async (req, res) => {
 
     // Check minimum order value
     if (coupon.minOrderValue && orderValue < coupon.minOrderValue) {
+      console.log('❌ Order value too low:', orderValue, '< minimum:', coupon.minOrderValue);
       return res.status(400).json({
         success: false,
         message: `Minimum order value of ${coupon.minOrderValue} required to use this coupon`
@@ -332,11 +356,41 @@ exports.validateCoupon = async (req, res) => {
 
     // Check applicable categories
     if (coupon.applicableCategories.length > 0 && categories) {
-      const hasApplicableCategory = categories.some(cat => 
+      let validationCategories = categories;
+
+      // If categories are missing or empty, fetch from cart
+      if (!validationCategories || validationCategories.length === 0) {
+        console.log('⚠️ Categories missing in request, fetching from cart for user:', userId);
+        
+        // Find customer first (userId in request is auth user id)
+        const customer = await prisma.customer.findUnique({
+          where: { userId }
+        });
+
+        if (customer) {
+          const cartItems = await prisma.cart.findMany({
+            where: { customerId: customer.id }
+          });
+          
+          if (cartItems.length > 0) {
+            validationCategories = [...new Set(cartItems.map(item => item.categoryId))];
+            console.log('✅ Fetched categories from cart:', validationCategories);
+          }
+        }
+      }
+
+      const hasApplicableCategory = validationCategories?.some(cat => 
         coupon.applicableCategories.includes(cat)
       );
 
+      console.log('📂 Category check:', { 
+        couponCategories: coupon.applicableCategories, 
+        orderCategories: validationCategories || [],
+        hasMatch: hasApplicableCategory 
+      });
+
       if (!hasApplicableCategory) {
+        console.log('❌ No matching categories');
         return res.status(400).json({
           success: false,
           message: "This coupon is not applicable to the selected products"

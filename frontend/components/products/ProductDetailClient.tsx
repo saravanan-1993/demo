@@ -382,7 +382,7 @@ export default function ProductDetailClient({
               className="text-gray-400 flex-shrink-0"
             />
             <span className="text-gray-800 font-medium truncate">
-              {product.shortDescription}
+              {currentVariant?.variantName || currentVariant?.displayName || product.shortDescription}
             </span>
           </div>
         </div>

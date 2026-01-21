@@ -18,6 +18,8 @@ export interface CartItemResponse {
   maxStock: number;
   shortDescription: string;
   brand: string;
+  category: string; // Product category name
+  categoryId: string; // Product category ID
   variantName: string;
   displayName?: string; // Added to match backend response
   variantSellingPrice: number;

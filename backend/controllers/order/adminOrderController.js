@@ -1,5 +1,6 @@
 const { prisma } = require('../../config/database');
 const { generateInvoicePDF, getCompanyData } = require('../../utils/order/invoicePDFGenerator');
+const { sendOrderStatusUpdate } = require('../../utils/notification/sendNotification');
 
 /**
  * Get all online orders with filters and pagination
@@ -212,6 +213,28 @@ const updateOrderStatus = async (req, res) => {
       where: { id },
       data: updateData
     });
+
+    // Send order status update notification to user
+    try {
+      const statusMessages = {
+        pending: 'Your order is pending confirmation',
+        confirmed: 'Your order has been confirmed and will be processed soon',
+        packing: 'Your order is being packed',
+        shipped: 'Your order has been shipped and is on the way',
+        delivered: 'Your order has been delivered successfully',
+        cancelled: 'Your order has been cancelled',
+      };
+
+      await sendOrderStatusUpdate(
+        updatedOrder.userId,
+        updatedOrder.orderNumber,
+        status,
+        statusMessages[status]
+      );
+      console.log(`📱 Order status notification sent to user`);
+    } catch (notifError) {
+      console.error(`⚠️ Failed to send order status notification:`, notifError.message);
+    }
 
     res.json({
       success: true,

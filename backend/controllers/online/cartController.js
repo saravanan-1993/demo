@@ -240,6 +240,20 @@ const addToCart = async (req, res) => {
 
       const imageKey = variant.variantImages?.[0] || null;
 
+      // Get category info - lookup by name to get ID
+      const category = await prisma.category.findUnique({
+        where: { name: product.category }
+      });
+
+      if (!category) {
+        console.error(`❌ Category not found: ${product.category}`);
+        return res.status(400).json({
+          success: false,
+          error: 'Product category not found in database',
+          message: `Category "${product.category}" does not exist`
+        });
+      }
+
       // Create new cart item
       cartItem = await prisma.cart.create({
         data: {
@@ -252,6 +266,8 @@ const addToCart = async (req, res) => {
           maxStock: variant.variantStockQuantity,
           shortDescription: product.shortDescription,
           brand: product.brand,
+          category: product.category,
+          categoryId: category.id, // Use category ID
           variantName: variant.variantName,
           displayName: variant.displayName || variant.variantName,
           variantSellingPrice: variant.variantSellingPrice,

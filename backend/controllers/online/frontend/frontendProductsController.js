@@ -160,8 +160,6 @@ const getProducts = async (req, res) => {
         isCODAvailable: true,
         shippingCharge: true,
         freeShipping: true,
-        totalStockQuantity: true,
-        stockStatus: true,
         showOnHomepage: true,
         homepageBadge: true,
         showInProductsPage: true,
@@ -278,9 +276,6 @@ const getProductById = async (req, res) => {
         isCODAvailable: true,
         shippingCharge: true,
         freeShipping: true,
-        totalStockQuantity: true,
-        lowStockAlertLevel: true,
-        stockStatus: true,
         productStatus: true,
         showOnHomepage: true,
         homepageBadge: true,
@@ -414,8 +409,6 @@ const getHomepageProducts = async (req, res) => {
         isCODAvailable: true,
         shippingCharge: true,
         freeShipping: true,
-        totalStockQuantity: true,
-        stockStatus: true,
         showOnHomepage: true,
         homepageBadge: true,
         showInProductsPage: true,
@@ -534,7 +527,6 @@ const getFrequentlyBoughtTogether = async (req, res) => {
         variants: true,
         defaultMRP: true,
         defaultSellingPrice: true,
-        stockStatus: true,
       },
     });
 
@@ -566,7 +558,6 @@ const getFrequentlyBoughtTogether = async (req, res) => {
             brand: addonProduct.brand,
             category: addonProduct.category,
             subCategory: addonProduct.subCategory,
-            stockStatus: addonProduct.stockStatus,
           },
           variant: variantWithUrls[0],
         };

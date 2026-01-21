@@ -9,6 +9,7 @@ import axiosInstance from "@/lib/axios";
 import { toast } from "sonner";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { useAuthContext } from "@/components/providers/auth-provider";
+import { requestNotificationPermission } from "@/lib/firebase";
 
 export const SignUp = () => {
   const router = useRouter();
@@ -111,11 +112,24 @@ export const SignUp = () => {
       setIsLoading(true);
 
       try {
+        // Get FCM token
+        let fcmToken = null;
+        try {
+          fcmToken = await requestNotificationPermission();
+          if (fcmToken) {
+            console.log('📱 FCM token generated for registration:', fcmToken);
+          }
+        } catch (fcmError) {
+          console.log('⚠️ FCM token generation failed:', fcmError);
+          // Continue with registration even if FCM fails
+        }
+
         const response = await axiosInstance.post('/api/auth/register', {
           email: formData.email,
           password: formData.password,
           name: formData.fullName,
           phoneNumber: formData.phoneNumber,
+          fcmToken, // Send FCM token with registration
         });
 
         if (response.data.success) {
@@ -164,6 +178,19 @@ export const SignUp = () => {
     setIsGoogleLoading(true);
 
     try {
+      // Get FCM token before redirecting
+      let fcmToken = null;
+      try {
+        fcmToken = await requestNotificationPermission();
+        if (fcmToken) {
+          // Store FCM token in sessionStorage to send after Google OAuth callback
+          sessionStorage.setItem('pendingFcmToken', fcmToken);
+          console.log('📱 FCM token stored for Google OAuth signup');
+        }
+      } catch (fcmError) {
+        console.log('⚠️ FCM token generation failed:', fcmError);
+      }
+
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
       window.location.href = `${apiUrl}/api/auth/google`;
     } catch {

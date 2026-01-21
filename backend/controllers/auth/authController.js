@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const { prisma } = require("../../config/database");
 const sessionManager = require("../../utils/auth/sessionManager");
 const { sendEmail: sendSMTPEmail, sendEmailWithEnv } = require("../../config/connectSMTP");
+const { sendNewUserRegistrationAlert, sendWelcomeNotification } = require("../../utils/notification/sendNotification");
 
 // Email helper - uses SMTP configuration
 const sendEmail = async (emailData) => {
@@ -64,7 +65,7 @@ const generateRandomToken = () => {
 const register = async (req, res) => {
   try {
     console.log("📝 Registration request received:", req.body.email);
-    const { email, password, name, phoneNumber } = req.body;
+    const { email, password, name, phoneNumber, fcmToken } = req.body;
 
     // Validation
     if (!email || !password || !name || !phoneNumber) {
@@ -129,30 +130,37 @@ const register = async (req, res) => {
     // Generate verification token
     const verificationToken = generateRandomToken();
 
+    // Prepare user data
+    const userData = {
+      email,
+      password: hashedPassword,
+      name,
+      phoneNumber,
+      verificationToken,
+    };
+
+    // Add FCM token if provided
+    if (fcmToken) {
+      userData.fcmToken = fcmToken;
+      console.log("📱 FCM token will be saved during registration");
+    }
+
     // Create user in appropriate collection
     console.log("💾 Creating user in database...");
     const user = isAdmin
       ? await prisma.admin.create({
-          data: {
-            email,
-            password: hashedPassword,
-            name,
-            phoneNumber,
-            verificationToken,
-          },
+          data: userData,
         })
       : await prisma.user.create({
-          data: {
-            email,
-            password: hashedPassword,
-            name,
-            phoneNumber,
-            verificationToken,
-          },
+          data: userData,
         });
     console.log("✅ User created:", user.id);
+    if (fcmToken) {
+      console.log(`📱 FCM token saved for new ${isAdmin ? 'admin' : 'user'}: ${user.email}`);
+    }
 
     // Create Customer record for non-admin users (monolith approach)
+    let customerId = null;
     if (!isAdmin) {
       try {
         console.log("📝 Creating customer record for user:", user.id);
@@ -166,6 +174,7 @@ const register = async (req, res) => {
             provider: 'local',
           },
         });
+        customerId = customer.id;
         console.log("✅ Customer record created:", customer.id);
       } catch (customerError) {
         console.error("❌ Failed to create customer record:");
@@ -221,6 +230,30 @@ const register = async (req, res) => {
         console.error("Failed to send email:", err);
       }
     });
+
+    // Send new user registration notification to admins (only for non-admin users)
+    if (!isAdmin) {
+      setImmediate(async () => {
+        try {
+          await sendNewUserRegistrationAlert(user.name, user.email, customerId);
+          console.log(`📱 New user registration notification sent to admins`);
+        } catch (notifError) {
+          console.error('⚠️ Failed to send registration notification:', notifError.message);
+        }
+      });
+
+      // Send welcome notification to the new user (if FCM token exists)
+      if (fcmToken) {
+        setImmediate(async () => {
+          try {
+            await sendWelcomeNotification(user.id, user.name);
+            console.log(`🎉 Welcome notification sent to user: ${user.name}`);
+          } catch (notifError) {
+            console.error('⚠️ Failed to send welcome notification:', notifError.message);
+          }
+        });
+      }
+    }
   } catch (error) {
     console.error("Registration error:", error);
     res.status(500).json({
@@ -233,7 +266,7 @@ const register = async (req, res) => {
 // Login user
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, fcmToken } = req.body;
 
     // Validation
     if (!email || !password) {
@@ -302,16 +335,22 @@ const login = async (req, res) => {
       });
     }
 
-    // Update last login in appropriate collection
+    // Update last login and FCM token in appropriate collection
+    const updateData = { lastLogin: new Date() };
+    if (fcmToken) {
+      updateData.fcmToken = fcmToken;
+      console.log(`📱 FCM token saved for ${userType}: ${user.email}`);
+    }
+
     if (userType === "admin") {
       await prisma.admin.update({
         where: { id: user.id },
-        data: { lastLogin: new Date() },
+        data: updateData,
       });
     } else {
       await prisma.user.update({
         where: { id: user.id },
-        data: { lastLogin: new Date() },
+        data: updateData,
       });
     }
 
@@ -370,7 +409,7 @@ const login = async (req, res) => {
 // Google OAuth callback
 const googleCallback = async (req, res) => {
   try {
-    const { googleId, email, name, image } = req.body;
+    const { googleId, email, name, image, fcmToken } = req.body;
 
     if (!googleId || !email || !name) {
       return res.status(400).json({
@@ -422,6 +461,12 @@ const googleCallback = async (req, res) => {
         lastLogin: new Date(),
       };
       
+      // Save FCM token if provided
+      if (fcmToken) {
+        updateData.fcmToken = fcmToken;
+        console.log(`📱 FCM token saved for Google ${isAdmin ? 'admin' : 'user'}: ${email}`);
+      }
+      
       // Only update name if user was previously a Google user (not local registration)
       // This preserves the name user chose during registration
       if (user.provider === "google") {
@@ -456,32 +501,30 @@ const googleCallback = async (req, res) => {
     } else {
       // Create new user in appropriate collection (auto-register)
       console.log("🆕 Auto-registering new Google user:", email);
+      
+      const createData = {
+        email,
+        googleId,
+        name,
+        image,
+        provider: "google",
+        isVerified: true, // Google users are auto-verified
+        lastLogin: new Date(),
+      };
+      
+      // Save FCM token if provided
+      if (fcmToken) {
+        createData.fcmToken = fcmToken;
+        console.log(`📱 FCM token saved for new Google ${isAdmin ? 'admin' : 'user'}: ${email}`);
+      }
+      
       user = isAdmin
-        ? await prisma.admin.create({
-            data: {
-              email,
-              googleId,
-              name,
-              image,
-              provider: "google",
-              isVerified: true, // Google users are auto-verified
-              lastLogin: new Date(),
-            },
-          })
-        : await prisma.user.create({
-            data: {
-              email,
-              googleId,
-              name,
-              image,
-              provider: "google",
-              isVerified: true, // Google users are auto-verified
-              lastLogin: new Date(),
-            },
-          });
+        ? await prisma.admin.create({ data: createData })
+        : await prisma.user.create({ data: createData });
       console.log("✅ Google user auto-registered:", user.id);
 
       // Create Customer record for non-admin users (monolith approach)
+      let customerId = null;
       if (!isAdmin) {
         try {
           console.log("📝 Creating customer record for Google user:", user.id);
@@ -495,12 +538,35 @@ const googleCallback = async (req, res) => {
               provider: 'google',
             },
           });
+          customerId = customer.id;
           console.log("✅ Customer record created for Google user:", customer.id);
         } catch (customerError) {
           console.error("❌ Failed to create customer record for Google user:");
           console.error("Error details:", customerError);
           console.error("User data:", { userId: user.id, email: user.email, name: user.name });
           // Don't fail authentication if customer creation fails
+        }
+
+        // Send new user registration notification to admins (non-blocking)
+        setImmediate(async () => {
+          try {
+            await sendNewUserRegistrationAlert(user.name, user.email, customerId);
+            console.log(`📱 New Google user registration notification sent to admins`);
+          } catch (notifError) {
+            console.error('⚠️ Failed to send registration notification:', notifError.message);
+          }
+        });
+
+        // Send welcome notification to the new Google user (non-blocking)
+        if (fcmToken) {
+          setImmediate(async () => {
+            try {
+              await sendWelcomeNotification(user.id, user.name);
+              console.log(`🎉 Welcome notification sent to Google user: ${user.name}`);
+            } catch (notifError) {
+              console.error('⚠️ Failed to send welcome notification:', notifError.message);
+            }
+          });
         }
       }
     }

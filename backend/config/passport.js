@@ -1,6 +1,7 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const { prisma } = require('./database');
+const { sendNewUserRegistrationAlert, sendWelcomeNotification } = require('../utils/notification/sendNotification');
 
 // Configure Google OAuth Strategy
 passport.use(new GoogleStrategy({
@@ -153,6 +154,7 @@ passport.use(new GoogleStrategy({
         console.log("✅ Passport: Google user auto-registered:", user.id);
 
         // Create Customer record for new Google user (monolith approach)
+        let customerId = null;
         try {
           console.log("📝 Passport: Creating customer record for new Google user:", user.id);
           const customer = await prisma.customer.create({
@@ -165,12 +167,33 @@ passport.use(new GoogleStrategy({
               provider: 'google',
             },
           });
+          customerId = customer.id;
           console.log("✅ Passport: Customer record created for Google user:", customer.id);
         } catch (customerError) {
           console.error("❌ Passport: Failed to create customer record:");
           console.error("Error details:", customerError);
           // Don't fail authentication if customer creation fails
         }
+
+        // Send new user registration notification to admins (non-blocking)
+        setImmediate(async () => {
+          try {
+            await sendNewUserRegistrationAlert(user.name, user.email, customerId);
+            console.log(`📱 New Google user registration notification sent to admins`);
+          } catch (notifError) {
+            console.error('⚠️ Failed to send registration notification:', notifError.message);
+          }
+        });
+
+        // Send welcome notification to the new Google user (non-blocking)
+        setImmediate(async () => {
+          try {
+            await sendWelcomeNotification(user.id, user.name);
+            console.log(`🎉 Welcome notification sent to Google user: ${user.name}`);
+          } catch (notifError) {
+            console.error('⚠️ Failed to send welcome notification:', notifError.message);
+          }
+        });
       }
       userType = 'user';
     }

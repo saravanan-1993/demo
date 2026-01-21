@@ -4,6 +4,7 @@ const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const passport = require("./config/passport");
 const { connectDB, disconnectDB } = require("./config/database");
+const { initializeFirebase } = require("./utils/firebase/firebaseAdmin");
 require("dotenv").config();
 
 const app = express();
@@ -95,6 +96,15 @@ app.use((err, req, res, next) => {
 app.listen(PORT, async () => {
   try {
     await connectDB();
+    
+    // Initialize Firebase Admin SDK
+    try {
+      initializeFirebase();
+      console.log("🔥 Firebase Admin SDK initialized");
+    } catch (firebaseError) {
+      console.error("⚠️ Firebase initialization failed:", firebaseError.message);
+      console.log("📱 Push notifications will not be available");
+    }
     
     // Auto-initialize admin user on first database connection
     const { initializeAdmin } = require("./utils/auth/initializeAdmin");

@@ -4,6 +4,7 @@ const { calculateOrderTotals: calculateGSTTotals } = require("../../utils/order/
 const { getFinancialPeriod } = require("../../utils/finance/financialPeriod");
 const { updateStockAfterOrder } = require("../../utils/inventory/stockUpdateService");
 const { createOnlineTransaction } = require("../../utils/finance/transactionService");
+const { sendOrderPlacedNotification } = require("../../utils/notification/sendNotification");
 
 /**
  * Update customer analytics (total orders, total spent, last order date)
@@ -381,7 +382,6 @@ const createCODOrder = async (req, res) => {
           where: { id: item.product.id },
           data: {
             variants: updatedVariants,
-            totalStockQuantity: updatedVariants.reduce((sum, v) => sum + (v.variantStockQuantity || 0), 0),
           },
         });
       }
@@ -434,6 +434,14 @@ const createCODOrder = async (req, res) => {
     } catch (analyticsError) {
       console.error(`⚠️ Failed to update customer analytics:`, analyticsError.message);
       // Order is still created, analytics update failure is logged
+    }
+
+    // Send order placed notification to user
+    try {
+      await sendOrderPlacedNotification(result.savedOrder.userId, result.savedOrder.orderNumber, result.savedOrder.total);
+      console.log(`📱 Order placed notification sent to user`);
+    } catch (notifError) {
+      console.error(`⚠️ Failed to send order notification:`, notifError.message);
     }
 
     console.log(`✅ COD order created: ${result.orderNumber}`);
@@ -645,7 +653,6 @@ const confirmOrder = async (req, res) => {
           where: { id: item.product.id },
           data: {
             variants: updatedVariants,
-            totalStockQuantity: updatedVariants.reduce((sum, v) => sum + (v.variantStockQuantity || 0), 0),
           },
         });
       }
@@ -698,6 +705,14 @@ const confirmOrder = async (req, res) => {
     } catch (analyticsError) {
       console.error(`⚠️ Failed to update customer analytics:`, analyticsError.message);
       // Order is still created, analytics update failure is logged
+    }
+
+    // Send order placed notification to user
+    try {
+      await sendOrderPlacedNotification(result.savedOrder.userId, result.savedOrder.orderNumber, result.savedOrder.total);
+      console.log(`📱 Order placed notification sent to user`);
+    } catch (notifError) {
+      console.error(`⚠️ Failed to send order notification:`, notifError.message);
     }
 
     console.log(`✅ Online order confirmed: ${result.orderNumber}`);

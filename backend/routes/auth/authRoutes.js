@@ -30,6 +30,12 @@ const {
   resetPassword: partnerResetPassword,
 } = require('../../controllers/partner/partnerAuthController');
 
+// Import FCM token controller
+const {
+  saveFCMToken,
+  removeFCMToken,
+} = require('../../controllers/auth/fcmTokenController');
+
 const { authenticateToken } = require('../../middleware/auth');
 
 const router = express.Router();
@@ -62,6 +68,10 @@ router.get('/google/failure', googleAuthFailure);
 router.get('/me', authenticateToken, getCurrentUser);
 router.post('/logout', authenticateToken, logout);
 router.put('/profile', authenticateToken, updateProfile);
+
+// FCM Token routes
+router.post('/fcm-token', saveFCMToken);
+router.delete('/fcm-token', removeFCMToken);
 
 // Address management routes
 router.get('/addresses', authenticateToken, getAddresses);

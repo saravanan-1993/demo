@@ -170,11 +170,11 @@ export default function DynamicProductCard({
       {/* Wishlist Icon */}
       <button
         onClick={handleWishlistToggle}
-        className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 z-20 p-1 sm:p-1.5 bg-white rounded-full shadow-md hover:shadow-lg transition-all duration-200 active:scale-95"
+        className="absolute top-2 left-2 sm:top-2 sm:left-2 z-20 p-2 sm:p-1.5 bg-white rounded-full shadow-md hover:shadow-lg transition-all duration-200 active:scale-95"
         aria-label="Add to wishlist"
       >
         <IconHeart
-          size={16}
+          size={18}
           className={`sm:w-5 sm:h-5 transition-colors ${
             isWishlisted
               ? "fill-red-500 text-red-500"
@@ -185,7 +185,7 @@ export default function DynamicProductCard({
 
       {/* Discount Badge - Overlay on Image (Top Right) */}
       {discount > 0 && (
-        <span className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 bg-green-600 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded z-10">
+        <span className="absolute top-2 right-2 sm:top-2 sm:right-2 bg-green-600 text-white text-xs sm:text-xs font-bold px-2 sm:px-2 py-1 rounded z-10">
           {discount}% OFF
         </span>
       )}
@@ -217,15 +217,15 @@ export default function DynamicProductCard({
       </Link>
 
       {/* Product Info */}
-      <div className="p-2 sm:p-3 flex flex-col flex-1">
+      <div className="p-3 sm:p-3 flex flex-col flex-1">
         {/* Brand */}
-        <p className="text-[10px] sm:text-xs text-gray-500 mb-0.5">
+        <p className="text-xs sm:text-xs text-gray-500 mb-1">
           {product.brand}
         </p>
 
         {/* Product Display Name (from variant) */}
         <Link href={productUrl} target="_blank" rel="noopener noreferrer">
-          <h3 className="text-xs sm:text-sm font-medium text-gray-800 mb-1 sm:mb-1.5 line-clamp-2 min-h-[32px] sm:min-h-[40px] hover:text-[#e63946] transition-colors">
+          <h3 className="text-sm sm:text-sm font-medium text-gray-800 mb-2 sm:mb-1.5 line-clamp-2 min-h-[40px] sm:min-h-[40px] hover:text-[#e63946] transition-colors">
             {currentVariant?.displayName ||
               product.shortDescription ||
               currentVariant?.variantName}
@@ -233,7 +233,7 @@ export default function DynamicProductCard({
         </Link>
 
         {/* Variant Selector - Reduced height */}
-        <div ref={dropdownRef} className="relative mb-1.5 sm:mb-2 h-7 sm:h-8">
+        <div ref={dropdownRef} className="relative mb-2 sm:mb-2 h-9 sm:h-8">
           <button
             onClick={(e) => {
               e.preventDefault();
@@ -243,18 +243,18 @@ export default function DynamicProductCard({
               }
             }}
             disabled={product.variants.length === 1}
-            className={`w-full h-full flex items-center justify-between px-2 sm:px-3 rounded text-xs sm:text-sm text-gray-700 transition-colors ${
+            className={`w-full h-full flex items-center justify-between px-3 sm:px-3 rounded text-sm sm:text-sm text-gray-700 transition-colors ${
               product.variants.length === 1
                 ? "bg-gray-100 cursor-default"
                 : "bg-white border border-gray-300 hover:border-gray-400 cursor-pointer"
             }`}
           >
-            <span className="truncate pr-1 sm:pr-2">
+            <span className="truncate pr-2 sm:pr-2">
               {currentVariant?.displayName || currentVariant?.variantName || "Select Variant"}
             </span>
             {product.variants.length > 1 && (
               <IconChevronDown
-                size={12}
+                size={14}
                 className={`flex-shrink-0 transition-transform sm:w-3.5 sm:h-3.5 ${
                   showVariants ? "rotate-180" : ""
                 }`}
@@ -283,26 +283,26 @@ export default function DynamicProductCard({
                       setSelectedVariant(index);
                       setShowVariants(false);
                     }}
-                    className={`w-full px-2 sm:px-3 py-1 sm:py-1.5 text-left hover:bg-gray-50 flex items-center justify-between gap-2 ${
+                    className={`w-full px-3 sm:px-3 py-2 sm:py-1.5 text-left hover:bg-gray-50 flex items-center justify-between gap-2 ${
                       selectedVariant === index ? "bg-green-50" : ""
                     }`}
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs sm:text-sm text-gray-700 truncate">
+                      <p className="text-sm sm:text-sm text-gray-700 truncate">
                         {variant.displayName || variant.variantName}
                       </p>
-                      <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                         {variantDiscount > 0 && (
-                          <span className="text-[10px] sm:text-xs text-green-600 font-medium whitespace-nowrap">
+                          <span className="text-xs sm:text-xs text-green-600 font-medium whitespace-nowrap">
                             {variantDiscount}% OFF
                           </span>
                         )}
-                        <span className="text-xs sm:text-sm font-semibold whitespace-nowrap">
+                        <span className="text-sm sm:text-sm font-semibold whitespace-nowrap">
                           {currencySymbol}
                           {variant.variantSellingPrice}
                         </span>
                         {variantDiscount > 0 && (
-                          <span className="text-[10px] sm:text-xs text-gray-400 line-through whitespace-nowrap">
+                          <span className="text-xs sm:text-xs text-gray-400 line-through whitespace-nowrap">
                             {currencySymbol}
                             {variant.variantMRP}
                           </span>
@@ -320,13 +320,13 @@ export default function DynamicProductCard({
         </div>
 
         {/* Price */}
-        <div className="flex items-center gap-1 sm:gap-2 mb-1.5 sm:mb-2">
-          <span className="text-sm sm:text-lg font-bold text-gray-900">
+        <div className="flex items-center gap-2 sm:gap-2 mb-2 sm:mb-2">
+          <span className="text-lg sm:text-lg font-bold text-gray-900">
             {currencySymbol}
             {price.toFixed(0)}
           </span>
           {discount > 0 && (
-            <span className="text-xs sm:text-sm text-gray-400 line-through">
+            <span className="text-sm sm:text-sm text-gray-400 line-through">
               {currencySymbol}
               {mrp.toFixed(0)}
             </span>
@@ -335,20 +335,20 @@ export default function DynamicProductCard({
 
         {/* Cutting Style Selector - Only show if product has cutting styles */}
         {hasCuttingStyles && (
-          <div ref={cuttingStyleRef} className="relative mb-1.5 sm:mb-2">
+          <div ref={cuttingStyleRef} className="relative mb-2 sm:mb-2">
             <button
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 setShowCuttingStyles(!showCuttingStyles);
               }}
-              className="inline-flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs bg-green-100 text-green-700 px-1.5 sm:px-2 py-0.5 rounded font-medium hover:bg-green-200 transition-colors"
+              className="inline-flex items-center gap-1 sm:gap-1 text-xs sm:text-xs bg-green-100 text-green-700 px-2.5 sm:px-2 py-1.5 rounded font-medium hover:bg-green-200 transition-colors"
             >
               <span className="font-medium">
                 {selectedCuttingStyle || "Cutting Style"}
               </span>
               <IconChevronDown
-                size={10}
+                size={12}
                 className={`sm:w-3 sm:h-3 transition-transform ${
                   showCuttingStyles ? "rotate-180" : ""
                 }`}
@@ -358,7 +358,7 @@ export default function DynamicProductCard({
             {/* Cutting Styles Dropdown */}
             {showCuttingStyles && (
               <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[160px] max-h-40 overflow-y-auto">
-                <div className="px-2 py-1.5 bg-gray-50 border-b text-[10px] sm:text-xs text-gray-500 font-medium">
+                <div className="px-3 py-2 bg-gray-50 border-b text-xs sm:text-xs text-gray-500 font-medium">
                   Choose cutting style
                 </div>
                 {cuttingStyles.map((style) => (
@@ -370,16 +370,16 @@ export default function DynamicProductCard({
                       setSelectedCuttingStyle(style.name);
                       setShowCuttingStyles(false);
                     }}
-                    className={`w-full px-2 sm:px-3 py-1.5 sm:py-2 text-left hover:bg-gray-50 flex items-center justify-between border-b border-gray-100 last:border-0 ${
+                    className={`w-full px-3 sm:px-3 py-2 sm:py-2 text-left hover:bg-gray-50 flex items-center justify-between border-b border-gray-100 last:border-0 ${
                       selectedCuttingStyle === style.name ? "bg-green-50" : ""
                     }`}
                   >
-                    <span className="text-xs sm:text-sm text-gray-700">
+                    <span className="text-sm sm:text-sm text-gray-700">
                       {style.name}
                     </span>
                     {selectedCuttingStyle === style.name && (
                       <IconCheck
-                        size={14}
+                        size={16}
                         className="text-green-600 sm:w-4 sm:h-4"
                       />
                     )}
@@ -391,14 +391,14 @@ export default function DynamicProductCard({
         )}
 
         {/* Stock Status - Always reserve space for consistency */}
-        <div className="mb-1.5 h-4 flex items-center">
+        <div className="mb-2 h-5 flex items-center">
           {isLowStock && quantity === 0 && (
-            <span className="text-[10px] sm:text-xs text-orange-600 font-medium">
+            <span className="text-xs sm:text-xs text-orange-600 font-medium">
               Only {availableStock} left in stock
             </span>
           )}
           {quantity >= availableStock && quantity > 0 && (
-            <p className="text-[10px] sm:text-xs text-orange-600 font-medium text-center w-full">
+            <p className="text-xs sm:text-xs text-orange-600 font-medium text-center w-full">
               Max stock reached
             </p>
           )}
@@ -413,7 +413,7 @@ export default function DynamicProductCard({
             <button
               onClick={handleAddToCart}
               disabled={isOutOfStock}
-              className="flex-1 py-1.5 sm:py-2 px-2 sm:px-4 bg-[#e63946] text-white rounded font-medium hover:bg-[#d62839] transition-all duration-200 active:scale-95 text-xs sm:text-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="flex-1 py-2.5 sm:py-2 px-4 sm:px-4 bg-[#e63946] text-white rounded font-medium hover:bg-[#d62839] transition-all duration-200 active:scale-95 text-sm sm:text-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               {isOutOfStock ? "Out of Stock" : "Add to Cart"}
             </button>
@@ -422,19 +422,19 @@ export default function DynamicProductCard({
               <div className="flex items-center justify-between border-2 border-[#e63946] rounded overflow-hidden">
                 <button
                   onClick={handleDecrement}
-                  className="px-2 sm:px-3 py-1.5 sm:py-2 text-[#e63946] hover:bg-[#e63946] hover:text-white transition-all duration-200 active:scale-95"
+                  className="px-3 sm:px-3 py-2 sm:py-2 text-[#e63946] hover:bg-[#e63946] hover:text-white transition-all duration-200 active:scale-95"
                 >
-                  <IconMinus size={14} className="sm:w-4 sm:h-4" />
+                  <IconMinus size={16} className="sm:w-4 sm:h-4" />
                 </button>
-                <span className="font-medium text-[#e63946] text-xs sm:text-sm">
+                <span className="font-medium text-[#e63946] text-sm sm:text-sm">
                   {quantity}
                 </span>
                 <button
                   onClick={handleIncrement}
                   disabled={quantity >= availableStock}
-                  className="px-2 sm:px-3 py-1.5 sm:py-2 text-[#e63946] hover:bg-[#e63946] hover:text-white transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 sm:px-3 py-2 sm:py-2 text-[#e63946] hover:bg-[#e63946] hover:text-white transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <IconPlus size={14} className="sm:w-4 sm:h-4" />
+                  <IconPlus size={16} className="sm:w-4 sm:h-4" />
                 </button>
               </div>
             </div>

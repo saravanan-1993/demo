@@ -1,4 +1,5 @@
 const { prisma } = require("../../config/database");
+const { sendLowStockAlert } = require("../notification/sendNotification");
 
 /**
  * Update stock after order creation (POS or Online)
@@ -30,35 +31,29 @@ const updateStockAfterOrder = async (order, source = "POS_ORDER") => {
 
           if (posProduct) {
             isPOSProduct = true;
-            // Update POS product display quantity
-            const previousQuantity = posProduct.quantity;
-            const newQuantity = Math.max(0, previousQuantity - item.quantity);
-
-            let status = "in_stock";
-            if (newQuantity === 0) {
-              status = "out_of_stock";
-            } else if (newQuantity <= posProduct.lowStockAlertLevel) {
-              status = "low_stock";
+            
+            // Find the corresponding inventory item using itemId from POSProduct
+            if (posProduct.itemId) {
+              product = await prisma.item.findUnique({
+                where: { id: posProduct.itemId },
+                include: { warehouse: true },
+              });
+              
+              if (product) {
+                console.log(`🔗 Found inventory item via POSProduct.itemId: ${product.itemName}`);
+              }
             }
-
-            await prisma.pOSProduct.update({
-              where: { id: item.productId },
-              data: {
-                quantity: newQuantity,
-                status,
-              },
-            });
-
-            console.log(
-              `✅ POS Product updated: ${posProduct.itemName} (${previousQuantity} → ${newQuantity})`
-            );
-
-            // Now find the corresponding inventory item using itemCode
-            if (posProduct.itemCode) {
+            
+            // Fallback: try itemCode if itemId lookup failed
+            if (!product && posProduct.itemCode) {
               product = await prisma.item.findFirst({
                 where: { itemCode: posProduct.itemCode },
                 include: { warehouse: true },
               });
+              
+              if (product) {
+                console.log(`🔗 Found inventory item via itemCode: ${product.itemName}`);
+              }
             }
           }
         } else if (source === "ONLINE_ORDER") {
@@ -128,14 +123,47 @@ const updateStockAfterOrder = async (order, source = "POS_ORDER") => {
           `✅ Stock updated: ${product.itemName} (${previousQuantity} → ${newQuantity}) - Status: ${status}`
         );
 
+        // Sync POS Product quantity to match inventory (for ALL order types)
+        try {
+          // Find all POS products linked to this inventory item
+          const linkedPosProducts = await prisma.pOSProduct.findMany({
+            where: { itemId: product.id }
+          });
+
+          for (const linkedPosProduct of linkedPosProducts) {
+            await prisma.pOSProduct.update({
+              where: { id: linkedPosProduct.id },
+              data: {
+                quantity: newQuantity,
+                status,
+                lastSyncedFromItem: new Date(),
+              },
+            });
+            console.log(`🔄 POS Product synced: ${product.itemName} (POS ID: ${linkedPosProduct.id}) → ${newQuantity}`);
+          }
+        } catch (syncError) {
+          console.error(`⚠️ Failed to sync POS Products:`, syncError.message);
+        }
+
+        // Sync OnlineProduct totalStockQuantity (for ALL order types)
+        try {
+          await syncOnlineProductStock(product.id);
+        } catch (syncError) {
+          console.error(`⚠️ Failed to sync OnlineProduct:`, syncError.message);
+        }
+
         // Create stock adjustment record for audit trail
+        const warehouseName = product.warehouse && typeof product.warehouse === 'object' 
+          ? product.warehouse.name 
+          : (product.warehouse || "Unknown");
+          
         await prisma.stockAdjustment.create({
           data: {
             itemId: product.id,
             itemName: product.itemName,
             category: product.category,
             warehouseId: product.warehouseId,
-            warehouseName: product.warehouse?.name || product.warehouse || "Unknown",
+            warehouseName: warehouseName,
             adjustmentMethod: "sales_order",
             adjustmentType: "decrease",
             quantity: quantitySold,
@@ -159,13 +187,47 @@ const updateStockAfterOrder = async (order, source = "POS_ORDER") => {
           }, Method: sales_order, Type: decrease`
         );
 
-        // Log stock alerts
+        // Log stock alerts and send notifications
         if (status === "low_stock") {
           console.warn(
             `⚠️ LOW STOCK ALERT: ${product.itemName} - Quantity: ${newQuantity} (Alert Level: ${product.lowStockAlertLevel})`
           );
+          
+          // Send low stock notification to admins
+          try {
+            const warehouseName = product.warehouse && typeof product.warehouse === 'object' 
+              ? product.warehouse.name 
+              : (product.warehouse || "Unknown");
+              
+            await sendLowStockAlert(
+              product.itemName, 
+              newQuantity, 
+              product.lowStockAlertLevel, 
+              warehouseName
+            );
+            console.log(`📱 Low stock notification sent for: ${product.itemName}`);
+          } catch (notifError) {
+            console.error('⚠️ Failed to send low stock notification:', notifError.message);
+          }
         } else if (status === "out_of_stock") {
           console.error(`❌ OUT OF STOCK: ${product.itemName} - Quantity: ${newQuantity}`);
+          
+          // Send out of stock notification to admins
+          try {
+            const warehouseName = product.warehouse && typeof product.warehouse === 'object' 
+              ? product.warehouse.name 
+              : (product.warehouse || "Unknown");
+              
+            await sendLowStockAlert(
+              product.itemName, 
+              newQuantity, 
+              product.lowStockAlertLevel, 
+              warehouseName
+            );
+            console.log(`📱 Out of stock notification sent for: ${product.itemName}`);
+          } catch (notifError) {
+            console.error('⚠️ Failed to send out of stock notification:', notifError.message);
+          }
         }
 
         results.push({
@@ -370,8 +432,67 @@ const reverseStockUpdate = async (order, source = "POS_ORDER") => {
   }
 };
 
+/**
+ * Sync OnlineProduct variant stock quantities for products that use this inventory item
+ * @param {String} inventoryItemId - Inventory Item ID
+ */
+const syncOnlineProductStock = async (inventoryItemId) => {
+  try {
+    // Find all online products
+    const onlineProducts = await prisma.onlineProduct.findMany({});
+    
+    for (const onlineProduct of onlineProducts) {
+      // Check if any variant uses this inventory item
+      let hasVariant = false;
+      let updatedVariants = [...onlineProduct.variants];
+      
+      // Update variant quantities that use this inventory item
+      for (let i = 0; i < updatedVariants.length; i++) {
+        const variant = updatedVariants[i];
+        if (variant.inventoryProductId === inventoryItemId) {
+          hasVariant = true;
+          
+          // Get current inventory quantity
+          const inventoryItem = await prisma.item.findUnique({
+            where: { id: inventoryItemId },
+            select: { quantity: true },
+          });
+          
+          if (inventoryItem) {
+            // Update variant stock quantity to match inventory
+            updatedVariants[i] = {
+              ...variant,
+              variantStockQuantity: inventoryItem.quantity,
+              variantStockStatus: inventoryItem.quantity === 0 
+                ? "out-of-stock" 
+                : inventoryItem.quantity <= (variant.variantLowStockAlert || 10)
+                ? "low-stock"
+                : "in-stock"
+            };
+          }
+        }
+      }
+      
+      if (hasVariant) {
+        // Update online product with new variant data
+        await prisma.onlineProduct.update({
+          where: { id: onlineProduct.id },
+          data: {
+            variants: updatedVariants,
+          },
+        });
+        
+        console.log(`🔄 OnlineProduct synced: ${onlineProduct.shortDescription} → Variants updated`);
+      }
+    }
+  } catch (error) {
+    console.error(`⚠️ Failed to sync OnlineProduct:`, error.message);
+  }
+};
+
 module.exports = {
   updateStockAfterOrder,
   updateStockAfterAdjustment,
   reverseStockUpdate,
+  syncOnlineProductStock,
 };

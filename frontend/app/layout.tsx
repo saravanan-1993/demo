@@ -5,6 +5,7 @@ import "./globals.css";
 
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { CompanyProvider } from "@/components/providers/company-provider";
+import NotificationProviderWrapper from "@/components/NotificationProviderWrapper";
 import { Toaster } from "sonner";
 import FaviconUpdater from "@/components/FaviconUpdater";
 
@@ -43,7 +44,9 @@ export default function RootLayout({
 
         <AuthProvider>
           <CompanyProvider>
-            {children}
+            <NotificationProviderWrapper>
+              {children}
+            </NotificationProviderWrapper>
           </CompanyProvider>
         </AuthProvider>
 

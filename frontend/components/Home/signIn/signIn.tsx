@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { IconEye, IconEyeOff } from '@tabler/icons-react';
 import axiosInstance from "@/lib/axios";
+import { requestNotificationPermission } from "@/lib/firebase";
 
 export const SignIn = () => {
   const router = useRouter();
@@ -65,9 +66,24 @@ export const SignIn = () => {
       setIsLoading(true);
 
       try {
+        // Get FCM token
+        let fcmToken = null;
+        try {
+          fcmToken = await requestNotificationPermission();
+          if (fcmToken) {
+            console.log('📱 FCM token generated:', fcmToken);
+          }
+        } catch (fcmError) {
+          console.log('⚠️ FCM token generation failed:', fcmError);
+          // Continue with login even if FCM fails
+        }
+
         const response = await axiosInstance.post(
           "/api/auth/login",
-          formData
+          {
+            ...formData,
+            fcmToken, // Send FCM token with login
+          }
         );
 
         if (response.data.success) {
@@ -124,6 +140,19 @@ export const SignIn = () => {
     setIsGoogleLoading(true);
 
     try {
+      // Get FCM token before redirecting
+      let fcmToken = null;
+      try {
+        fcmToken = await requestNotificationPermission();
+        if (fcmToken) {
+          // Store FCM token in sessionStorage to send after Google OAuth callback
+          sessionStorage.setItem('pendingFcmToken', fcmToken);
+          console.log('📱 FCM token stored for Google OAuth');
+        }
+      } catch (fcmError) {
+        console.log('⚠️ FCM token generation failed:', fcmError);
+      }
+
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
       window.location.href = `${apiUrl}/api/auth/google`;
     } catch {

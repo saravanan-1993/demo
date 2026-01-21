@@ -1,4 +1,5 @@
 const { prisma } = require("../../config/database");
+const { syncOnlineProductStock } = require("../inventory/stockUpdateService");
 
 /**
  * Update stock after bill/GRN creation (Purchase Order received)
@@ -101,6 +102,34 @@ const updateStockAfterPurchase = async (bill, items) => {
         console.log(
           `📝 Stock adjustment created - GRN: ${bill.grnNumber}, Method: purchase_order, Type: increase`
         );
+
+        // Sync POS Product if exists
+        try {
+          const posProduct = await prisma.pOSProduct.findFirst({
+            where: { itemId: product.id },
+          });
+
+          if (posProduct) {
+            await prisma.pOSProduct.update({
+              where: { id: posProduct.id },
+              data: {
+                quantity: newQuantity,
+                status,
+                lastSyncedFromItem: new Date(),
+              },
+            });
+            console.log(`🔄 POS Product synced: ${product.itemName} → ${newQuantity}`);
+          }
+        } catch (syncError) {
+          console.error(`⚠️ Failed to sync POS Product:`, syncError.message);
+        }
+
+        // Sync OnlineProduct totalStockQuantity
+        try {
+          await syncOnlineProductStock(product.id);
+        } catch (syncError) {
+          console.error(`⚠️ Failed to sync OnlineProduct:`, syncError.message);
+        }
 
         results.push({
           itemId: product.id,
@@ -209,6 +238,34 @@ const reverseStockAfterPurchase = async (bill, items) => {
         });
 
         console.log(`✅ Stock reversed: ${product.itemName} (${previousQuantity} → ${newQuantity})`);
+
+        // Sync POS Product if exists
+        try {
+          const posProduct = await prisma.pOSProduct.findFirst({
+            where: { itemId: product.id },
+          });
+
+          if (posProduct) {
+            await prisma.pOSProduct.update({
+              where: { id: posProduct.id },
+              data: {
+                quantity: newQuantity,
+                status,
+                lastSyncedFromItem: new Date(),
+              },
+            });
+            console.log(`🔄 POS Product synced: ${product.itemName} → ${newQuantity}`);
+          }
+        } catch (syncError) {
+          console.error(`⚠️ Failed to sync POS Product:`, syncError.message);
+        }
+
+        // Sync OnlineProduct totalStockQuantity
+        try {
+          await syncOnlineProductStock(product.id);
+        } catch (syncError) {
+          console.error(`⚠️ Failed to sync OnlineProduct:`, syncError.message);
+        }
 
         results.push({
           itemId: product.id,

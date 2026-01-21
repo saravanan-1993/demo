@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import axiosInstance from '@/lib/axios';
 
 export interface OrderItem {
   id: string;
@@ -107,7 +105,7 @@ export const getUserOrders = async (
   const params: any = { userId, page, limit };
   if (status) params.status = status;
 
-  const response = await axios.get(`${API_URL}/api/online/my-orders`, { params });
+  const response = await axiosInstance.get('/api/online/my-orders', { params });
   return response.data;
 };
 
@@ -115,7 +113,7 @@ export const getUserOrders = async (
  * Get single order by order number
  */
 export const getOrderByNumber = async (orderNumber: string, userId: string): Promise<OrderResponse> => {
-  const response = await axios.get(`${API_URL}/api/online/my-orders/${orderNumber}`, {
+  const response = await axiosInstance.get(`/api/online/my-orders/${orderNumber}`, {
     params: { userId }
   });
   return response.data;

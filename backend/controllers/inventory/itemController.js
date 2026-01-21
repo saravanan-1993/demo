@@ -2,6 +2,8 @@ const { prisma } = require("../../config/database");
 const multer = require("multer");
 const path = require("path");
 const { uploadToS3, deleteFromS3, getPresignedUrl } = require("../../utils/inventory/s3Upload");
+const { sendLowStockAlert } = require("../../utils/notification/sendNotification");
+const { syncOnlineProductStock } = require("../../utils/inventory/stockUpdateService");
 
 // Configure multer for memory storage (for S3 upload)
 const storage = multer.memoryStorage();
@@ -189,6 +191,16 @@ const createItem = async (req, res) => {
       include: { warehouse: true },
     });
 
+    // Send low stock alert if item is created with low stock
+    if (autoStatus === "low_stock" || autoStatus === "out_of_stock") {
+      try {
+        await sendLowStockAlert(item.itemName, quantity, alertLevel, item.warehouse.name);
+        console.log(`📱 Low stock alert sent for: ${item.itemName}`);
+      } catch (notifError) {
+        console.error('⚠️ Failed to send low stock alert:', notifError.message);
+      }
+    }
+
     // Auto-create POS product (display = inactive by default)
     try {
       await prisma.pOSProduct.create({
@@ -333,6 +345,20 @@ const updateItem = async (req, res) => {
       include: { warehouse: true },
     });
 
+    // Send low stock alert if status changed to low_stock or out_of_stock
+    // OR if quantity is at or below alert level (even if status didn't change)
+    if (autoStatus === "low_stock" || autoStatus === "out_of_stock") {
+      // Send alert if status changed OR if we're at/below alert level
+      if (existingItem.status !== autoStatus || quantity <= alertLevel) {
+        try {
+          await sendLowStockAlert(item.itemName, quantity, alertLevel, item.warehouse.name);
+          console.log(`📱 Low stock alert sent for: ${item.itemName} (Qty: ${quantity}, Alert: ${alertLevel})`);
+        } catch (notifError) {
+          console.error('⚠️ Failed to send low stock alert:', notifError.message);
+        }
+      }
+    }
+
     // Auto-sync POS product if exists (update stock and status only)
     try {
       const posProduct = await prisma.pOSProduct.findFirst({
@@ -354,6 +380,14 @@ const updateItem = async (req, res) => {
     } catch (posError) {
       console.error('⚠️ Failed to auto-sync POS product:', posError);
       // Don't fail the item update if POS sync fails
+    }
+
+    // Auto-sync OnlineProduct totalStockQuantity if this item is used in variants
+    try {
+      await syncOnlineProductStock(item.id);
+    } catch (onlineError) {
+      console.error('⚠️ Failed to auto-sync OnlineProduct:', onlineError);
+      // Don't fail the item update if OnlineProduct sync fails
     }
 
     res.status(200).json({

@@ -1,4 +1,6 @@
 const { prisma } = require("../../config/database");
+const { sendLowStockAlert } = require("../../utils/notification/sendNotification");
+const { syncOnlineProductStock } = require("../../utils/inventory/stockUpdateService");
 
 // Get all stock adjustments with filters
 const getAllStockAdjustments = async (req, res) => {
@@ -185,6 +187,48 @@ const createStockAdjustment = async (req, res) => {
         notes: notes || null,
       },
     });
+
+    // Send low stock alert if status changed to low_stock or out_of_stock
+    // OR if quantity is at or below alert level (even if status didn't change)
+    if (autoStatus === "low_stock" || autoStatus === "out_of_stock") {
+      // Send alert if status changed OR if we're at/below alert level
+      if (item.status !== autoStatus || newQuantity <= updatedItem.lowStockAlertLevel) {
+        try {
+          await sendLowStockAlert(updatedItem.itemName, newQuantity, updatedItem.lowStockAlertLevel, updatedItem.warehouse.name);
+          console.log(`📱 Low stock alert sent for: ${updatedItem.itemName} (Qty: ${newQuantity}, Alert: ${updatedItem.lowStockAlertLevel})`);
+        } catch (notifError) {
+          console.error('⚠️ Failed to send low stock alert:', notifError.message);
+        }
+      }
+    }
+
+    // Auto-sync POS product if exists
+    try {
+      const posProduct = await prisma.pOSProduct.findFirst({
+        where: { itemId: updatedItem.id },
+      });
+
+      if (posProduct) {
+        await prisma.pOSProduct.update({
+          where: { id: posProduct.id },
+          data: {
+            quantity: updatedItem.quantity,
+            status: updatedItem.status,
+            lastSyncedFromItem: new Date(),
+          },
+        });
+        console.log(`✅ Auto-synced POS product for item: ${updatedItem.itemName}`);
+      }
+    } catch (posError) {
+      console.error('⚠️ Failed to auto-sync POS product:', posError);
+    }
+
+    // Auto-sync OnlineProduct totalStockQuantity
+    try {
+      await syncOnlineProductStock(updatedItem.id);
+    } catch (onlineError) {
+      console.error('⚠️ Failed to auto-sync OnlineProduct:', onlineError);
+    }
 
     res.status(201).json({
       success: true,

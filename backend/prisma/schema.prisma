@@ -29,6 +29,9 @@ model Admin {
   resetTokenExpiry DateTime?
   verificationToken String?
   
+  // FCM Push Notification Token
+  fcmToken      String?   // Firebase Cloud Messaging device token
+  
   // Additional admin profile fields
   phoneNumber   String?
   address       String?
@@ -87,6 +90,9 @@ model User {
   resetTokenExpiry DateTime?
   verificationToken String?
   
+  // FCM Push Notification Token
+  fcmToken      String?   // Firebase Cloud Messaging device token
+  
   // Additional user profile fields
   phoneNumber   String? 
   address       String?
@@ -104,6 +110,7 @@ model User {
 
   @@map("users")
 }
+ 
 
 model Session {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
@@ -512,9 +519,9 @@ model OnlineProduct {
   brand            String
   shortDescription String
 
-  // Variants
+  // Variants (contains all stock info per variant)
   enableVariants Boolean
-  variants       Json[] // Array of variant objects with inventoryProductId
+  variants       Json[] // Array of variant objects with inventoryProductId, variantStockQuantity, variantStockStatus
 
   // Cutting Styles (for meat/fish products)
   cuttingStyles String[] // Array of cutting style IDs
@@ -530,11 +537,6 @@ model OnlineProduct {
   isCODAvailable       Boolean @default(true)
   shippingCharge       Float   @default(0)
   freeShipping         Boolean @default(false)
-
-  // Inventory
-  totalStockQuantity Int
-  lowStockAlertLevel Int    @default(10)
-  stockStatus        String @default("in-stock") // in-stock, out-of-stock
 
   // Visibility & SEO
   productStatus      String  @default("draft") // draft, active
@@ -593,7 +595,7 @@ model Coupon {
   maxDiscountAmount Float? // Maximum discount cap for percentage coupons
 
   // Product Categories (empty array = all categories)
-  applicableCategories String[] // Array of category names
+  applicableCategories String[] @db.ObjectId // Array of category IDs
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -661,6 +663,8 @@ model Cart {
   maxStock            Int
   shortDescription    String
   brand               String
+  category            String // Product category name
+  categoryId          String @db.ObjectId // Product category ID
   variantName         String
   displayName         String?
   variantSellingPrice Float

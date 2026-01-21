@@ -126,10 +126,14 @@ export default function Online() {
 
       if (stockFilter !== "all") {
         filteredProducts = filteredProducts.filter((p) => {
-          if (stockFilter === "in-stock") return p.totalStockQuantity > 10;
+          // Use first variant's stock quantity
+          const firstVariant = p.variants[0];
+          const stockQty = firstVariant?.variantStockQuantity || 0;
+          
+          if (stockFilter === "in-stock") return stockQty > 10;
           if (stockFilter === "low-stock")
-            return p.totalStockQuantity > 0 && p.totalStockQuantity <= 10;
-          if (stockFilter === "out-of-stock") return p.totalStockQuantity === 0;
+            return stockQty > 0 && stockQty <= 10;
+          if (stockFilter === "out-of-stock") return stockQty === 0;
           return true;
         });
       }
@@ -525,13 +529,13 @@ export default function Online() {
                       </div>
                     </TableCell>
 
-                    {/* Product Name */}
+                    {/* Product Name (Variant Name) */}
                     <TableCell className="font-medium">
                       <div className="max-w-[200px]">
-                        <div className="truncate">{product.brand}</div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {product.shortDescription}
-                        </div>
+                        <div className="truncate">{defaultVariant?.variantName || "Default"}</div>
+                        {/* <div className="text-xs text-muted-foreground truncate">
+                          {product.brand} • {product.shortDescription}
+                        </div> */}
                       </div>
                     </TableCell>
 
@@ -557,12 +561,12 @@ export default function Online() {
                       <div className="text-sm">
                         <div className="font-medium">
                           {currencySymbol}
-                          {product.defaultSellingPrice.toFixed(2)}
+                          {defaultVariant?.variantSellingPrice.toFixed(2) || "0.00"}
                         </div>
-                        {product.defaultMRP > product.defaultSellingPrice && (
+                        {defaultVariant && defaultVariant.variantMRP > defaultVariant.variantSellingPrice && (
                           <div className="text-xs text-muted-foreground line-through">
                             {currencySymbol}
-                            {product.defaultMRP.toFixed(2)}
+                            {defaultVariant.variantMRP.toFixed(2)}
                           </div>
                         )}
                       </div>
@@ -572,14 +576,14 @@ export default function Online() {
                     <TableCell>
                       <Badge
                         variant={
-                          product.totalStockQuantity > 10
+                          defaultVariant?.variantStockStatus === "in-stock"
                             ? "default"
-                            : product.totalStockQuantity > 0
+                            : defaultVariant?.variantStockStatus === "low-stock"
                             ? "secondary"
                             : "destructive"
                         }
                       >
-                        {product.totalStockQuantity} units
+                        {defaultVariant?.variantStockQuantity || 0} units
                       </Badge>
                     </TableCell>
 
@@ -700,10 +704,10 @@ export default function Online() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-sm truncate">
-                          {product.brand}
+                          {defaultVariant?.variantName || "Default"}
                         </h3>
                         <p className="text-xs text-muted-foreground truncate">
-                          {product.shortDescription}
+                          {product.brand} • {product.shortDescription}
                         </p>
                       </div>
                       <Badge
@@ -736,26 +740,26 @@ export default function Online() {
                       <div className="flex items-baseline gap-2">
                         <span className="font-semibold text-sm">
                           {currencySymbol}
-                          {product.defaultSellingPrice.toFixed(2)}
+                          {defaultVariant?.variantSellingPrice.toFixed(2) || "0.00"}
                         </span>
-                        {product.defaultMRP > product.defaultSellingPrice && (
+                        {defaultVariant && defaultVariant.variantMRP > defaultVariant.variantSellingPrice && (
                           <span className="text-xs text-muted-foreground line-through">
                             {currencySymbol}
-                            {product.defaultMRP.toFixed(2)}
+                            {defaultVariant.variantMRP.toFixed(2)}
                           </span>
                         )}
                       </div>
                       <Badge
                         variant={
-                          product.totalStockQuantity > 10
+                          defaultVariant?.variantStockStatus === "in-stock"
                             ? "default"
-                            : product.totalStockQuantity > 0
+                            : defaultVariant?.variantStockStatus === "low-stock"
                             ? "secondary"
                             : "destructive"
                         }
                         className="text-xs"
                       >
-                        {product.totalStockQuantity} units
+                        {defaultVariant?.variantStockQuantity || 0} units
                       </Badge>
                     </div>
 

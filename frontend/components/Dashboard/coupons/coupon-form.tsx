@@ -70,7 +70,7 @@ export function CouponForm({ coupon, onClose }: CouponFormProps) {
         const response = await axiosInstance.get("/api/online/category-subcategory/unique");
         if (response.data.success) {
           const categoryOptions = response.data.data.map((cat: { id: string; categoryName: string }) => ({
-            id: cat.categoryName, // Use categoryName as id for selection
+            id: cat.id, // Use actual category ID
             name: cat.categoryName,
           }));
           setCategories(categoryOptions);

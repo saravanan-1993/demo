@@ -17,6 +17,8 @@ export interface CartItem {
   // Cached product data for display
   shortDescription: string;
   brand: string;
+  category: string; // Product category name
+  categoryId: string; // Product category ID
   variantName: string;
   displayName: string; // User-friendly display name
   variantSellingPrice: number;
@@ -62,6 +64,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         maxStock: item.maxStock,
         shortDescription: item.shortDescription,
         brand: item.brand,
+        category: item.category,
+        categoryId: item.categoryId,
         variantName: item.variantName,
         displayName: item.displayName || item.variantName,
         variantSellingPrice: item.variantSellingPrice,

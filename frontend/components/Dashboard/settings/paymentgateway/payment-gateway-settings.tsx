@@ -636,13 +636,13 @@ interface PaymentGatewayFormData {
               /api/payment-gateway/webhook/razorpay
             </code>
           </div>
-          <div className="flex items-center justify-between p-3 bg-muted rounded-md">
+          {/* <div className="flex items-center justify-between p-3 bg-muted rounded-md">
             <span className="text-sm font-medium">Stripe Webhook</span>
             <code className="text-xs text-muted-foreground bg-background px-2 py-1 rounded">
               {process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}
               /api/payment-gateway/webhook/stripe
             </code>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
