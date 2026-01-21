@@ -7,12 +7,25 @@ const { prisma } = require("../../config/database");
  */
 async function initializeAdmin() {
   try {
+    console.log("🔍 Checking admin initialization...");
+    
     const adminEmail = process.env.ADMIN_EMAIL;
     const adminPassword = process.env.ADMIN_PASSWORD;
 
     if (!adminEmail || !adminPassword) {
       console.log("⚠️  ADMIN_EMAIL and ADMIN_PASSWORD not set - skipping admin initialization");
       return;
+    }
+
+    console.log(`📧 Admin email from env: ${adminEmail}`);
+
+    // Test database connection first
+    try {
+      await prisma.$connect();
+      console.log("✅ Database connection successful");
+    } catch (dbError) {
+      console.error("❌ Database connection failed:", dbError.message);
+      throw dbError;
     }
 
     // Check if admin already exists
@@ -22,6 +35,9 @@ async function initializeAdmin() {
 
     if (existingAdmin) {
       console.log("✅ Admin user already exists");
+      console.log(`   ID: ${existingAdmin.id}`);
+      console.log(`   Email: ${existingAdmin.email}`);
+      console.log(`   Name: ${existingAdmin.name}`);
       return;
     }
 
@@ -30,6 +46,7 @@ async function initializeAdmin() {
     // Hash the admin password
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(adminPassword, saltRounds);
+    console.log("✅ Password hashed successfully");
 
     // Create admin user
     const adminUser = await prisma.admin.create({
@@ -42,6 +59,10 @@ async function initializeAdmin() {
         provider: "local",
       },
     });
+
+    console.log("✅ Admin user created successfully!");
+    console.log(`   ID: ${adminUser.id}`);
+    console.log(`   Email: ${adminUser.email}`);
 
     // Create default working hours (24/7 operation)
     const defaultWorkingHours = [
@@ -66,12 +87,22 @@ async function initializeAdmin() {
       data: workingHoursData,
     });
 
-    console.log("✅ Default admin user created successfully!");
     console.log("✅ Default working hours (24/7) configured!");
     console.log(`📧 Email: ${adminEmail}`);
     console.log("⚠️  Please complete onboarding wizard on first login");
   } catch (error) {
-    console.error("❌ Error initializing admin user:", error);
+    console.error("❌ Error initializing admin user:");
+    console.error("   Error name:", error.name);
+    console.error("   Error message:", error.message);
+    if (error.code) {
+      console.error("   Error code:", error.code);
+    }
+    if (error.meta) {
+      console.error("   Error meta:", JSON.stringify(error.meta, null, 2));
+    }
+    console.error("   Full error:", error);
+    // Don't throw - let the server start even if admin creation fails
+    // Admin can be created manually later
   }
 }
 
