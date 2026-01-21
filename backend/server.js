@@ -12,12 +12,20 @@ const PORT = process.env.PORT || 5000;
 
 // Initialize database and admin BEFORE setting up middleware (for Vercel)
 let initializationPromise = null;
+let isInitialized = false;
 
 async function initializeApp() {
+  // If already initialized, return immediately
+  if (isInitialized) {
+    return true;
+  }
+
+  // If initialization is in progress, wait for it
   if (initializationPromise) {
     return initializationPromise;
   }
 
+  // Start initialization
   initializationPromise = (async () => {
     try {
       console.log("═══════════════════════════════════════════════════");
@@ -68,11 +76,16 @@ async function initializeApp() {
       console.log("✅ Initialization Complete");
       console.log("═══════════════════════════════════════════════════\n");
       
+      // Mark as initialized
+      isInitialized = true;
       return true;
     } catch (error) {
       console.error("❌ Initialization failed:");
       console.error("   Error details:", error.message);
       console.error("   Stack:", error.stack);
+      
+      // Reset promise so it can be retried
+      initializationPromise = null;
       return false;
     }
   })();
@@ -81,7 +94,10 @@ async function initializeApp() {
 }
 
 // Run initialization immediately (for Vercel serverless)
-initializeApp();
+// Use IIFE to properly await the initialization
+(async () => {
+  await initializeApp();
+})();
 
 // Import routes
 const routes = require("./routes");
@@ -98,6 +114,12 @@ app.use(
 
 app.use(cookieParser());
 app.use(express.json());
+
+// Ensure initialization completes before handling requests (for Vercel)
+app.use(async (req, res, next) => {
+  await initializeApp();
+  next();
+});
 
 // Serve static files for uploaded images
 app.use('/public', express.static('public'));
