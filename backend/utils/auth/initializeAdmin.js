@@ -19,15 +19,6 @@ async function initializeAdmin() {
 
     console.log(`📧 Admin email from env: ${adminEmail}`);
 
-    // Test database connection first
-    try {
-      await prisma.$connect();
-      console.log("✅ Database connection successful");
-    } catch (dbError) {
-      console.error("❌ Database connection failed:", dbError.message);
-      throw dbError;
-    }
-
     // Check if admin already exists
     const existingAdmin = await prisma.admin.findUnique({
       where: { email: adminEmail },
@@ -41,7 +32,7 @@ async function initializeAdmin() {
       return { success: true, message: "Admin already exists", admin: existingAdmin };
     }
 
-    console.log("🌱 Initializing default admin user...");
+    console.log("🌱 Creating default admin user...");
 
     // Hash the admin password
     const saltRounds = 12;
@@ -65,6 +56,7 @@ async function initializeAdmin() {
     console.log(`   Email: ${adminUser.email}`);
 
     // Create default working hours (24/7 operation)
+    console.log("⏰ Creating default working hours...");
     const defaultWorkingHours = [
       { day: "Monday", enabled: true, startTime: "00:00", endTime: "23:59" },
       { day: "Tuesday", enabled: true, startTime: "00:00", endTime: "23:59" },

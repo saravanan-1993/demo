@@ -87,14 +87,33 @@ router.get('/', (req, res) => {
 });
 
 // Health check route
-router.get('/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    service: 'Monolith E-Commerce Backend',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    database: 'connected',
-  });
+router.get('/health', async (req, res) => {
+  try {
+    const { prisma } = require('../config/database');
+    
+    // Check admin count
+    const adminCount = await prisma.admin.count();
+    
+    res.json({
+      status: 'OK',
+      service: 'Monolith E-Commerce Backend',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      database: 'connected',
+      adminInitialized: adminCount > 0,
+      adminCount,
+    });
+  } catch (error) {
+    res.json({
+      status: 'OK',
+      service: 'Monolith E-Commerce Backend',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      database: 'error',
+      adminInitialized: false,
+      error: error.message,
+    });
+  }
 });
 
 // Auth routes

@@ -103,16 +103,7 @@ app.listen(PORT, async () => {
     console.log("📡 Connecting to database...");
     await connectDB();
     
-    // Initialize Firebase Admin SDK
-    try {
-      initializeFirebase();
-      console.log("🔥 Firebase Admin SDK initialized");
-    } catch (firebaseError) {
-      console.error("⚠️ Firebase initialization failed:", firebaseError.message);
-      console.log("📱 Push notifications will not be available");
-    }
-    
-    // Auto-initialize admin user on first database connection
+    // Auto-initialize admin user FIRST (before Firebase)
     console.log("👤 Initializing admin user...");
     const { initializeAdmin } = require("./utils/auth/initializeAdmin");
     const initResult = await initializeAdmin();
@@ -122,6 +113,15 @@ app.listen(PORT, async () => {
     } else {
       console.error("⚠️  Admin initialization failed:", initResult.message);
       console.error("   Please check the logs above for details");
+    }
+    
+    // Initialize Firebase Admin SDK (after admin creation)
+    try {
+      initializeFirebase();
+      console.log("🔥 Firebase Admin SDK initialized");
+    } catch (firebaseError) {
+      console.error("⚠️ Firebase initialization failed:", firebaseError.message);
+      console.log("📱 Push notifications will not be available");
     }
     
     console.log("═══════════════════════════════════════════════════");
