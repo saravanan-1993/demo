@@ -15,8 +15,8 @@ const router = express.Router();
 router.get('/', getAllOnlineProducts);
 router.get('/:id', getOnlineProductById);
 router.get('/:id/frequently-bought-together', getFrequentlyBoughtTogether);
-router.post('/', upload.array('images', 20), createOnlineProduct);
-router.put('/:id', upload.array('images', 20), updateOnlineProduct);
+router.post('/', upload.any(), createOnlineProduct);
+router.put('/:id', upload.any(), updateOnlineProduct);
 router.delete('/:id', deleteOnlineProduct);
 
 module.exports = router;
