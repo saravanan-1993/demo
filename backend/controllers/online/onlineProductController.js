@@ -248,7 +248,6 @@ const createOnlineProduct = async (req, res) => {
     }
 
     // 🔒 SECURITY: Verify stock quantities don't exceed inventory limits
-    // This prevents malicious users from inflating stock numbers
     for (const variant of productData.variants) {
       if (variant.variantStockQuantity && variant.variantStockQuantity > 1000000) {
         console.log("❌ Validation failed: Unrealistic stock quantity");
@@ -262,10 +261,9 @@ const createOnlineProduct = async (req, res) => {
     console.log("✅ Validation passed, uploading images to S3...");
 
     // Upload all images to S3
-    let uploadedImageKeys = [];
     if (req.files && req.files.length > 0) {
       console.log(`📸 Uploading ${req.files.length} images to S3...`);
-      uploadedImageKeys = await Promise.all(
+      const uploadedImageKeys = await Promise.all(
         req.files.map((file) => uploadToS3(file.buffer, file.originalname, file.mimetype))
       );
       console.log("✅ Images uploaded to S3:", uploadedImageKeys);
@@ -293,7 +291,7 @@ const createOnlineProduct = async (req, res) => {
     
     // Process variants: add stock status and ensure low stock alert is set
     const processedVariants = processVariantImagesForStorage(productData.variants).map((variant) => {
-      const variantLowStockAlert = variant.variantLowStockAlert || 10; // Default to 10
+      const variantLowStockAlert = variant.variantLowStockAlert || 10;
       const variantStockQuantity = variant.variantStockQuantity || 0;
       
       // Calculate variant-level stock status
@@ -321,7 +319,7 @@ const createOnlineProduct = async (req, res) => {
       brand: productData.brand || "",
       shortDescription: productData.shortDescription || "",
 
-      // Variants - Process images to extract S3 keys from presigned URLs
+      // Variants
       enableVariants: Boolean(productData.enableVariants),
       variants: processedVariants,
 
@@ -359,7 +357,7 @@ const createOnlineProduct = async (req, res) => {
       warrantyDetails: productData.warrantyDetails || null,
       countryOfOrigin: productData.countryOfOrigin || "India",
 
-      // Cutting Styles (array of cutting style IDs)
+      // Cutting Styles
       cuttingStyles: Array.isArray(productData.cuttingStyles) ? productData.cuttingStyles : [],
 
       // Frequently Bought Together
@@ -367,14 +365,6 @@ const createOnlineProduct = async (req, res) => {
         ? productData.frequentlyBoughtTogether 
         : [],
     };
-
-    // Convert date strings to ISO-8601 DateTime for create as well
-    if (preparedData.expiryDate && typeof preparedData.expiryDate === 'string') {
-      preparedData.expiryDate = new Date(preparedData.expiryDate).toISOString();
-    }
-    if (preparedData.mfgDate && typeof preparedData.mfgDate === 'string') {
-      preparedData.mfgDate = new Date(preparedData.mfgDate).toISOString();
-    }
 
     console.log("✅ Data prepared, creating product in database...");
     
@@ -397,7 +387,6 @@ const createOnlineProduct = async (req, res) => {
       message: error.message,
       code: error.code,
       meta: error.meta,
-      stack: error.stack,
     });
     res.status(500).json({
       success: false,
@@ -422,12 +411,10 @@ const updateOnlineProduct = async (req, res) => {
     // Parse product data from FormData
     let updateData;
     if (req.body.productData) {
-      // Data sent as FormData with productData field
-      updateData = typeof req.body.productData === 'string' 
+      productData = typeof req.body.productData === 'string' 
         ? JSON.parse(req.body.productData) 
         : req.body.productData;
     } else {
-      // Data sent as regular JSON
       updateData = req.body;
     }
 
@@ -472,10 +459,9 @@ const updateOnlineProduct = async (req, res) => {
     console.log("✅ Validation passed, uploading new images to S3...");
 
     // Upload new images to S3 if any
-    let uploadedImageKeys = [];
     if (req.files && req.files.length > 0) {
       console.log(`📸 Uploading ${req.files.length} new images to S3...`);
-      uploadedImageKeys = await Promise.all(
+      const uploadedImageKeys = await Promise.all(
         req.files.map((file) => uploadToS3(file.buffer, file.originalname, file.mimetype))
       );
       console.log("✅ New images uploaded to S3:", uploadedImageKeys);
@@ -502,12 +488,16 @@ const updateOnlineProduct = async (req, res) => {
     delete updateData.id;
     delete updateData.createdAt;
     delete updateData.updatedAt;
+    
+    // Remove non-existent schema fields
+    delete updateData.totalStockQuantity;
+    delete updateData.lowStockAlertLevel;
+    delete updateData.stockStatus;
 
-    // Clean variant images - extract S3 keys from presigned URLs for storage
-    // Also calculate variant-level stock status
+    // Process variants: clean images and calculate stock status
     if (updateData.variants && Array.isArray(updateData.variants)) {
       updateData.variants = processVariantImagesForStorage(updateData.variants).map((variant) => {
-        const variantLowStockAlert = variant.variantLowStockAlert || 10; // Default to 10
+        const variantLowStockAlert = variant.variantLowStockAlert || 10;
         const variantStockQuantity = variant.variantStockQuantity || 0;
         
         // Calculate variant-level stock status
@@ -528,24 +518,20 @@ const updateOnlineProduct = async (req, res) => {
       });
     }
 
-    // Handle cutting styles - ensure it's an array
+    // Handle arrays - ensure they're arrays
     if (updateData.cuttingStyles !== undefined) {
       updateData.cuttingStyles = Array.isArray(updateData.cuttingStyles) ? updateData.cuttingStyles : [];
     }
 
-    // Handle frequently bought together - ensure it's an array
     if (updateData.frequentlyBoughtTogether !== undefined) {
       updateData.frequentlyBoughtTogether = Array.isArray(updateData.frequentlyBoughtTogether) 
         ? updateData.frequentlyBoughtTogether 
         : [];
     }
-
-    // Convert date strings to ISO-8601 DateTime
-    if (updateData.expiryDate && typeof updateData.expiryDate === 'string') {
-      updateData.expiryDate = updateData.expiryDate ? new Date(updateData.expiryDate).toISOString() : null;
-    }
-    if (updateData.mfgDate && typeof updateData.mfgDate === 'string') {
-      updateData.mfgDate = updateData.mfgDate ? new Date(updateData.mfgDate).toISOString() : null;
+    
+    // Ensure countryOfOrigin has a default value if empty
+    if (updateData.countryOfOrigin === "") {
+      updateData.countryOfOrigin = "India";
     }
 
     console.log("✅ Updating product in database...");
@@ -563,7 +549,13 @@ const updateOnlineProduct = async (req, res) => {
       data: product,
     });
   } catch (error) {
-    console.error("Error updating online product:", error);
+    console.error("❌ Error updating online product:", error);
+    console.error("Error details:", {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      meta: error.meta,
+    });
     
     if (error.code === "P2025") {
       return res.status(404).json({
