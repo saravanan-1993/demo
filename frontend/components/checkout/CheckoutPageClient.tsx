@@ -238,6 +238,7 @@ export default function CheckoutPageClient() {
         if (userData.address && userData.city && userData.state && userData.zipCode && userData.country) {
           const profileAddress: Address = {
             id: 'profile-address',
+            customerId: 'profile', // Placeholder for profile address
             name: userData.name,
             phone: userData.phoneNumber || '',
             alternatePhone: '',
