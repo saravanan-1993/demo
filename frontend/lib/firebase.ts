@@ -48,6 +48,14 @@ export const getFirebaseMessaging = async (): Promise<Messaging | null> => {
 // Request notification permission and get FCM token
 export const requestNotificationPermission = async (): Promise<string | null> => {
   try {
+    // ✅ FIX: Check if token already exists in localStorage (same browser, multiple tabs)
+    // This prevents generating multiple tokens for the same browser
+    const cachedToken = localStorage.getItem('fcm_token');
+    if (cachedToken) {
+      console.log('✅ Using cached FCM token from localStorage');
+      return cachedToken;
+    }
+
     // Register service worker first
     if ('serviceWorker' in navigator) {
       try {
@@ -87,6 +95,8 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
     
     if (token) {
       console.log('✅ FCM Token generated:', token);
+      // ✅ FIX: Cache token in localStorage to prevent duplicates
+      localStorage.setItem('fcm_token', token);
       return token;
     } else {
       console.log('⚠️ No FCM token available');
