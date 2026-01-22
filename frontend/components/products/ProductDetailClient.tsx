@@ -51,6 +51,7 @@ export default function ProductDetailClient({
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [frequentlyBoughtTogether, setFrequentlyBoughtTogether] = useState<FrequentlyBoughtTogetherAddon[]>([]);
   const [loading, setLoading] = useState(true);
+  // Initialize with 0, will be updated when product loads
   const [selectedVariant, setSelectedVariant] = useState(0);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [showZoom, setShowZoom] = useState(false);
@@ -75,11 +76,25 @@ export default function ProductDetailClient({
         setLoading(true);
         const response = await getProductById(productId);
         setProduct(response.data);
+        
+        // Priority: URL parameter > Default variant > First variant
         if (variantParam && response.data.variants) {
+          // If there's a URL parameter, use it
           const variantIndex = response.data.variants.findIndex(
             (v) => v.inventoryProductId === variantParam
           );
-          if (variantIndex !== -1) setSelectedVariant(variantIndex);
+          if (variantIndex !== -1) {
+            setSelectedVariant(variantIndex);
+            return; // Exit early
+          }
+        }
+        
+        // If no URL param or not found, use default variant
+        if (response.data.variants) {
+          const defaultIndex = response.data.variants.findIndex(v => v.isDefault);
+          if (defaultIndex >= 0) {
+            setSelectedVariant(defaultIndex);
+          }
         }
       } catch (err) {
         console.error("Error fetching product:", err);
