@@ -18,7 +18,13 @@ import { CurrencySelect } from "@/components/ui/currency-select";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { ZipCodeInput } from "@/components/ui/zipcode-input";
 import { CountryStateCitySelect } from "@/components/ui/country-state-city-select";
-import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuthContext } from "@/components/providers/auth-provider";
 import axiosInstance from "@/lib/axios";
 import { toast } from "sonner";
@@ -86,7 +92,7 @@ export const GeneralSettings = () => {
     state: "",
     zipCode: "",
     country: "",
-    dateOfBirth: "",
+    dateOfBirth: undefined as Date | undefined,
     currency: "",
     companyName: "",
     gstNumber: "",
@@ -125,9 +131,7 @@ export const GeneralSettings = () => {
             country: response.data.data.country,
             dateOfBirth: response.data.data.dateOfBirth
               ? new Date(response.data.data.dateOfBirth)
-                  .toISOString()
-                  .split("T")[0]
-              : "",
+              : undefined,
             currency: response.data.data.currency || "INR",
             companyName: response.data.data.companyName || "",
             gstNumber: response.data.data.gstNumber || "",
@@ -176,8 +180,8 @@ export const GeneralSettings = () => {
         zipCode: adminData.zipCode || "",
         country: adminData.country || "",
         dateOfBirth: adminData.dateOfBirth
-          ? new Date(adminData.dateOfBirth).toISOString().split("T")[0]
-          : "",
+          ? new Date(adminData.dateOfBirth)
+          : undefined,
         currency: adminData.currency || "INR",
         companyName: adminData.companyName || "",
         gstNumber: adminData.gstNumber || "",
@@ -260,7 +264,7 @@ export const GeneralSettings = () => {
         city: editForm.city,
         state: editForm.state,
         zipCode: editForm.zipCode,
-        dateOfBirth: editForm.dateOfBirth,
+        dateOfBirth: editForm.dateOfBirth ? editForm.dateOfBirth.toISOString() : undefined,
         companyName: editForm.companyName,
         gstNumber: editForm.gstNumber,
         workingHours,
@@ -614,13 +618,87 @@ export const GeneralSettings = () => {
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Date of Birth</Label>
                 {isEditing ? (
-                  <Input
-                    type="date"
-                    value={editForm.dateOfBirth}
-                    onChange={(e) =>
-                      handleInputChange("dateOfBirth", e.target.value)
-                    }
-                  />
+                  <div className="space-y-2">
+                    <div className="flex gap-0">
+                      {/* Day Dropdown */}
+                      <Select
+                        value={editForm.dateOfBirth ? editForm.dateOfBirth.getDate().toString() : ""}
+                        onValueChange={(value) => {
+                          const currentDate = editForm.dateOfBirth || new Date(2000, 0, 1);
+                          const newDate = new Date(currentDate);
+                          newDate.setDate(parseInt(value));
+                          setEditForm((prev) => ({ ...prev, dateOfBirth: newDate }));
+                        }}
+                      >
+                        <SelectTrigger className="rounded-r-none border-r-0">
+                          <SelectValue placeholder="Day" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                            <SelectItem key={day} value={day.toString()}>
+                              {day}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      {/* Month Dropdown */}
+                      <Select
+                        value={editForm.dateOfBirth ? editForm.dateOfBirth.getMonth().toString() : ""}
+                        onValueChange={(value) => {
+                          const currentDate = editForm.dateOfBirth || new Date(2000, 0, 1);
+                          const newDate = new Date(currentDate);
+                          newDate.setMonth(parseInt(value));
+                          setEditForm((prev) => ({ ...prev, dateOfBirth: newDate }));
+                        }}
+                      >
+                        <SelectTrigger className="rounded-none border-r-0">
+                          <SelectValue placeholder="Month" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[
+                            "January", "February", "March", "April", "May", "June",
+                            "July", "August", "September", "October", "November", "December"
+                          ].map((month, index) => (
+                            <SelectItem key={index} value={index.toString()}>
+                              {month}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      {/* Year Dropdown */}
+                      <Select
+                        value={editForm.dateOfBirth ? editForm.dateOfBirth.getFullYear().toString() : ""}
+                        onValueChange={(value) => {
+                          const currentDate = editForm.dateOfBirth || new Date(2000, 0, 1);
+                          const newDate = new Date(currentDate);
+                          newDate.setFullYear(parseInt(value));
+                          setEditForm((prev) => ({ ...prev, dateOfBirth: newDate }));
+                        }}
+                      >
+                        <SelectTrigger className="rounded-l-none">
+                          <SelectValue placeholder="Year" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                            <SelectItem key={year} value={year.toString()}>
+                              {year}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {editForm.dateOfBirth && !isNaN(editForm.dateOfBirth.getTime()) && (
+                      <p className="text-xs text-muted-foreground">
+                        Selected: {editForm.dateOfBirth.toLocaleDateString('en-US', { 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}
+                      </p>
+                    )}
+                  </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">
                     {adminData.dateOfBirth
