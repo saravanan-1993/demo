@@ -411,7 +411,7 @@ const updateOnlineProduct = async (req, res) => {
     // Parse product data from FormData
     let updateData;
     if (req.body.productData) {
-      productData = typeof req.body.productData === 'string' 
+      updateData = typeof req.body.productData === 'string' 
         ? JSON.parse(req.body.productData) 
         : req.body.productData;
     } else {
