@@ -79,7 +79,6 @@ export default function StockAdjustment() {
         setFilteredAdjustments(response.data.data);
       }
     } catch (error) {
-      console.error("Error fetching stock adjustments:", error);
       toast.error("Failed to fetch stock adjustments");
     } finally {
       setIsLoading(false);
@@ -210,31 +209,32 @@ export default function StockAdjustment() {
 
 
       {/* Table */}
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Item</TableHead>
-              <TableHead>Warehouse</TableHead>
-              <TableHead>Method</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Quantity</TableHead>
-              <TableHead>Stock Change</TableHead>
-              <TableHead>Source/Reason</TableHead>
-              <TableHead>Adjusted By</TableHead>
+              <TableHead className="min-w-[120px]">Date</TableHead>
+              <TableHead className="min-w-[180px]">Item</TableHead>
+              <TableHead className="min-w-[140px]">Warehouse</TableHead>
+              <TableHead className="min-w-[140px]">Method</TableHead>
+              <TableHead className="min-w-[100px]">Type</TableHead>
+              <TableHead className="min-w-[80px]">Quantity</TableHead>
+              <TableHead className="min-w-[120px]">Stock Change</TableHead>
+              <TableHead className="min-w-[150px]">Source/Reason</TableHead>
+              <TableHead className="min-w-[120px]">Adjusted By</TableHead>
+              <TableHead className="min-w-[200px]">Notes</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
+                <TableCell colSpan={10} className="text-center py-8">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : currentAdjustments.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
+                <TableCell colSpan={10} className="text-center py-8">
                   {searchTerm
                     ? "No adjustments found"
                     : "No stock adjustments yet"}
@@ -244,9 +244,9 @@ export default function StockAdjustment() {
               currentAdjustments.map((adjustment) => (
                 <TableRow key={adjustment.id}>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      {format(new Date(adjustment.createdAt), "MMM dd, yyyy")}
+                    <div className="flex items-center gap-2 whitespace-nowrap">
+                      <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span>{format(new Date(adjustment.createdAt), "MMM dd, yyyy")}</span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -293,17 +293,21 @@ export default function StockAdjustment() {
                     )}
                   </TableCell>
                   <TableCell className="font-medium">
-                    {adjustment.adjustmentType === "increase" ? "+" : "-"}
-                    {adjustment.quantity}
+                    <span className={adjustment.adjustmentType === "increase" ? "text-green-600" : "text-red-600"}>
+                      {adjustment.adjustmentType === "increase" ? "+" : "-"}
+                      {adjustment.quantity}
+                    </span>
                   </TableCell>
-                  <TableCell>
-                    <span className="text-muted-foreground">
-                      {adjustment.previousQuantity}
-                    </span>
-                    {" → "}
-                    <span className="font-medium">
-                      {adjustment.newQuantity}
-                    </span>
+                  <TableCell className="whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">
+                        {adjustment.previousQuantity}
+                      </span>
+                      <span className="text-muted-foreground">→</span>
+                      <span className="font-medium">
+                        {adjustment.newQuantity}
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell>
                     {adjustment.adjustmentMethod === "purchase_order" ? (
@@ -337,6 +341,19 @@ export default function StockAdjustment() {
                     )}
                   </TableCell>
                   <TableCell>{adjustment.adjustedBy}</TableCell>
+                  <TableCell>
+                    {adjustment.notes ? (
+                      <div className="max-w-[200px]">
+                        <span className="text-sm text-muted-foreground line-clamp-2" title={adjustment.notes}>
+                          {adjustment.notes}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">
+                        No notes
+                      </span>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))
             )}
