@@ -20,8 +20,11 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  // Find the default variant index, fallback to 0 if none is marked as default
-  const defaultVariantIndex = product.variants.findIndex(v => v.isDefault);
+  // Filter only active variants
+  const activeVariants = product.variants.filter(v => v.variantStatus === "active");
+  
+  // Find the default variant index from active variants, fallback to 0
+  const defaultVariantIndex = activeVariants.findIndex(v => v.isDefault);
   const [selectedVariant, setSelectedVariant] = useState(defaultVariantIndex >= 0 ? defaultVariantIndex : 0);
   const [showVariants, setShowVariants] = useState(false);
   const { addToCart, updateQuantity, getItemQuantity } = useCart();
@@ -29,7 +32,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const currencySymbol = useCurrency();
   const isWishlisted = isInWishlist(product.id);
 
-  const currentVariant = product.variants[selectedVariant];
+  const currentVariant = activeVariants[selectedVariant];
   const quantity = getItemQuantity(product.id, selectedVariant);
 
   const handleAddToCart = async (e: React.MouseEvent) => {
@@ -120,13 +123,13 @@ export default function ProductCard({ product }: ProductCardProps) {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              if (product.variants.length > 1) {
+              if (activeVariants.length > 1) {
                 setShowVariants(!showVariants);
               }
             }}
-            disabled={product.variants.length === 1}
+            disabled={activeVariants.length === 1}
             className={`w-full h-full flex items-center justify-between px-2 sm:px-3 rounded text-xs sm:text-sm text-gray-700 transition-colors ${
-              product.variants.length === 1
+              activeVariants.length === 1
                 ? "bg-gray-100 cursor-default"
                 : "bg-white border border-gray-300 hover:border-gray-400 cursor-pointer"
             }`}
@@ -134,7 +137,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             <span className="truncate pr-1 sm:pr-2">
               {currentVariant.weight}
             </span>
-            {product.variants.length > 1 && (
+            {activeVariants.length > 1 && (
               <IconChevronDown
                 size={14}
                 className={`flex-shrink-0 transition-transform sm:w-4 sm:h-4 ${
@@ -147,7 +150,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           {/* Variants Dropdown */}
           {showVariants && (
             <div className="absolute top-full left-0 mt-1 w-[280px] sm:w-[320px] bg-white border border-gray-200 rounded-lg shadow-lg z-20">
-              {product.variants.slice(0, 5).map((variant, index) => (
+              {activeVariants.slice(0, 5).map((variant, index) => (
                 <button
                   key={index}
                   onClick={(e) => {
@@ -195,13 +198,13 @@ export default function ProductCard({ product }: ProductCardProps) {
                   </div>
                 </button>
               ))}
-              {product.variants.length > 5 && (
+              {activeVariants.length > 5 && (
                 <Link
                   href={`/products/${product.id}`}
                   onClick={() => setShowVariants(false)}
                   className="block w-full text-center py-2 px-3 text-sm font-semibold text-[#e63946] hover:bg-red-50 transition-colors border-t border-gray-100"
                 >
-                  Show More (+{product.variants.length - 5})
+                  Show More (+{activeVariants.length - 5})
                 </Link>
               )}
             </div>

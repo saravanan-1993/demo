@@ -23,7 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getCategories, type Category } from "@/services/online-services/frontendCategoryService";
+import { type Category } from "@/services/online-services/frontendCategoryService";
 import { generateCategoryUrl, generateProductUrl } from "@/lib/slugify";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
@@ -31,24 +31,29 @@ import { useAuthContext } from "@/components/providers/auth-provider";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useRouter } from "next/navigation";
 import { searchProducts, type Product } from "@/services/online-services/frontendProductService";
-import { getWebSettings, type WebSettings } from "@/services/online-services/webSettingsService";
+import { type WebSettings } from "@/services/online-services/webSettingsService";
 
-export default function Header() {
+interface HeaderProps {
+  initialCategories: Category[];
+  initialWebSettings: WebSettings | null;
+}
+
+export default function Header({ initialCategories, initialWebSettings }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showMegaMenu, setShowMegaMenu] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [activeCategory, setActiveCategory] = useState<Category | null>(null);
+  const [categories] = useState<Category[]>(initialCategories);
+  const [activeCategory, setActiveCategory] = useState<Category | null>(
+    initialCategories.length > 0 ? initialCategories[0] : null
+  );
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false);
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [webSettings, setWebSettings] = useState<WebSettings | null>(null);
+  const [webSettings] = useState<WebSettings | null>(initialWebSettings);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const webSettingsCacheRef = useRef<WebSettings | null>(null);
   const { totalItems, totalPrice } = useCart();
   const { totalItems: wishlistCount } = useWishlist();
   const { user, isAuthenticated, logout } = useAuthContext();
@@ -128,51 +133,6 @@ export default function Header() {
       }
     };
   }, [searchQuery]);
-
-  // Fetch categories and web settings on mount
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        // Fetch categories
-        const categoriesResponse = await getCategories();
-        setCategories(categoriesResponse.data);
-        if (categoriesResponse.data.length > 0) {
-          setActiveCategory(categoriesResponse.data[0]);
-        }
-      } catch (err) {
-        console.error("Error fetching categories:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  // Fetch web settings separately
-  useEffect(() => {
-    const fetchWebSettings = async () => {
-      try {
-        // Check cache first for web settings
-        if (webSettingsCacheRef.current) {
-          setWebSettings(webSettingsCacheRef.current);
-        } else {
-          // Fetch web settings (logo and favicon) only if not cached
-          const settingsResponse = await getWebSettings();
-          if (settingsResponse.success) {
-            setWebSettings(settingsResponse.data);
-            webSettingsCacheRef.current = settingsResponse.data; // Cache the settings
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching web settings:", err);
-      }
-    };
-
-    fetchWebSettings();
-  }, []);
 
   // Get user initials for avatar
   const getUserInitials = () => {
@@ -765,7 +725,7 @@ export default function Header() {
       </div>
 
       {/* Category Navigation Bar - Desktop - RED BACKGROUND with WHITE TEXT */}
-      {!loading && categories.length > 0 && (
+      {categories.length > 0 && (
         <div className="hidden lg:block bg-[#e63946]">
           <div className="container mx-auto px-4">
             <div className="flex items-center gap-6 lg:gap-8 py-2 overflow-x-auto scrollbar-hide">
@@ -956,7 +916,7 @@ export default function Header() {
             </div>
 
             {/* Mobile Categories */}
-            {!loading && categories.length > 0 && (
+            {categories.length > 0 && (
               <div className="p-3 sm:p-4">
                 <h3 className="text-xs sm:text-sm font-semibold text-gray-500 uppercase mb-2 sm:mb-3">
                   Shop by Category

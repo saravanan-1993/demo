@@ -11,6 +11,7 @@ export interface ProductVariant {
   variantStockQuantity: number;
   variantLowStockAlert: number;
   variantStockStatus: string;
+  variantStatus?: string; // Variant status: "active" or "inactive"
   variantImages: string[];
   detailedDescription?: string; // Detailed description for the variant
   isDefault?: boolean; // Whether this variant is the default/main variant

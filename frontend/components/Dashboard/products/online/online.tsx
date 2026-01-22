@@ -19,6 +19,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
 import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import {
@@ -29,6 +37,7 @@ import {
   Trash2,
   X,
   Image as ImageIcon,
+  ChevronDown,
 } from "lucide-react";
 import Image from "next/image";
 import {
@@ -223,6 +232,64 @@ export default function Online() {
   const handleDelete = (product: ProductData) => {
     setDeletingProduct(product);
     setIsDeleteModalOpen(true);
+  };
+
+  const handleToggleVariantStatus = async (productId: string, variantIndex: number, isActive: boolean) => {
+    try {
+      // Get the current product
+      const product = products.find(p => p.id === productId);
+      if (!product) {
+        toast.error("Product not found");
+        return;
+      }
+
+      // Update the variant status
+      const updatedVariants = [...product.variants];
+      const currentVariant = updatedVariants[variantIndex];
+      
+      updatedVariants[variantIndex] = {
+        ...currentVariant,
+        variantStatus: isActive ? "active" : "inactive"
+      };
+
+      // If we're deactivating the default variant, find next active variant and make it default
+      if (!isActive && currentVariant.isDefault) {
+        // Remove default from current variant
+        updatedVariants[variantIndex].isDefault = false;
+        
+        // Find first active variant (excluding the one we just deactivated)
+        const nextActiveVariantIndex = updatedVariants.findIndex(
+          (v, idx) => idx !== variantIndex && v.variantStatus === "active"
+        );
+        
+        if (nextActiveVariantIndex !== -1) {
+          // Make the next active variant the default
+          updatedVariants[nextActiveVariantIndex].isDefault = true;
+          toast.info(`${updatedVariants[nextActiveVariantIndex].variantName} is now the default variant`);
+        } else {
+          // No active variants left - warn user
+          toast.warning("All variants are now inactive. Product will not be visible on frontend.");
+        }
+      }
+
+      // Update the product with new variants
+      await ecommerceProductService.updateProduct(productId, {
+        ...product,
+        variants: updatedVariants
+      });
+
+      // Update local state
+      setProducts(products.map(p => 
+        p.id === productId 
+          ? { ...p, variants: updatedVariants }
+          : p
+      ));
+
+      toast.success(`Variant ${isActive ? 'activated' : 'deactivated'} successfully`);
+    } catch (error) {
+      console.error("Error toggling variant status:", error);
+      toast.error("Failed to update variant status");
+    }
   };
 
   const handleDeleteConfirm = async () => {
@@ -466,6 +533,7 @@ export default function Online() {
               <TableHead className="min-w-[100px]">Price</TableHead>
               <TableHead className="min-w-[100px]">Stock</TableHead>
               <TableHead className="min-w-[80px]">Status</TableHead>
+              <TableHead className="min-w-[120px]">Variants</TableHead>
               <TableHead className="min-w-[100px]">Created</TableHead>
               <TableHead className="text-right min-w-[120px]">
                 Actions
@@ -475,7 +543,7 @@ export default function Online() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
+                <TableCell colSpan={10} className="text-center py-8">
                   <div className="flex items-center justify-center gap-2">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
                     <p className="text-sm text-muted-foreground">
@@ -486,7 +554,7 @@ export default function Online() {
               </TableRow>
             ) : products.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
+                <TableCell colSpan={10} className="text-center py-8">
                   <div className="flex flex-col items-center gap-2">
                     <ImageIcon className="size-12 text-muted-foreground/50" />
                     <p className="text-sm text-muted-foreground">
@@ -600,6 +668,58 @@ export default function Online() {
                           ? "Active"
                           : "Draft"}
                       </Badge>
+                    </TableCell>
+
+                    {/* Variants */}
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-8">
+                            {product.variants.length} Variant{product.variants.length !== 1 ? 's' : ''}
+                            <ChevronDown className="ml-2 h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-[300px]">
+                          <DropdownMenuLabel>Manage Variants</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <div className="max-h-[300px] overflow-y-auto">
+                            {product.variants.map((variant, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center justify-between px-2 py-2 hover:bg-accent rounded-sm"
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <div className="font-medium text-sm truncate">
+                                      {variant.variantName}
+                                    </div>
+                                    {variant.isDefault && (
+                                      <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                                        Default
+                                      </Badge>
+                                    )}
+                                    {variant.variantStatus === "inactive" && (
+                                      <Badge variant="destructive" className="text-xs px-1.5 py-0">
+                                        Unavailable
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground truncate">
+                                    {variant.displayName}
+                                  </div>
+                                </div>
+                                <Switch
+                                  checked={variant.variantStatus === "active"}
+                                  onCheckedChange={(checked) =>
+                                    handleToggleVariantStatus(product.id, index, checked)
+                                  }
+                                  className="ml-2"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
 
                     {/* Created Date */}

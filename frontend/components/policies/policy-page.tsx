@@ -1,53 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { IconChevronRight } from "@tabler/icons-react";
-import { getPublishedPolicy, Policy } from "@/services/online-services/policyService";
-import { Loader2 } from "lucide-react";
+import { Policy } from "@/services/online-services/policyService";
 
 interface PolicyPageProps {
+  initialPolicy: Policy | null;
   slug: string;
   defaultTitle: string;
   defaultContent?: React.ReactNode;
 }
 
-export const PolicyPage = ({ slug, defaultTitle, defaultContent }: PolicyPageProps) => {
-  const [policy, setPolicy] = useState<Policy | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+export const PolicyPage = ({ initialPolicy, slug, defaultTitle, defaultContent }: PolicyPageProps) => {
+  const [policy] = useState<Policy | null>(initialPolicy);
 
-  useEffect(() => {
-    const fetchPolicy = async () => {
-      try {
-        setLoading(true);
-        const data = await getPublishedPolicy(slug);
-        if (data) {
-          setPolicy(data);
-        } else {
-          setError(true);
-        }
-      } catch (err) {
-        console.error("Error loading policy:", err);
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPolicy();
-  }, [slug]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // If no policy found or error, show default content
-  if (error || !policy) {
+  // If no policy found, show default content
+  if (!policy) {
     return (
       <div className="min-h-screen bg-gray-50">
         {/* Breadcrumb */}

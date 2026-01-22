@@ -1,5 +1,6 @@
 import CategoriesPageClient from '@/components/category/CategoriesPageClient';
 import { generatePageMetadata } from '@/lib/seo';
+import { fetchCategories } from '@/lib/server-fetch';
 
 export async function generateMetadata() {
   return await generatePageMetadata({
@@ -10,6 +11,9 @@ export async function generateMetadata() {
   });
 }
 
-export default function CategoriesPage() {
-  return <CategoriesPageClient />;
+export default async function CategoriesPage() {
+  // Fetch categories on server-side
+  const categories = await fetchCategories();
+
+  return <CategoriesPageClient initialCategories={categories} />;
 }

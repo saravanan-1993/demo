@@ -1,40 +1,19 @@
 'use client';
 
 import { IconMapPin, IconPhone, IconMail } from '@tabler/icons-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import axiosInstance from '@/lib/axios';
 import { toast } from 'sonner';
-import {
-  getCompanySettings,
-  type CompanySettings,
-} from "@/services/online-services/webSettingsService";
+import type { CompanySettings } from "@/services/online-services/webSettingsService";
 
-export default function ContactSection() {
+interface ContactSectionProps {
+  initialCompanySettings: CompanySettings | null;
+}
+
+export default function ContactSection({ initialCompanySettings }: ContactSectionProps) {
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', message: '' });
-  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
+  const [companySettings] = useState<CompanySettings | null>(initialCompanySettings);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const companySettingsCacheRef = useRef<CompanySettings | null>(null);
-
-  // Fetch company settings
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        if (companySettingsCacheRef.current) {
-          setCompanySettings(companySettingsCacheRef.current);
-        } else {
-          const companyResponse = await getCompanySettings();
-          if (companyResponse.success) {
-            setCompanySettings(companyResponse.data);
-            companySettingsCacheRef.current = companyResponse.data;
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching company settings:", err);
-      }
-    };
-
-    fetchSettings();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,13 +24,9 @@ export default function ContactSection() {
       const response = await axiosInstance.post('/api/web/contact', formData);
 
       if (response.data.success) {
-        // Show success toast
         toast.success(response.data.message || 'Your message has been sent successfully!');
-        
-        // Reset form
         setFormData({ name: '', email: '', phone: '', message: '' });
       } else {
-        // Show error toast
         toast.error(response.data.error || 'Failed to send your message. Please try again.');
       }
     } catch (error: any) {

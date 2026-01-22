@@ -4,13 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import DynamicProductCard from '@/components/Home/DynamicProductCard';
 import { getProducts, type Product } from '@/services/online-services/frontendProductService';
-import {
-  getCategories,
-  getCategoryByIdentifier,
-  getSubcategoryById,
-  type Category,
-  type Subcategory,
-} from '@/services/online-services/frontendCategoryService';
+import type { Category, Subcategory } from '@/services/online-services/frontendCategoryService';
+import { getSubcategoryById } from '@/services/online-services/frontendCategoryService';
 import { badgeService } from '@/services/online-services/badgeService';
 import { generateCategoryUrl } from '@/lib/slugify';
 import {
@@ -23,14 +18,23 @@ import {
 import ProductFilters, { STATIC_BADGE_OPTIONS, type BadgeOption } from '@/components/products/ProductFilters';
 import SortDropdown from '@/components/products/SortDropdown';
 
-
 interface CategoryDetailClientProps {
   categoryId?: string;
   subcategoryId?: string;
+  initialCategory?: Category;
+  categories: Category[];
+  initialProducts: Product[];
+  initialPagination: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  } | null;
+  availableBrands: string[];
 }
 
 // Sort options
-
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest First', sortBy: 'createdAt', sortOrder: 'desc' },
   { value: 'price-low', label: 'Price: Low to High', sortBy: 'defaultSellingPrice', sortOrder: 'asc' },
@@ -38,7 +42,14 @@ const SORT_OPTIONS = [
   { value: 'discount', label: 'Discount', sortBy: 'defaultDiscountValue', sortOrder: 'desc' },
 ];
 
-export default function CategoryDetailClient({ categoryId, subcategoryId }: CategoryDetailClientProps) {
+export default function CategoryDetailClient({ 
+  subcategoryId,
+  initialCategory,
+  categories,
+  initialProducts,
+  initialPagination,
+  availableBrands,
+}: CategoryDetailClientProps) {
   // Pagination & Sort
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSort, setSelectedSort] = useState('newest');
@@ -55,19 +66,16 @@ export default function CategoryDetailClient({ categoryId, subcategoryId }: Cate
   // UI State
   const [showMobileFilter, setShowMobileFilter] = useState(false);
 
-
-  // Data
-  const [category, setCategory] = useState<Category | null>(null);
+  // Data - Initialize with server data
+  const [category, setCategory] = useState<Category | null>(initialCategory || null);
   const [subcategory, setSubcategory] = useState<
     (Subcategory & { categoryId?: string; categoryName?: string }) | null
   >(null);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [availableBrands, setAvailableBrands] = useState<string[]>([]);
+  const [products, setProducts] = useState<Product[]>(initialProducts);
   const [badgeOptions, setBadgeOptions] = useState<BadgeOption[]>(STATIC_BADGE_OPTIONS);
-  const [loading, setLoading] = useState(true);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [totalPages, setTotalPages] = useState(initialPagination?.totalPages || 1);
+  const [totalCount, setTotalCount] = useState(initialPagination?.totalCount || 0);
 
   const itemsPerPage = 15;
 
@@ -77,34 +85,27 @@ export default function CategoryDetailClient({ categoryId, subcategoryId }: Cate
     (selectedPriceRange ? 1 : 0) +
     (selectedBadge !== 'all' ? 1 : 0);
 
-
-
-  // Fetch category/subcategory and all categories on mount
+  // Fetch subcategory data if subcategoryId is provided
   useEffect(() => {
-    const fetchData = async () => {
+    if (!subcategoryId) return;
+    
+    const fetchSubcategory = async () => {
       try {
-        const categoriesRes = await getCategories();
-        setCategories(categoriesRes.data);
-
-        if (subcategoryId) {
-          const subcategoryRes = await getSubcategoryById(subcategoryId);
-          setSubcategory(subcategoryRes.data);
-          const parentCategory = categoriesRes.data.find(
-            (cat) => cat.id === subcategoryRes.data.categoryId || cat.name === subcategoryRes.data.categoryName
-          );
-          if (parentCategory) {
-            setCategory(parentCategory);
-          }
-        } else if (categoryId) {
-          const categoryRes = await getCategoryByIdentifier(categoryId);
-          setCategory(categoryRes.data);
+        const subcategoryRes = await getSubcategoryById(subcategoryId);
+        setSubcategory(subcategoryRes.data);
+        const parentCategory = categories.find(
+          (cat) => cat.id === subcategoryRes.data.categoryId || cat.name === subcategoryRes.data.categoryName
+        );
+        if (parentCategory) {
+          setCategory(parentCategory);
         }
       } catch (err) {
-        console.error('Error fetching data:', err);
+        console.error('Error fetching subcategory:', err);
       }
     };
-    fetchData();
-  }, [categoryId, subcategoryId]);
+    
+    fetchSubcategory();
+  }, [subcategoryId, categories]);
 
   // Fetch badges on mount (static + custom)
   useEffect(() => {
@@ -170,19 +171,6 @@ export default function CategoryDetailClient({ categoryId, subcategoryId }: Cate
       setProducts(filteredProducts);
       setTotalPages(response.pagination.totalPages);
       setTotalCount(selectedBrands.length > 1 ? filteredProducts.length : response.pagination.totalCount);
-
-      // Extract unique brands from all products (not just filtered) for filter options
-      // Fetch without price filter to get all brands
-      if (availableBrands.length === 0) {
-        const allProductsRes = await getProducts({
-          page: 1,
-          limit: 100,
-          category: category?.name,
-          subCategory: subcategory?.name,
-        });
-        const brands = [...new Set(allProductsRes.data.map((p) => p.brand))].filter(Boolean).sort();
-        setAvailableBrands(brands);
-      }
     } catch (err) {
       console.error('Error fetching products:', err);
     } finally {
@@ -197,7 +185,6 @@ export default function CategoryDetailClient({ categoryId, subcategoryId }: Cate
     selectedBrands,
     selectedPriceRange,
     selectedBadge,
-    availableBrands.length,
   ]);
 
   useEffect(() => {

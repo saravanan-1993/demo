@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import {
   IconBrandFacebook,
   IconBrandX,
@@ -11,50 +11,18 @@ import {
   IconBrandLinkedin,
 } from "@tabler/icons-react";
 import {
-  getWebSettings,
-  getCompanySettings,
   type WebSettings,
   type CompanySettings,
 } from "@/services/online-services/webSettingsService";
 
-export default function Footer01() {
-  const [webSettings, setWebSettings] = useState<WebSettings | null>(null);
-  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
-  const webSettingsCacheRef = useRef<WebSettings | null>(null);
-  const companySettingsCacheRef = useRef<CompanySettings | null>(null);
+interface Footer01Props {
+  initialWebSettings: WebSettings | null;
+  initialCompanySettings: CompanySettings | null;
+}
 
-  // Fetch web settings and company settings on mount with caching
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        // Check cache first
-        if (webSettingsCacheRef.current) {
-          setWebSettings(webSettingsCacheRef.current);
-        } else {
-          const settingsResponse = await getWebSettings();
-          if (settingsResponse.success) {
-            setWebSettings(settingsResponse.data);
-            webSettingsCacheRef.current = settingsResponse.data;
-          }
-        }
-
-        // Fetch company settings
-        if (companySettingsCacheRef.current) {
-          setCompanySettings(companySettingsCacheRef.current);
-        } else {
-          const companyResponse = await getCompanySettings();
-          if (companyResponse.success) {
-            setCompanySettings(companyResponse.data);
-            companySettingsCacheRef.current = companyResponse.data;
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching settings:", err);
-      }
-    };
-
-    fetchSettings();
-  }, []);
+export default function Footer01({ initialWebSettings, initialCompanySettings }: Footer01Props) {
+  const [webSettings] = useState<WebSettings | null>(initialWebSettings);
+  const [companySettings] = useState<CompanySettings | null>(initialCompanySettings);
 
   // Helper to check if social media link exists
   const hasSocialMedia = companySettings?.socialMedia && (

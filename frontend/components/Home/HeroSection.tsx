@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
-import axiosInstance from '@/lib/axios';
 
 interface Banner {
   id: string;
@@ -13,28 +12,12 @@ interface Banner {
   linkUrl: string;
 }
 
-export default function HeroSection() {
+interface HeroSectionProps {
+  banners: Banner[];
+}
+
+export default function HeroSection({ banners }: HeroSectionProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [banners, setBanners] = useState<Banner[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // Fetch banners from API
-  useEffect(() => {
-    const fetchBanners = async () => {
-      try {
-        const response = await axiosInstance.get('/api/web/banners');
-        if (response.data.success && response.data.data.length > 0) {
-          setBanners(response.data.data);
-        }
-      } catch (error) {
-        console.error('Error fetching banners:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchBanners();
-  }, []);
 
   // Auto-slide effect
   useEffect(() => {
@@ -57,19 +40,6 @@ export default function HeroSection() {
   const goToNext = () => {
     setCurrentSlide((prev) => (prev + 1) % banners.length);
   };
-
-  // Show loading state
-  if (loading) {
-    return (
-      <section className="bg-gray-100">
-        <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-4">
-          <div className="relative rounded-lg sm:rounded-xl overflow-hidden shadow-lg bg-gray-200 animate-pulse">
-            <div className="w-full h-[180px] sm:h-[250px] md:h-[320px] lg:h-[380px] xl:h-[420px]"></div>
-          </div>
-        </div>
-      </section>
-    );
-  }
 
   // Don't render if no banners
   if (banners.length === 0) {
@@ -138,11 +108,6 @@ export default function HeroSection() {
                   />
                 ))}
               </div>
-
-              {/* Slide Counter */}
-              {/* <div className="absolute top-3 sm:top-4 right-3 sm:right-4 z-20 bg-black/50 text-white px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium">
-                {currentSlide + 1} / {banners.length}
-              </div> */}
             </>
           )}
         </div>

@@ -1,34 +1,16 @@
 'use client';
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import {
-  getCompanySettings,
   type CompanySettings,
 } from "@/services/online-services/webSettingsService";
 
-export default function Footer02() {
-  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
-  const companySettingsCacheRef = useRef<CompanySettings | null>(null);
+interface Footer02Props {
+  initialCompanySettings: CompanySettings | null;
+}
 
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        if (companySettingsCacheRef.current) {
-          setCompanySettings(companySettingsCacheRef.current);
-        } else {
-          const companyResponse = await getCompanySettings();
-          if (companyResponse.success) {
-            setCompanySettings(companyResponse.data);
-            companySettingsCacheRef.current = companyResponse.data;
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching company settings:", err);
-      }
-    };
-
-    fetchSettings();
-  }, []);
+export default function Footer02({ initialCompanySettings }: Footer02Props) {
+  const [companySettings] = useState<CompanySettings | null>(initialCompanySettings);
 
   const currentYear = new Date().getFullYear();
 

@@ -1,5 +1,6 @@
 import { PolicyPage } from "@/components/policies/policy-page";
 import { generatePageMetadata } from '@/lib/seo';
+import { fetchPolicy } from '@/lib/server-fetch';
 
 export async function generateMetadata() {
   return await generatePageMetadata({
@@ -10,6 +11,8 @@ export async function generateMetadata() {
   });
 }
 
-export default function ShippingPage() {
-  return <PolicyPage slug="shipping-policy" defaultTitle="Shipping & Delivery Policy" />;
+export default async function ShippingPage() {
+  const policy = await fetchPolicy('shipping-policy');
+  
+  return <PolicyPage initialPolicy={policy} slug="shipping-policy" defaultTitle="Shipping & Delivery Policy" />;
 }

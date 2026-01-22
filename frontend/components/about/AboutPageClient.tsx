@@ -1,25 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { IconSearch } from '@tabler/icons-react';
-import { getCategories, type Category } from '@/services/online-services/frontendCategoryService';
+import { type Category } from '@/services/online-services/frontendCategoryService';
 import { generateCategoryUrl } from '@/lib/slugify';
 
-export default function AboutPageClient() {
-  const [categories, setCategories] = useState<Category[]>([]);
+interface AboutPageClientProps {
+  initialCategories: Category[];
+}
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await getCategories();
-        setCategories(response.data);
-      } catch (err) {
-        console.error('Error fetching categories:', err);
-      }
-    };
-    fetchCategories();
-  }, []);
+export default function AboutPageClient({ initialCategories }: AboutPageClientProps) {
+  const [categories] = useState<Category[]>(initialCategories);
 
   return (
     <main className="min-h-screen bg-white">
