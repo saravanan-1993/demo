@@ -95,6 +95,8 @@ export const removeFCMToken = async (
 
     if (response.data.success) {
       console.log('✅ FCM token removed from backend');
+      // ✅ FIX: Clear cached token from localStorage
+      localStorage.removeItem('fcm_token');
       return { success: true };
     } else {
       console.error('❌ Failed to remove FCM token:', response.data.error);

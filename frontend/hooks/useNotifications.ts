@@ -98,7 +98,8 @@ export const useNotifications = (userId?: string, userType?: 'user' | 'admin') =
           }
         };
 
-        // Show attractive toast notification
+        // Show attractive toast notification (only in foreground)
+        // Browser notification is handled by service worker in background
         toast(title, {
           description: body,
           icon: getToastIcon(type),
@@ -117,26 +118,9 @@ export const useNotifications = (userId?: string, userType?: 'user' | 'admin') =
           },
         });
 
-        // Show browser notification if permission granted
-        if (Notification.permission === 'granted') {
-          const notification = new Notification(title, {
-            body,
-            icon: payload.notification?.icon || '/logo.jpeg',
-            badge: '/logo.jpeg',
-            tag: payload.data?.type || 'notification',
-            requireInteraction: type === 'ORDER_PLACED' || type === 'LOW_STOCK' || type === 'WELCOME',
-            vibrate: [200, 100, 200],
-          });
-
-          // Handle notification click
-          notification.onclick = () => {
-            if (link) {
-              window.focus();
-              window.location.href = link;
-            }
-            notification.close();
-          };
-        }
+        // ❌ REMOVED: Browser notification (causes duplicate notifications)
+        // Service worker already handles browser notifications in background
+        // Toast notification is sufficient for foreground messages
       });
     };
 
