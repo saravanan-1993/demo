@@ -173,6 +173,13 @@ const getProducts = async (req, res) => {
       },
     });
 
+    // Filter out products where ALL variants are inactive
+    products = products.filter(product => {
+      if (!product.variants || product.variants.length === 0) return true;
+      // Check if at least one variant is active
+      return product.variants.some(variant => variant.variantStatus === "active");
+    });
+
     let totalCount;
 
     // Apply variant-level price filtering if enabled
@@ -314,6 +321,18 @@ const getProductById = async (req, res) => {
       });
     }
 
+    // Check if product has at least one active variant
+    if (product.variants && product.variants.length > 0) {
+      const hasActiveVariant = product.variants.some(variant => variant.variantStatus === "active");
+      if (!hasActiveVariant) {
+        console.log(`[Frontend Products] All variants are inactive: ${id}`);
+        return res.status(404).json({
+          success: false,
+          message: "Product not available",
+        });
+      }
+    }
+
     // Fetch cutting style details if any exist
     let cuttingStylesData = [];
     if (product.cuttingStyles && product.cuttingStyles.length > 0) {
@@ -386,7 +405,7 @@ const getHomepageProducts = async (req, res) => {
     }
 
     // Fetch products
-    const products = await prisma.onlineProduct.findMany({
+    let products = await prisma.onlineProduct.findMany({
       where,
       take: parseInt(limit),
       orderBy: { createdAt: "desc" },
@@ -420,6 +439,13 @@ const getHomepageProducts = async (req, res) => {
         createdAt: true,
         updatedAt: true,
       },
+    });
+
+    // Filter out products where ALL variants are inactive
+    products = products.filter(product => {
+      if (!product.variants || product.variants.length === 0) return true;
+      // Check if at least one variant is active
+      return product.variants.some(variant => variant.variantStatus === "active");
     });
 
     console.log(`[Frontend Products] Found ${products.length} homepage products for badge: ${badge || 'all'}, category: ${category || 'all'}`);

@@ -1,5 +1,6 @@
 import { PolicyPage } from "@/components/policies/policy-page";
 import { generatePageMetadata } from '@/lib/seo';
+import { fetchPolicy } from '@/lib/server-fetch';
 
 export async function generateMetadata() {
   return await generatePageMetadata({
@@ -10,6 +11,8 @@ export async function generateMetadata() {
   });
 }
 
-export default function ReturnsPage() {
-  return <PolicyPage slug="returns-refunds" defaultTitle="Returns & Refunds Policy" />;
+export default async function ReturnsPage() {
+  const policy = await fetchPolicy('returns-refunds');
+  
+  return <PolicyPage initialPolicy={policy} slug="returns-refunds" defaultTitle="Returns & Refunds Policy" />;
 }

@@ -203,6 +203,9 @@ export default function AddItemModal({
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof ItemFormData, string>> = {};
 
+    if (!formData.itemImage) {
+      newErrors.itemImage = "Item image is required";
+    }
     if (!formData.itemName.trim()) {
       newErrors.itemName = "Item name is required";
     }
@@ -376,7 +379,9 @@ export default function AddItemModal({
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Item Image */}
           <div className="space-y-2">
-            <Label>Item Main Image</Label>
+            <Label>
+              Item Main Image <span className="text-destructive">*</span>
+            </Label>
             <FileUpload
               acceptedFileTypes={["image/jpeg", "image/png", "image/jpg", "image/webp"]}
               maxFileSize={5 * 1024 * 1024}
@@ -384,6 +389,9 @@ export default function AddItemModal({
               onFileRemove={() => handleInputChange("itemImage", null)}
               currentFile={formData.itemImage}
             />
+            {errors.itemImage && (
+              <p className="text-xs text-destructive">{errors.itemImage}</p>
+            )}
           </div>
 
           {/* Row 1: Item Name & Category */}

@@ -20,9 +20,6 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import {
-  getProductById,
-  getProducts,
-  getFrequentlyBoughtTogether,
   type Product,
   type FrequentlyBoughtTogetherAddon,
 } from "@/services/online-services/frontendProductService";
@@ -36,10 +33,15 @@ import { useCurrency } from "@/hooks/useCurrency";
 
 interface ProductDetailClientProps {
   productId: string;
+  initialProduct: Product;
+  initialRelatedProducts: Product[];
+  initialFrequentlyBoughtTogether: FrequentlyBoughtTogetherAddon[];
 }
 
 export default function ProductDetailClient({
-  productId,
+  initialProduct,
+  initialRelatedProducts,
+  initialFrequentlyBoughtTogether,
 }: ProductDetailClientProps) {
   const searchParams = useSearchParams();
   const variantParam = searchParams.get("variant");
@@ -47,10 +49,10 @@ export default function ProductDetailClient({
   const { addToCart, updateQuantity, getItemQuantity } = useCart();
   const currencySymbol = useCurrency();
 
-  const [product, setProduct] = useState<Product | null>(null);
-  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  const [frequentlyBoughtTogether, setFrequentlyBoughtTogether] = useState<FrequentlyBoughtTogetherAddon[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [product] = useState<Product | null>(initialProduct);
+  const [relatedProducts] = useState<Product[]>(initialRelatedProducts);
+  const [frequentlyBoughtTogether] = useState<FrequentlyBoughtTogetherAddon[]>(initialFrequentlyBoughtTogether);
+  const loading = false; // No loading since we have initial data
   // Initialize with 0, will be updated when product loads
   const [selectedVariant, setSelectedVariant] = useState(0);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -70,73 +72,33 @@ export default function ProductDetailClient({
 
   const isWishlisted = product ? isInWishlist(product.id) : false;
 
+  // Set initial variant based on URL param or default
   useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        setLoading(true);
-        const response = await getProductById(productId);
-        setProduct(response.data);
-        
-        // Priority: URL parameter > Default variant > First variant
-        if (variantParam && response.data.variants) {
-          // If there's a URL parameter, use it
-          const variantIndex = response.data.variants.findIndex(
-            (v) => v.inventoryProductId === variantParam
-          );
-          if (variantIndex !== -1) {
-            setSelectedVariant(variantIndex);
-            return; // Exit early
-          }
-        }
-        
-        // If no URL param or not found, use default variant
-        if (response.data.variants) {
-          const defaultIndex = response.data.variants.findIndex(v => v.isDefault);
-          if (defaultIndex >= 0) {
-            setSelectedVariant(defaultIndex);
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching product:", err);
-      } finally {
-        setLoading(false);
+    if (!initialProduct) return;
+    
+    // Priority: URL parameter > Default variant > First variant
+    if (variantParam && initialProduct.variants) {
+      const variantIndex = initialProduct.variants.findIndex(
+        (v) => v.inventoryProductId === variantParam
+      );
+      if (variantIndex !== -1) {
+        setSelectedVariant(variantIndex);
+        return;
       }
-    };
-    if (productId) fetchProduct();
-  }, [productId, variantParam]);
+    }
+    
+    // If no URL param or not found, use default variant
+    if (initialProduct.variants) {
+      const defaultIndex = initialProduct.variants.findIndex(v => v.isDefault);
+      if (defaultIndex >= 0) {
+        setSelectedVariant(defaultIndex);
+      }
+    }
+  }, [initialProduct, variantParam]);
 
   useEffect(() => {
     setSelectedImageIndex(0);
   }, [selectedVariant]);
-
-  useEffect(() => {
-    if (!product) return;
-    const fetchRelatedProducts = async () => {
-      try {
-        const response = await getProducts({
-          category: product.category,
-          limit: 5,
-        });
-        setRelatedProducts(response.data.filter((p) => p.id !== product.id));
-      } catch (err) {
-        console.error("Error fetching related products:", err);
-      }
-    };
-    fetchRelatedProducts();
-
-    // Fetch frequently bought together
-    const fetchFrequentlyBoughtTogether = async () => {
-      try {
-        const response = await getFrequentlyBoughtTogether(product.id);
-        if (response.success && response.data.length > 0) {
-          setFrequentlyBoughtTogether(response.data);
-        }
-      } catch (err) {
-        console.error("Error fetching frequently bought together:", err);
-      }
-    };
-    fetchFrequentlyBoughtTogether();
-  }, [product]);
 
   // Close share menu on scroll - only when scrolled significantly (150px)
   useEffect(() => {
@@ -556,15 +518,21 @@ export default function ProductDetailClient({
                       const variantOutOfStock =
                         variant.variantStockQuantity <= 0 ||
                         variant.variantStockStatus === "out-of-stock";
+                      const variantInactive = variant.variantStatus === "inactive";
                       return (
                         <button
                           key={index}
                           onClick={() => setSelectedVariant(index)}
+                          disabled={variantInactive}
                           className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg border-2 text-xs sm:text-sm font-medium transition-colors ${
                             selectedVariant === index
-                              ? variantOutOfStock
+                              ? variantInactive
+                                ? "border-gray-400 bg-gray-100 text-gray-500"
+                                : variantOutOfStock
                                 ? "border-red-400 bg-red-50 text-red-600"
                                 : "border-[#e63946] bg-red-50 text-[#e63946]"
+                              : variantInactive
+                              ? "border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed"
                               : variantOutOfStock
                               ? "border-gray-200 bg-gray-50 text-gray-500 hover:border-red-300"
                               : "border-gray-200 hover:border-gray-300"
@@ -572,7 +540,9 @@ export default function ProductDetailClient({
                         >
                           <span className="block">{variant.displayName || variant.variantName}</span>
                           <span className="block text-[10px] sm:text-xs mt-0.5">
-                            {variantOutOfStock ? (
+                            {variantInactive ? (
+                              <span className="text-gray-500">Unavailable</span>
+                            ) : variantOutOfStock ? (
                               <span className="text-red-500">Out of Stock</span>
                             ) : (
                               <>

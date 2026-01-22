@@ -7,13 +7,18 @@ import { WishlistProvider } from "@/context/WishlistContext";
 import Footer01 from '@/components/Home/Footer01';
 import Footer02 from '@/components/Home/Footer02';
 import { useAuthContext } from "@/components/providers/auth-provider";
+import type { Category } from '@/services/online-services/frontendCategoryService';
+import type { WebSettings, CompanySettings } from '@/services/online-services/webSettingsService';
 
 interface AppLayoutProps {
   children: React.ReactNode;
   userId?: string;
+  categories: Category[];
+  webSettings: WebSettings | null;
+  companySettings: CompanySettings | null;
 }
 
-export function AppLayout({ children, userId }: AppLayoutProps) {
+export function AppLayout({ children, userId, categories, webSettings, companySettings }: AppLayoutProps) {
   const { user, isAuthenticated } = useAuthContext();
   
   // Use user ID as key to force Header remount when auth changes
@@ -24,10 +29,19 @@ export function AppLayout({ children, userId }: AppLayoutProps) {
       <CartProvider>
         <WishlistProvider>
           <div className="min-h-screen bg-background flex flex-col">
-            <Header key={headerKey} />
+            <Header 
+              key={headerKey} 
+              initialCategories={categories}
+              initialWebSettings={webSettings}
+            />
             <main className="flex-1">{children}</main>
-            <Footer01 />
-            <Footer02 />
+            <Footer01 
+              initialWebSettings={webSettings}
+              initialCompanySettings={companySettings}
+            />
+            <Footer02 
+              initialCompanySettings={companySettings}
+            />
           </div>
         </WishlistProvider>
       </CartProvider>

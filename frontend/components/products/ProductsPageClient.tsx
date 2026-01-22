@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import DynamicProductCard from '@/components/Home/DynamicProductCard';
 import { getProducts, type Product } from '@/services/online-services/frontendProductService';
-import { getCategories, type Category } from '@/services/online-services/frontendCategoryService';
+import type { Category } from '@/services/online-services/frontendCategoryService';
 import { badgeService } from '@/services/online-services/badgeService';
 import {
   IconChevronRight,
@@ -16,9 +16,7 @@ import {
 import ProductFilters, { STATIC_BADGE_OPTIONS, type BadgeOption } from '@/components/products/ProductFilters';
 import SortDropdown from '@/components/products/SortDropdown';
 
-
 // Sort options
-
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest First', sortBy: 'createdAt', sortOrder: 'desc' },
   { value: 'price-low', label: 'Price: Low to High', sortBy: 'defaultSellingPrice', sortOrder: 'asc' },
@@ -26,7 +24,25 @@ const SORT_OPTIONS = [
   { value: 'discount', label: 'Discount', sortBy: 'defaultDiscountValue', sortOrder: 'desc' },
 ];
 
-export default function ProductsPageClient() {
+interface ProductsPageClientProps {
+  initialProducts: Product[];
+  initialPagination: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  } | null;
+  categories: Category[];
+  availableBrands: string[];
+}
+
+export default function ProductsPageClient({
+  initialProducts,
+  initialPagination,
+  categories,
+  availableBrands,
+}: ProductsPageClientProps) {
   // Pagination & Sort
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSort, setSelectedSort] = useState('newest');
@@ -45,15 +61,12 @@ export default function ProductsPageClient() {
   // UI State
   const [showMobileFilter, setShowMobileFilter] = useState(false);
 
-
-  // Data
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [availableBrands, setAvailableBrands] = useState<string[]>([]);
+  // Data - Initialize with server data
+  const [products, setProducts] = useState<Product[]>(initialProducts);
   const [badgeOptions, setBadgeOptions] = useState<BadgeOption[]>(STATIC_BADGE_OPTIONS);
-  const [loading, setLoading] = useState(true);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [totalPages, setTotalPages] = useState(initialPagination?.totalPages || 1);
+  const [totalCount, setTotalCount] = useState(initialPagination?.totalCount || 0);
 
   const itemsPerPage = 15;
 
@@ -64,19 +77,6 @@ export default function ProductsPageClient() {
     selectedBrands.length +
     (selectedPriceRange ? 1 : 0) +
     (selectedBadge !== 'all' ? 1 : 0);
-
-  // Fetch categories on mount
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await getCategories();
-        setCategories(response.data);
-      } catch (err) {
-        console.error('Error fetching categories:', err);
-      }
-    };
-    fetchCategories();
-  }, []);
 
   // Fetch badges on mount (static + custom)
   useEffect(() => {
@@ -101,20 +101,6 @@ export default function ProductsPageClient() {
       }
     };
     fetchBadges();
-  }, []);
-
-  // Fetch all brands on mount
-  useEffect(() => {
-    const fetchBrands = async () => {
-      try {
-        const response = await getProducts({ page: 1, limit: 200 });
-        const brands = [...new Set(response.data.map((p) => p.brand))].filter(Boolean).sort();
-        setAvailableBrands(brands);
-      } catch (err) {
-        console.error('Error fetching brands:', err);
-      }
-    };
-    fetchBrands();
   }, []);
 
   // Fetch products when filters change

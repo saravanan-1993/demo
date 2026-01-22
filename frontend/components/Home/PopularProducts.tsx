@@ -1,56 +1,46 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import DynamicProductCard from './DynamicProductCard';
 import { getHomepageProducts, type Product } from '@/services/online-services/frontendProductService';
-import { getCategories, type Category } from '@/services/online-services/frontendCategoryService';
 
-export default function PopularProducts() {
+interface Category {
+  id: string;
+  name: string;
+}
+
+interface PopularProductsProps {
+  initialProducts: Product[];
+  categories: Category[];
+}
+
+export default function PopularProducts({ initialProducts, categories }: PopularProductsProps) {
   const [activeCategory, setActiveCategory] = useState<string>('');
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [loading, setLoading] = useState(false);
 
-  // Fetch categories on mount
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await getCategories();
-        setCategories(response.data);
-      } catch (err) {
-        console.error('Error fetching categories:', err);
-      }
-    };
-    fetchCategories();
-  }, []);
-
-  // Fetch bestseller products when category changes
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Fetch products with "Bestseller" badge from homepage products
-        const response = await getHomepageProducts({
-          badge: 'Bestseller',
-          category: activeCategory || undefined,
-          limit: 10,
-        });
-        
+  // Fetch products when category changes (using client-side service)
+  const handleCategoryChange = async (categoryName: string) => {
+    setActiveCategory(categoryName);
+    setLoading(true);
+    
+    try {
+      const response = await getHomepageProducts({
+        badge: 'Bestseller',
+        category: categoryName || undefined,
+        limit: 10,
+      });
+      
+      if (response.success) {
         setProducts(response.data);
-      } catch (err) {
-        console.error('Error fetching bestseller products:', err);
-        setError('Failed to load products');
-      } finally {
-        setLoading(false);
       }
-    };
-
-    fetchProducts();
-  }, [activeCategory]);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <section className="py-4 sm:py-6 md:py-8 bg-white">
@@ -72,7 +62,7 @@ export default function PopularProducts() {
         {/* Category Tabs */}
         <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 overflow-x-auto pb-2 scrollbar-hide">
           <button
-            onClick={() => setActiveCategory('')}
+            onClick={() => handleCategoryChange('')}
             className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-colors active:scale-95 ${
               activeCategory === ''
                 ? 'bg-[#e63946] text-white'
@@ -84,7 +74,7 @@ export default function PopularProducts() {
           {categories.slice(0, 6).map((category) => (
             <button
               key={category.id}
-              onClick={() => setActiveCategory(category.name)}
+              onClick={() => handleCategoryChange(category.name)}
               className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap transition-colors active:scale-95 ${
                 activeCategory === category.name
                   ? 'bg-[#e63946] text-white'
@@ -110,10 +100,6 @@ export default function PopularProducts() {
               </div>
             ))}
           </div>
-        ) : error ? (
-          <div className="text-center py-8 text-gray-500">
-            {error}
-          </div>
         ) : products.length === 0 ? (
           <div className="text-center py-12 sm:py-16">
             <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-full mb-4">
@@ -128,7 +114,7 @@ export default function PopularProducts() {
                 : 'No bestseller products available at the moment.'}
             </p>
             <button
-              onClick={() => setActiveCategory('')}
+              onClick={() => handleCategoryChange('')}
               className="inline-flex items-center px-4 py-2 bg-[#e63946] text-white rounded-lg hover:bg-[#d62839] transition-colors text-sm sm:text-base"
             >
               View All Categories

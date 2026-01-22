@@ -1,13 +1,25 @@
 import { AppLayout } from "@/components/Layouts/applayout";
 import { Toaster } from "@/components/ui/sonner";
+import { fetchCategories, fetchWebSettings, fetchCompanySettings } from "@/lib/server-fetch";
 
-export default function MainLayout({
+export default async function MainLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Fetch data for Header and Footer on server-side
+  const [categories, webSettings, companySettings] = await Promise.all([
+    fetchCategories(),
+    fetchWebSettings(),
+    fetchCompanySettings(),
+  ]);
+
   return (
-    <AppLayout>
+    <AppLayout
+      categories={categories}
+      webSettings={webSettings}
+      companySettings={companySettings}
+    >
       <Toaster 
         position="top-center"
         toastOptions={{

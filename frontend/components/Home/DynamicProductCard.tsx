@@ -24,8 +24,11 @@ interface DynamicProductCardProps {
 export default function DynamicProductCard({
   product,
 }: DynamicProductCardProps) {
-  // Find the default variant index, fallback to 0 if none is marked as default
-  const defaultVariantIndex = product.variants.findIndex(v => v.isDefault);
+  // Filter only active variants
+  const activeVariants = product.variants.filter(v => v.variantStatus === "active");
+  
+  // Find the default variant index from active variants, fallback to 0
+  const defaultVariantIndex = activeVariants.findIndex(v => v.isDefault);
   const [selectedVariant, setSelectedVariant] = useState(defaultVariantIndex >= 0 ? defaultVariantIndex : 0);
   const [showVariants, setShowVariants] = useState(false);
   const [selectedCuttingStyle, setSelectedCuttingStyle] = useState("");
@@ -86,7 +89,7 @@ export default function DynamicProductCard({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [showVariants, showCuttingStyles]);
 
-  const currentVariant = product.variants[selectedVariant];
+  const currentVariant = activeVariants[selectedVariant];
   const inventoryProductId = currentVariant?.inventoryProductId || "";
   // Get quantity for this specific variant + cutting style combination
   const quantity = getItemQuantity(product.id, inventoryProductId, selectedCuttingStyle || undefined);
@@ -240,13 +243,13 @@ export default function DynamicProductCard({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              if (product.variants.length > 1) {
+              if (activeVariants.length > 1) {
                 setShowVariants(!showVariants);
               }
             }}
-            disabled={product.variants.length === 1}
+            disabled={activeVariants.length === 1}
             className={`w-full h-full flex items-center justify-between px-3 sm:px-3 rounded text-sm sm:text-sm text-gray-700 transition-colors ${
-              product.variants.length === 1
+              activeVariants.length === 1
                 ? "bg-gray-100 cursor-default"
                 : "bg-white border border-gray-300 hover:border-gray-400 cursor-pointer"
             }`}
@@ -254,7 +257,7 @@ export default function DynamicProductCard({
             <span className="truncate pr-2 sm:pr-2">
               {currentVariant?.displayName || currentVariant?.variantName || "Select Variant"}
             </span>
-            {product.variants.length > 1 && (
+            {activeVariants.length > 1 && (
               <IconChevronDown
                 size={14}
                 className={`flex-shrink-0 transition-transform sm:w-3.5 sm:h-3.5 ${
@@ -267,7 +270,7 @@ export default function DynamicProductCard({
           {/* Variants Dropdown - Reduced item height */}
           {showVariants && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto">
-              {product.variants.map((variant, index) => {
+              {activeVariants.map((variant, index) => {
                 const variantDiscount =
                   variant.variantMRP > variant.variantSellingPrice
                     ? Math.round(
