@@ -266,7 +266,7 @@ const createOnlineProduct = async (req, res) => {
     if (req.files && req.files.length > 0) {
       console.log(`📸 Uploading ${req.files.length} images to S3...`);
       uploadedImageKeys = await Promise.all(
-        req.files.map((file) => uploadToS3(file, "online-products"))
+        req.files.map((file) => uploadToS3(file.buffer, file.originalname, file.mimetype))
       );
       console.log("✅ Images uploaded to S3:", uploadedImageKeys);
       
@@ -476,7 +476,7 @@ const updateOnlineProduct = async (req, res) => {
     if (req.files && req.files.length > 0) {
       console.log(`📸 Uploading ${req.files.length} new images to S3...`);
       uploadedImageKeys = await Promise.all(
-        req.files.map((file) => uploadToS3(file, "online-products"))
+        req.files.map((file) => uploadToS3(file.buffer, file.originalname, file.mimetype))
       );
       console.log("✅ New images uploaded to S3:", uploadedImageKeys);
       
