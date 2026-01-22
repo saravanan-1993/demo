@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PhoneInput } from "@/components/ui/phone-input";
+import { CountryStateCitySelect } from "@/components/ui/country-state-city-select";
+import { ZipCodeInput } from "@/components/ui/zipcode-input";
 import {
   Card,
   CardContent,
@@ -19,11 +21,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { format } from "date-fns";
 
 import {
@@ -57,9 +60,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ className }) => {
     state: user?.state || "",
     zipCode: user?.zipCode || "",
     country: user?.country || "",
-    dateOfBirth: user?.dateOfBirth
-      ? new Date(user.dateOfBirth).toISOString().split("T")[0]
-      : "",
+    dateOfBirth: user?.dateOfBirth ? new Date(user.dateOfBirth) : undefined as Date | undefined,
   });
 
   if (!user) {
@@ -97,7 +98,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({ className }) => {
     setIsLoading(true);
 
     try {
-      const response = await axiosInstance.put("/api/auth/profile", formData);
+      // Prepare data with proper date formatting
+      const submitData = {
+        ...formData,
+        dateOfBirth: formData.dateOfBirth ? formData.dateOfBirth.toISOString() : undefined,
+      };
+
+      const response = await axiosInstance.put("/api/auth/profile", submitData);
 
       if (response.data.success) {
         updateUser(response.data.data);
@@ -129,9 +136,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ className }) => {
       state: user.state || "",
       zipCode: user.zipCode || "",
       country: user.country || "",
-      dateOfBirth: user.dateOfBirth
-        ? new Date(user.dateOfBirth).toISOString().split("T")[0]
-        : "",
+      dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth) : undefined,
     });
     setIsEditing(false);
   };
@@ -260,123 +265,135 @@ export const UserProfile: React.FC<UserProfileProps> = ({ className }) => {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    type="text"
-                    value={formData.city}
-                    onChange={(e) =>
+                <div className="md:col-span-2">
+                  <CountryStateCitySelect
+                    value={{
+                      country: formData.country || "",
+                      state: formData.state,
+                      city: formData.city,
+                    }}
+                    onChange={(value) => {
                       setFormData((prev) => ({
                         ...prev,
-                        city: e.target.value,
-                      }))
-                    }
+                        country: value.country,
+                        state: value.state,
+                        city: value.city,
+                      }));
+                    }}
                     disabled={!isEditing}
-                    placeholder="New York"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="state">State/Province</Label>
-                  <Input
-                    id="state"
-                    type="text"
-                    value={formData.state}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        state: e.target.value,
-                      }))
-                    }
-                    disabled={!isEditing}
-                    placeholder="NY"
+                    showLabels
+                    countryLabel="Country"
+                    stateLabel="State"
+                    cityLabel="City"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="zipCode">ZIP/Postal Code</Label>
-                  <Input
+                  <ZipCodeInput
                     id="zipCode"
-                    type="text"
+                    country={formData.country}
+                    state={formData.state}
+                    city={formData.city}
                     value={formData.zipCode}
-                    onChange={(e) =>
+                    onChange={(value) => {
                       setFormData((prev) => ({
                         ...prev,
-                        zipCode: e.target.value.replace(/[^0-9]/g, ""),
-                      }))
-                    }
-                    disabled={!isEditing}
-                    placeholder="10001"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="country">Country</Label>
-                  <Input
-                    id="country"
-                    type="text"
-                    value={formData.country}
-                    onChange={(e) =>
+                        zipCode: value,
+                      }));
+                    }}
+                    onLocationSelect={(location) => {
                       setFormData((prev) => ({
                         ...prev,
-                        country: e.target.value,
-                      }))
-                    }
+                        city: location.city || prev.city,
+                        state: location.state || prev.state,
+                      }));
+                    }}
                     disabled={!isEditing}
-                    placeholder="United States"
+                    placeholder="Enter postal code"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={`w-full justify-start text-left font-normal ${
-                          !isEditing
-                            ? "opacity-50 cursor-not-allowed"
-                            : ""
-                        }`}
-                        disabled={!isEditing}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {formData.dateOfBirth ? (
-                          format(
-                            new Date(formData.dateOfBirth),
-                            "MMMM d, yyyy"
-                          )
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={
-                          formData.dateOfBirth
-                            ? new Date(formData.dateOfBirth)
-                            : undefined
-                        }
-                        onSelect={(date) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            dateOfBirth: date
-                              ? date.toISOString().split("T")[0]
-                              : "",
-                          }))
-                        }
-                        disabled={!isEditing}
-                        initialFocus
-                        className="rounded-md border shadow-sm"
-                        captionLayout="dropdown"
-                        fromYear={1900}
-                        toYear={new Date().getFullYear()}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <div className="flex gap-0">
+                    {/* Day Dropdown */}
+                    <Select
+                      value={formData.dateOfBirth ? formData.dateOfBirth.getDate().toString() : ""}
+                      onValueChange={(value) => {
+                        const currentDate = formData.dateOfBirth || new Date(2000, 0, 1);
+                        const newDate = new Date(currentDate);
+                        newDate.setDate(parseInt(value));
+                        setFormData((prev) => ({ ...prev, dateOfBirth: newDate }));
+                      }}
+                      disabled={!isEditing}
+                    >
+                      <SelectTrigger className="rounded-r-none border-r-0">
+                        <SelectValue placeholder="Day" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                          <SelectItem key={day} value={day.toString()}>
+                            {day}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {/* Month Dropdown */}
+                    <Select
+                      value={formData.dateOfBirth ? formData.dateOfBirth.getMonth().toString() : ""}
+                      onValueChange={(value) => {
+                        const currentDate = formData.dateOfBirth || new Date(2000, 0, 1);
+                        const newDate = new Date(currentDate);
+                        newDate.setMonth(parseInt(value));
+                        setFormData((prev) => ({ ...prev, dateOfBirth: newDate }));
+                      }}
+                      disabled={!isEditing}
+                    >
+                      <SelectTrigger className="rounded-none border-r-0">
+                        <SelectValue placeholder="Month" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[
+                          "January", "February", "March", "April", "May", "June",
+                          "July", "August", "September", "October", "November", "December"
+                        ].map((month, index) => (
+                          <SelectItem key={index} value={index.toString()}>
+                            {month}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {/* Year Dropdown */}
+                    <Select
+                      value={formData.dateOfBirth ? formData.dateOfBirth.getFullYear().toString() : ""}
+                      onValueChange={(value) => {
+                        const currentDate = formData.dateOfBirth || new Date(2000, 0, 1);
+                        const newDate = new Date(currentDate);
+                        newDate.setFullYear(parseInt(value));
+                        setFormData((prev) => ({ ...prev, dateOfBirth: newDate }));
+                      }}
+                      disabled={!isEditing}
+                    >
+                      <SelectTrigger className="rounded-l-none">
+                        <SelectValue placeholder="Year" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {formData.dateOfBirth && !isNaN(formData.dateOfBirth.getTime()) && (
+                    <p className="text-xs text-muted-foreground">
+                      Selected: {format(formData.dateOfBirth, "MMMM d, yyyy")}
+                    </p>
+                  )}
                 </div>
               </div>
 
