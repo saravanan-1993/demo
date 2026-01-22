@@ -38,13 +38,17 @@ messaging.onBackgroundMessage((payload) => {
     console.error('Failed to parse actions:', e);
   }
 
+  // Create unique tag to prevent duplicate notifications
+  // Using timestamp ensures each notification is unique
+  const uniqueTag = `${payload.data?.type || 'notification'}-${Date.now()}`;
+  
   const notificationOptions = {
     body: payload.notification?.body || '',
     icon: logoUrl, // Use company logo from backend
     badge: logoUrl, // Use company logo from backend
     image: payload.notification?.image,
     data: payload.data,
-    tag: payload.data?.type || 'notification',
+    tag: uniqueTag, // Unique tag prevents duplicates
     requireInteraction: payload.data?.requireInteraction === 'true' || payload.data?.requireInteraction === true,
     vibrate: payload.data?.vibrate ? JSON.parse(payload.data.vibrate) : [200, 100, 200],
     timestamp: Date.now(),
@@ -61,7 +65,7 @@ messaging.onBackgroundMessage((payload) => {
     ],
     // Visual enhancements
     silent: false,
-    renotify: true,
+    renotify: false, // ❌ FIXED: Changed from true to false to prevent duplicate notifications
   };
 
   console.log('[firebase-messaging-sw.js] Using logo URL:', logoUrl);

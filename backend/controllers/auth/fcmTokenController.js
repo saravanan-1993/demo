@@ -43,8 +43,9 @@ const saveFCMToken = async (req, res) => {
       // Get existing tokens array
       let tokens = Array.isArray(user.fcmTokens) ? user.fcmTokens : [];
 
-      // Remove token if it already exists (same token, different device)
-      tokens = tokens.filter(t => t.token !== fcmToken);
+      // ✅ FIX: Remove duplicate tokens from same device/browser
+      // This prevents multiple notifications when user has multiple tabs open
+      tokens = tokens.filter(t => t.token !== fcmToken && t.device !== device);
 
       // Add new token to the beginning
       tokens.unshift({
@@ -91,8 +92,9 @@ const saveFCMToken = async (req, res) => {
       // Get existing tokens array
       let tokens = Array.isArray(admin.fcmTokens) ? admin.fcmTokens : [];
 
-      // Remove token if it already exists
-      tokens = tokens.filter(t => t.token !== fcmToken);
+      // ✅ FIX: Remove duplicate tokens from same device/browser
+      // This prevents multiple notifications when admin has multiple tabs open
+      tokens = tokens.filter(t => t.token !== fcmToken && t.device !== device);
 
       // Add new token to the beginning
       tokens.unshift({
