@@ -65,7 +65,7 @@ const generateRandomToken = () => {
 const register = async (req, res) => {
   try {
     console.log("📝 Registration request received:", req.body.email);
-    const { email, password, name, phoneNumber, fcmToken } = req.body;
+    const { email, password, name, phoneNumber } = req.body;
 
     // Validation
     if (!email || !password || !name || !phoneNumber) {
@@ -139,12 +139,6 @@ const register = async (req, res) => {
       verificationToken,
     };
 
-    // Add FCM token if provided
-    if (fcmToken) {
-      userData.fcmToken = fcmToken;
-      console.log("📱 FCM token will be saved during registration");
-    }
-
     // Create user in appropriate collection
     console.log("💾 Creating user in database...");
     const user = isAdmin
@@ -155,9 +149,6 @@ const register = async (req, res) => {
           data: userData,
         });
     console.log("✅ User created:", user.id);
-    if (fcmToken) {
-      console.log(`📱 FCM token saved for new ${isAdmin ? 'admin' : 'user'}: ${user.email}`);
-    }
 
     // Create Customer record for non-admin users (monolith approach)
     let customerId = null;
@@ -242,17 +233,15 @@ const register = async (req, res) => {
         }
       });
 
-      // Send welcome notification to the new user (if FCM token exists)
-      if (fcmToken) {
-        setImmediate(async () => {
-          try {
-            await sendWelcomeNotification(user.id, user.name);
-            console.log(`🎉 Welcome notification sent to user: ${user.name}`);
-          } catch (notifError) {
-            console.error('⚠️ Failed to send welcome notification:', notifError.message);
-          }
-        });
-      }
+      // Send welcome notification to the new user (non-blocking)
+      setImmediate(async () => {
+        try {
+          await sendWelcomeNotification(user.id, user.name);
+          console.log(`🎉 Welcome notification sent to user: ${user.name}`);
+        } catch (notifError) {
+          console.error('⚠️ Failed to send welcome notification:', notifError.message);
+        }
+      });
     }
   } catch (error) {
     console.error("Registration error:", error);
@@ -266,7 +255,7 @@ const register = async (req, res) => {
 // Login user
 const login = async (req, res) => {
   try {
-    const { email, password, fcmToken } = req.body;
+    const { email, password } = req.body;
 
     // Validation
     if (!email || !password) {
@@ -335,12 +324,8 @@ const login = async (req, res) => {
       });
     }
 
-    // Update last login and FCM token in appropriate collection
+    // Update last login
     const updateData = { lastLogin: new Date() };
-    if (fcmToken) {
-      updateData.fcmToken = fcmToken;
-      console.log(`📱 FCM token saved for ${userType}: ${user.email}`);
-    }
 
     if (userType === "admin") {
       await prisma.admin.update({
@@ -461,11 +446,7 @@ const googleCallback = async (req, res) => {
         lastLogin: new Date(),
       };
       
-      // Save FCM token if provided
-      if (fcmToken) {
-        updateData.fcmToken = fcmToken;
-        console.log(`📱 FCM token saved for Google ${isAdmin ? 'admin' : 'user'}: ${email}`);
-      }
+      // Note: FCM token should be saved via dedicated endpoint, not during OAuth
       
       // Only update name if user was previously a Google user (not local registration)
       // This preserves the name user chose during registration
@@ -512,11 +493,7 @@ const googleCallback = async (req, res) => {
         lastLogin: new Date(),
       };
       
-      // Save FCM token if provided
-      if (fcmToken) {
-        createData.fcmToken = fcmToken;
-        console.log(`📱 FCM token saved for new Google ${isAdmin ? 'admin' : 'user'}: ${email}`);
-      }
+      // Note: FCM token should be saved via dedicated endpoint, not during OAuth
       
       user = isAdmin
         ? await prisma.admin.create({ data: createData })
@@ -558,16 +535,14 @@ const googleCallback = async (req, res) => {
         });
 
         // Send welcome notification to the new Google user (non-blocking)
-        if (fcmToken) {
-          setImmediate(async () => {
-            try {
-              await sendWelcomeNotification(user.id, user.name);
-              console.log(`🎉 Welcome notification sent to Google user: ${user.name}`);
-            } catch (notifError) {
-              console.error('⚠️ Failed to send welcome notification:', notifError.message);
-            }
-          });
-        }
+        setImmediate(async () => {
+          try {
+            await sendWelcomeNotification(user.id, user.name);
+            console.log(`🎉 Welcome notification sent to Google user: ${user.name}`);
+          } catch (notifError) {
+            console.error('⚠️ Failed to send welcome notification:', notifError.message);
+          }
+        });
       }
     }
 

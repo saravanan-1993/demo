@@ -219,6 +219,16 @@ app.listen(PORT, async () => {
       console.log("📱 Push notifications will not be available");
     }
     
+    // Initialize Cron Jobs for automated notifications
+    try {
+      const { initializeCronJobs } = require("./utils/notification/cronJobs");
+      initializeCronJobs();
+      console.log("⏰ Cron jobs initialized for automated stock alerts");
+    } catch (cronError) {
+      console.error("⚠️ Cron jobs initialization failed:", cronError.message);
+      console.log("📅 Scheduled notifications will not be available");
+    }
+    
     console.log("═══════════════════════════════════════════════════");
     console.log("✅ Monolith E-Commerce Backend Started Successfully");
     console.log("═══════════════════════════════════════════════════");
