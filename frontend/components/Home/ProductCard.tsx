@@ -20,7 +20,9 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const [selectedVariant, setSelectedVariant] = useState(0);
+  // Find the default variant index, fallback to 0 if none is marked as default
+  const defaultVariantIndex = product.variants.findIndex(v => v.isDefault);
+  const [selectedVariant, setSelectedVariant] = useState(defaultVariantIndex >= 0 ? defaultVariantIndex : 0);
   const [showVariants, setShowVariants] = useState(false);
   const { addToCart, updateQuantity, getItemQuantity } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();

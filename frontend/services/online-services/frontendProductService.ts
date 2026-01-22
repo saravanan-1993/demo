@@ -13,6 +13,7 @@ export interface ProductVariant {
   variantStockStatus: string;
   variantImages: string[];
   detailedDescription?: string; // Detailed description for the variant
+  isDefault?: boolean; // Whether this variant is the default/main variant
   // Additional variant attributes
   variantHSN?: string;
   variantBarcode?: string;
