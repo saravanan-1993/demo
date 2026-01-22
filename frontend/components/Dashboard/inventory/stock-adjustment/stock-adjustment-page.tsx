@@ -204,7 +204,7 @@ export default function StockAdjustmentPage() {
             reason: item.reason,
             reasonDetails: item.notes || undefined,
             adjustedBy: adjustedBy,
-            notes: `Date: ${adjustmentDate}`,
+            notes: item.notes || undefined,
           });
           successCount++;
         } catch (error: unknown) {
