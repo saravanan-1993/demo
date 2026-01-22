@@ -28,21 +28,26 @@ export function generateProductUrl(product: {
   brand?: string;
   shortDescription: string;
   category?: string;
-  variants?: Array<{ inventoryProductId?: string | null; variantName?: string; displayName?: string }>;
+  variants?: Array<{ 
+    inventoryProductId?: string | null; 
+    variantName?: string; 
+    displayName?: string;
+    isDefault?: boolean;
+  }>;
 }): string {
-  // Get first variant for the slug and variant parameter
-  const firstVariant = product.variants?.[0];
+  // Find the default variant, fallback to first variant
+  const defaultVariant = product.variants?.find(v => v.isDefault) || product.variants?.[0];
   
   // Generate slug using displayName (preferred) or variantName as fallback
   const slug = generateProductSlug({
     brand: product.brand,
-    shortDescription: firstVariant?.displayName || firstVariant?.variantName || "",
+    shortDescription: defaultVariant?.displayName || defaultVariant?.variantName || "",
     category: product.category,
   });
   
   // Add variant parameter if inventory product ID exists
-  const variantParam = firstVariant?.inventoryProductId 
-    ? `?variant=${firstVariant.inventoryProductId}`
+  const variantParam = defaultVariant?.inventoryProductId 
+    ? `?variant=${defaultVariant.inventoryProductId}`
     : '';
   
   return `/products/${slug}/${product.id}${variantParam}`;
