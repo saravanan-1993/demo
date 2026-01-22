@@ -1,6 +1,6 @@
 import { AppLayout } from "@/components/Layouts/applayout";
 import { Toaster } from "@/components/ui/sonner";
-import { fetchCategories, fetchWebSettings, fetchCompanySettings } from "@/lib/server-fetch";
+import { fetchCategories, fetchWebSettings, fetchCompanySettings, fetchPromotionalCoupons } from "@/lib/server-fetch";
 
 // Force dynamic rendering for all pages in this layout
 export const dynamic = 'force-dynamic';
@@ -11,10 +11,11 @@ export default async function MainLayout({
   children: React.ReactNode;
 }) {
   // Fetch data for Header and Footer on server-side
-  const [categories, webSettings, companySettings] = await Promise.all([
+  const [categories, webSettings, companySettings, promotionalOffers] = await Promise.all([
     fetchCategories(),
     fetchWebSettings(),
     fetchCompanySettings(),
+    fetchPromotionalCoupons(),
   ]);
 
   return (
@@ -22,6 +23,7 @@ export default async function MainLayout({
       categories={categories}
       webSettings={webSettings}
       companySettings={companySettings}
+      promotionalOffers={promotionalOffers}
     >
       <Toaster 
         position="top-center"

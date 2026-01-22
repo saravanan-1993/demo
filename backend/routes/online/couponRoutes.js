@@ -14,6 +14,9 @@ router.post("/validate", couponController.validateCoupon);
 // Get available coupons for user (must be before /:id route)
 router.get("/available", couponController.getAvailableCoupons);
 
+// Get promotional coupons for header display (must be before /:id route)
+router.get("/promotional", couponController.getPromotionalCoupons);
+
 // Apply coupon (record usage)
 router.post("/apply", couponController.applyCoupon);
 

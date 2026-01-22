@@ -502,6 +502,113 @@ const sendWelcomeNotification = async (userId, userName) => {
   return await sendToUser(userId, notification, data);
 };
 
+/**
+ * Send expiring product alert to all admins
+ */
+const sendExpiringProductAlert = async (itemName, expiryDate, daysUntilExpiry, warehouseName, itemId) => {
+  // Determine urgency based on days until expiry
+  const isUrgent = daysUntilExpiry <= 7;
+  const isCritical = daysUntilExpiry <= 3;
+  
+  // Format expiry date
+  const formattedDate = new Date(expiryDate).toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  });
+  
+  const notification = {
+    title: isCritical ? '🚨 Critical: Product Expiring Soon!' : isUrgent ? '⚠️ Urgent: Product Expiring Soon' : '📅 Product Expiry Alert',
+    body: isCritical 
+      ? `${itemName} expires in ${daysUntilExpiry} day(s)!\n📅 Expiry: ${formattedDate}\n🏢 ${warehouseName}\n\n🚨 IMMEDIATE ACTION REQUIRED!`
+      : `${itemName} expires in ${daysUntilExpiry} day(s)\n📅 Expiry: ${formattedDate}\n🏢 ${warehouseName}\n\n⚠️ Please take action soon`,
+  };
+
+  const data = {
+    type: isCritical ? 'CRITICAL_EXPIRY' : isUrgent ? 'URGENT_EXPIRY' : 'EXPIRY_WARNING',
+    itemName,
+    itemId: itemId || '',
+    expiryDate: formattedDate,
+    daysUntilExpiry: daysUntilExpiry.toString(),
+    warehouse: warehouseName,
+    link: '/dashboard/inventory-management',
+    urgency: isCritical ? 'high' : 'normal',
+    vibrate: isCritical ? [400, 100, 400, 100, 400, 100, 400] : [300, 100, 300, 100, 300],
+    requireInteraction: isCritical || isUrgent,
+    color: isCritical ? '#D32F2F' : isUrgent ? '#F57C00' : '#FFA726',
+    backgroundColor: isCritical ? '#FFCDD2' : isUrgent ? '#FFE0B2' : '#FFF3E0',
+    actions: [
+      {
+        action: 'view',
+        title: '👁️ View Item',
+      },
+      {
+        action: 'dismiss',
+        title: '✖️ Dismiss',
+      },
+    ],
+  };
+
+  return await sendToAllAdmins(notification, data);
+};
+
+/**
+ * Send daily expiry summary to all admins
+ */
+const sendDailyExpirySummary = async (expirySummary) => {
+  const { critical, urgent, upcoming, total } = expirySummary;
+  
+  if (total === 0) {
+    console.log('✅ No expiring products - no summary needed');
+    return { success: true, message: 'No expiring products' };
+  }
+
+  let summaryBody = `📊 Daily Expiry Report\n\n`;
+  summaryBody += `🚨 Critical (≤3 days): ${critical} items\n`;
+  summaryBody += `⚠️ Urgent (4-7 days): ${urgent} items\n`;
+  summaryBody += `📅 Upcoming (8-30 days): ${upcoming} items\n`;
+  summaryBody += `📦 Total Expiring: ${total} items\n\n`;
+  
+  if (critical > 0) {
+    summaryBody += `⚠️ IMMEDIATE ACTION REQUIRED for ${critical} item(s)!`;
+  } else if (urgent > 0) {
+    summaryBody += `⚠️ Please review ${urgent} urgent item(s)`;
+  } else {
+    summaryBody += `✅ No critical items, but ${upcoming} items expiring soon`;
+  }
+
+  const notification = {
+    title: critical > 0 ? '🚨 Critical Expiry Alert!' : '📊 Daily Expiry Summary',
+    body: summaryBody,
+  };
+
+  const data = {
+    type: 'DAILY_EXPIRY_SUMMARY',
+    criticalCount: critical.toString(),
+    urgentCount: urgent.toString(),
+    upcomingCount: upcoming.toString(),
+    totalCount: total.toString(),
+    link: '/dashboard/inventory-management',
+    urgency: critical > 0 ? 'high' : 'normal',
+    vibrate: [200, 100, 200],
+    requireInteraction: critical > 0,
+    color: critical > 0 ? '#D32F2F' : urgent > 0 ? '#F57C00' : '#FFA726',
+    backgroundColor: critical > 0 ? '#FFCDD2' : urgent > 0 ? '#FFE0B2' : '#FFF3E0',
+    actions: [
+      {
+        action: 'view',
+        title: '👁️ View Inventory',
+      },
+      {
+        action: 'dismiss',
+        title: '✖️ Dismiss',
+      },
+    ],
+  };
+
+  return await sendToAllAdmins(notification, data);
+};
+
 module.exports = {
   sendToDevice,
   sendToUser,
@@ -512,4 +619,6 @@ module.exports = {
   sendOrderPlacedNotification,
   sendNewUserRegistrationAlert,
   sendWelcomeNotification,
+  sendExpiringProductAlert,
+  sendDailyExpirySummary,
 };

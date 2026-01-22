@@ -216,3 +216,20 @@ export async function fetchPolicy(slug: string) {
     return null;
   }
 }
+
+/**
+ * Fetch promotional coupons for header display
+ */
+export async function fetchPromotionalCoupons() {
+  try {
+    const res = await fetch(`${API_URL}/api/online/coupons/promotional`, {
+      cache: 'no-store', // Always get fresh data
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.success ? data.data : [];
+  } catch (error) {
+    console.error('Error fetching promotional coupons:', error);
+    return [];
+  }
+}

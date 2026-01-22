@@ -655,3 +655,49 @@ exports.getAvailableCoupons = async (req, res) => {
     });
   }
 };
+
+// Get active promotional coupons for header display
+exports.getPromotionalCoupons = async (req, res) => {
+  try {
+    const now = new Date();
+    const coupons = await prisma.coupon.findMany({
+      where: {
+        isActive: true,
+        validFrom: { lte: now },
+        validUntil: { gte: now },
+        OR: [
+          { maxUsageCount: null },
+          { 
+            AND: [
+              { maxUsageCount: { not: null } },
+              { currentUsageCount: { lt: prisma.coupon.fields.maxUsageCount } }
+            ]
+          }
+        ]
+      },
+      select: {
+        code: true,
+        description: true,
+        discountType: true,
+        discountValue: true,
+        minOrderValue: true,
+        maxDiscountAmount: true,
+        usageType: true
+      },
+      orderBy: { discountValue: "desc" },
+      take: 10 // Get top 10 offers including first-time user offers
+    });
+
+    res.status(200).json({
+      success: true,
+      data: coupons
+    });
+  } catch (error) {
+    console.error("Error fetching promotional coupons:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch promotional coupons",
+      error: error.message
+    });
+  }
+};

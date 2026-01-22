@@ -1,11 +1,16 @@
 const cron = require('node-cron');
 const { checkAndSendStockAlerts, sendDailyStockSummary } = require('./stockAlertScheduler');
+const { checkAndSendExpiryAlerts, sendDailyExpiryReport, sendExpiringTodayAlert } = require('./expiryAlertScheduler');
 
 /**
  * Initialize all cron jobs for notifications
  */
 const initializeCronJobs = () => {
   console.log('⏰ [Cron Jobs] Initializing scheduled tasks...');
+
+  // ============================================
+  // STOCK ALERTS
+  // ============================================
 
   // Daily stock alert summary - runs every day at 9:00 AM
   cron.schedule('0 9 * * *', async () => {
@@ -43,10 +48,67 @@ const initializeCronJobs = () => {
     timezone: 'Asia/Kolkata',
   });
 
+  // ============================================
+  // EXPIRY ALERTS
+  // ============================================
+
+  // Daily expiry report - runs every day at 8:00 AM
+  cron.schedule('0 8 * * *', async () => {
+    console.log('⏰ [Cron] Running daily expiry report (8:00 AM)...');
+    try {
+      await sendDailyExpiryReport();
+    } catch (error) {
+      console.error('❌ [Cron] Error in daily expiry report:', error);
+    }
+  }, {
+    timezone: 'Asia/Kolkata',
+  });
+
+  // Check expiring items - runs every day at 10:00 AM
+  cron.schedule('0 10 * * *', async () => {
+    console.log('⏰ [Cron] Running expiry check (10:00 AM)...');
+    try {
+      await checkAndSendExpiryAlerts();
+    } catch (error) {
+      console.error('❌ [Cron] Error in expiry check:', error);
+    }
+  }, {
+    timezone: 'Asia/Kolkata',
+  });
+
+  // Critical expiry check - runs every day at 6:00 PM
+  cron.schedule('0 18 * * *', async () => {
+    console.log('⏰ [Cron] Running evening expiry check (6:00 PM)...');
+    try {
+      await checkAndSendExpiryAlerts();
+    } catch (error) {
+      console.error('❌ [Cron] Error in evening expiry check:', error);
+    }
+  }, {
+    timezone: 'Asia/Kolkata',
+  });
+
+  // Items expiring TODAY - runs every day at 7:00 AM (early warning)
+  cron.schedule('0 7 * * *', async () => {
+    console.log('⏰ [Cron] Checking items expiring TODAY (7:00 AM)...');
+    try {
+      await sendExpiringTodayAlert();
+    } catch (error) {
+      console.error('❌ [Cron] Error in expiring today check:', error);
+    }
+  }, {
+    timezone: 'Asia/Kolkata',
+  });
+
   console.log('✅ [Cron Jobs] Scheduled tasks initialized:');
-  console.log('   - Daily Summary: 9:00 AM & 5:00 PM IST');
-  console.log('   - Critical Alerts: Every 6 hours');
-  console.log('   - Timezone: Asia/Kolkata (IST)');
+  console.log('   📦 STOCK ALERTS:');
+  console.log('      - Daily Summary: 9:00 AM & 5:00 PM IST');
+  console.log('      - Critical Alerts: Every 6 hours');
+  console.log('   📅 EXPIRY ALERTS:');
+  console.log('      - Daily Report: 8:00 AM IST');
+  console.log('      - Expiry Check: 10:00 AM & 6:00 PM IST');
+  console.log('      - Expiring Today: 7:00 AM IST');
+  console.log('   🌍 Timezone: Asia/Kolkata (IST)');
 };
 
 module.exports = {

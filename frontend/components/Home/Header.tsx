@@ -33,12 +33,23 @@ import { useRouter } from "next/navigation";
 import { searchProducts, type Product } from "@/services/online-services/frontendProductService";
 import { type WebSettings } from "@/services/online-services/webSettingsService";
 
+interface PromotionalOffer {
+  code: string;
+  description?: string;
+  discountType: "percentage" | "flat";
+  discountValue: number;
+  minOrderValue?: number | null;
+  maxDiscountAmount?: number | null;
+  usageType?: string;
+}
+
 interface HeaderProps {
   initialCategories: Category[];
   initialWebSettings: WebSettings | null;
+  initialPromotionalOffers?: PromotionalOffer[];
 }
 
-export default function Header({ initialCategories, initialWebSettings }: HeaderProps) {
+export default function Header({ initialCategories, initialWebSettings, initialPromotionalOffers = [] }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showMegaMenu, setShowMegaMenu] = useState(false);
   const [categories] = useState<Category[]>(initialCategories);
@@ -54,6 +65,8 @@ export default function Header({ initialCategories, initialWebSettings }: Header
   const [webSettings] = useState<WebSettings | null>(initialWebSettings);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [promotionalOffers] = useState<PromotionalOffer[]>(initialPromotionalOffers);
+  const [currentOfferIndex, setCurrentOfferIndex] = useState(0);
   const { totalItems, totalPrice } = useCart();
   const { totalItems: wishlistCount } = useWishlist();
   const { user, isAuthenticated, logout } = useAuthContext();
@@ -65,6 +78,17 @@ export default function Header({ initialCategories, initialWebSettings }: Header
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Rotate offers every 3 seconds
+  useEffect(() => {
+    if (promotionalOffers.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setCurrentOfferIndex((prev) => (prev + 1) % promotionalOffers.length);
+    }, 7000);
+
+    return () => clearInterval(interval);
+  }, [promotionalOffers.length]);
 
   // Force re-render when auth state changes
   useEffect(() => {
@@ -168,6 +192,43 @@ export default function Header({ initialCategories, initialWebSettings }: Header
     router.push(generateProductUrl(product));
   };
 
+  // Format offer text with attractive styling
+  const formatOfferText = (offer: PromotionalOffer) => {
+    let text = "";
+    
+    // If custom description exists, prioritize it with discount
+    if (offer.description) {
+      if (offer.discountType === "percentage") {
+        text = `${offer.description} - ${offer.discountValue}% OFF`;
+      } else {
+        text = `${offer.description} - ${currencySymbol}${offer.discountValue} OFF`;
+      }
+      return text;
+    }
+
+    // Build offer text without description
+    if (offer.discountType === "percentage") {
+      text = `Get ${offer.discountValue}% OFF`;
+      if (offer.maxDiscountAmount) {
+        text += ` (up to ${currencySymbol}${offer.maxDiscountAmount})`;
+      }
+    } else {
+      text = `Flat ${currencySymbol}${offer.discountValue} OFF`;
+    }
+
+    // Add minimum order condition
+    if (offer.minOrderValue) {
+      text += ` on orders ₹${offer.minOrderValue}+`;
+    }
+
+    // Add special badge for first-time users
+    if (offer.usageType === "first-time-user-only") {
+      text += " • First Time User";
+    }
+
+    return text;
+  };
+
   return (
     <header className="sticky top-0 z-50">
       {/* Top Header Bar - Same Red as Category Bar */}
@@ -188,13 +249,35 @@ export default function Header({ initialCategories, initialWebSettings }: Header
               </Link>
             </div>
 
-            {/* Center - Promotional Text */}
-            <p className="text-center">
-              Get 10% off your first order.{" "}
-              <Link href="/signup" className="underline font-medium">
-                Subscribe
-              </Link>
-            </p>
+            {/* Center - Promotional Offers */}
+            <div className="text-center flex-1 overflow-hidden">
+              {promotionalOffers.length > 0 ? (
+                <p 
+                  key={currentOfferIndex}
+                  className="font-medium text-white"
+                  style={{
+                    animation: 'fadeIn 0.5s ease-in-out'
+                  }}
+                >
+                  {formatOfferText(promotionalOffers[currentOfferIndex])}
+                </p>
+              ) : (
+                <p className="font-medium">🎊 Welcome! Explore our latest products and deals</p>
+              )}
+            </div>
+            
+            <style jsx>{`
+              @keyframes fadeIn {
+                from {
+                  opacity: 0;
+                  transform: translateY(-5px);
+                }
+                to {
+                  opacity: 1;
+                  transform: translateY(0);
+                }
+              }
+            `}</style>
           </div>
         </div>
       </div>

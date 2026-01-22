@@ -170,6 +170,25 @@ class CouponService {
     const response = await axiosInstance.get(`${this.baseURL}/${id}/stats`);
     return response.data;
   }
+
+  /**
+   * Get promotional coupons for header display
+   */
+  async getPromotionalCoupons(): Promise<{
+    success: boolean;
+    data: Array<{
+      code: string;
+      description?: string;
+      discountType: "percentage" | "flat";
+      discountValue: number;
+      minOrderValue?: number | null;
+      maxDiscountAmount?: number | null;
+      usageType?: string;
+    }>;
+  }> {
+    const response = await axiosInstance.get(`${this.baseURL}/promotional`);
+    return response.data;
+  }
 }
 
 export const couponService = new CouponService();
