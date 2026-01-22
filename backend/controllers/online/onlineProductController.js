@@ -337,11 +337,6 @@ const createOnlineProduct = async (req, res) => {
       shippingCharge: parseFloat(productData.shippingCharge) || 0,
       freeShipping: Boolean(productData.freeShipping ?? false),
 
-      // Inventory
-      totalStockQuantity: parseInt(productData.totalStockQuantity) || 0,
-      lowStockAlertLevel: parseInt(productData.lowStockAlertLevel) || 10,
-      stockStatus: productData.stockStatus || "in-stock",
-
       // Visibility & SEO
       productStatus: productData.productStatus || "draft",
       showOnHomepage: Boolean(productData.showOnHomepage ?? false),
@@ -362,7 +357,7 @@ const createOnlineProduct = async (req, res) => {
       returnPolicyApplicable: Boolean(productData.returnPolicyApplicable ?? true),
       returnWindowDays: parseInt(productData.returnWindowDays) || 7,
       warrantyDetails: productData.warrantyDetails || null,
-      countryOfOrigin: productData.countryOfOrigin || "",
+      countryOfOrigin: productData.countryOfOrigin || "India",
 
       // Cutting Styles (array of cutting style IDs)
       cuttingStyles: Array.isArray(productData.cuttingStyles) ? productData.cuttingStyles : [],
