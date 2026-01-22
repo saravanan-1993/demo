@@ -77,13 +77,43 @@ const getCart = async (req, res) => {
       });
     }
 
-    // Convert image keys to presigned URLs
+    // Convert image keys to presigned URLs and update stock data
     const cartItemsWithUrls = await Promise.all(
       customer.cartItems.map(async (item) => {
         const imageUrl = await getImageUrl(item.variantImage);
+        
+        // Fetch fresh stock data from the product
+        let currentMaxStock = item.maxStock; // fallback to cached value
+        let productExists = true;
+        try {
+          const result = await findProductByInventoryId(item.inventoryProductId);
+          if (result && result.variant) {
+            currentMaxStock = result.variant.variantStockQuantity || 0;
+            
+            // Update the cart item in database if stock has changed
+            if (currentMaxStock !== item.maxStock) {
+              await prisma.cart.update({
+                where: { id: item.id },
+                data: { maxStock: currentMaxStock }
+              });
+            }
+          } else {
+            // Product or variant no longer exists
+            productExists = false;
+            currentMaxStock = 0;
+            console.warn(`Product variant not found for cart item: ${item.inventoryProductId}`);
+          }
+        } catch (error) {
+          console.error(`Error fetching fresh stock for ${item.inventoryProductId}:`, error);
+          // If there's an error fetching the product, assume it might be out of stock
+          currentMaxStock = 0;
+          productExists = false;
+        }
+        
         return {
           ...item,
-          variantImage: imageUrl || item.variantImage
+          variantImage: imageUrl || item.variantImage,
+          maxStock: currentMaxStock // Update with fresh stock data
         };
       })
     );
