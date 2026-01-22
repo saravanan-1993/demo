@@ -29,6 +29,11 @@ export default function CartPageClient() {
   const deliveryFee = totalPrice >= 499 ? 0 : 40;
   const total = totalPrice + deliveryFee;
 
+  // Check for stock issues
+  const hasStockIssues = items.some(item => item.quantity > item.maxStock || item.maxStock === 0);
+  const outOfStockItems = items.filter(item => item.maxStock === 0);
+  const overStockItems = items.filter(item => item.quantity > item.maxStock && item.maxStock > 0);
+
   // Helper function to generate proper product URL for cart items
   const generateCartItemUrl = (item: {
     productId: string;
@@ -215,7 +220,7 @@ export default function CartPageClient() {
                   {items.map((item) => (
                     <div
                       key={`${item.productId}-${item.inventoryProductId}-${item.selectedCuttingStyle || 'none'}`}
-                      className="p-3 sm:p-6"
+                      className={`p-3 sm:p-6 ${item.maxStock === 0 ? 'opacity-60 bg-gray-50' : ''}`}
                     >
                       {/* Mobile Layout */}
                       <div className="sm:hidden">
@@ -245,9 +250,14 @@ export default function CartPageClient() {
                                     <span>✂</span> {item.selectedCuttingStyle}
                                   </span>
                                 )}
-                                {item.quantity > item.maxStock && (
-                                  <p className="text-xs text-red-600 mt-1 font-medium">
-                                    Only {item.maxStock} available
+                                {item.maxStock === 0 && (
+                                  <p className="text-xs text-red-600 mt-1 font-semibold bg-red-50 px-2 py-1 rounded">
+                                    ❌ Out of Stock
+                                  </p>
+                                )}
+                                {item.quantity > item.maxStock && item.maxStock > 0 && (
+                                  <p className="text-xs text-red-600 mt-1 font-semibold bg-red-50 px-2 py-1 rounded">
+                                    ⚠️ Only {item.maxStock} available
                                   </p>
                                 )}
                               </div>
@@ -259,7 +269,11 @@ export default function CartPageClient() {
                                     item.selectedCuttingStyle
                                   )
                                 }
-                                className="text-gray-400 hover:text-red-500 p-1 flex-shrink-0"
+                                className={`p-1 flex-shrink-0 transition-colors ${
+                                  item.maxStock === 0 
+                                    ? 'text-red-500 hover:text-red-700 opacity-100 bg-red-50 rounded' 
+                                    : 'text-gray-400 hover:text-red-500'
+                                }`}
                               >
                                 <IconX size={18} />
                               </button>
@@ -275,7 +289,8 @@ export default function CartPageClient() {
                                       item.selectedCuttingStyle
                                     )
                                   }
-                                  className="p-1.5 hover:bg-gray-50"
+                                  disabled={item.maxStock === 0}
+                                  className="p-1.5 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   <IconMinus size={14} />
                                 </button>
@@ -291,7 +306,7 @@ export default function CartPageClient() {
                                       item.selectedCuttingStyle
                                     )
                                   }
-                                  disabled={item.quantity >= item.maxStock}
+                                  disabled={item.quantity >= item.maxStock || item.maxStock === 0}
                                   className="p-1.5 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   <IconPlus size={14} />
@@ -330,7 +345,11 @@ export default function CartPageClient() {
                                 item.selectedCuttingStyle
                               )
                             }
-                            className="text-gray-400 hover:text-red-500 transition-colors"
+                            className={`transition-colors ${
+                              item.maxStock === 0 
+                                ? 'text-red-500 hover:text-red-700 opacity-100 bg-red-50 rounded p-2' 
+                                : 'text-gray-400 hover:text-red-500'
+                            }`}
                           >
                             <IconX size={20} />
                           </button>
@@ -357,9 +376,14 @@ export default function CartPageClient() {
                                 <span>✂</span> {item.selectedCuttingStyle}
                               </span>
                             )}
-                            {item.quantity > item.maxStock && (
-                              <p className="text-xs text-red-600 mt-1 font-medium">
-                                Only {item.maxStock} available
+                            {item.maxStock === 0 && (
+                              <p className="text-xs text-red-600 mt-1 font-semibold bg-red-50 px-2 py-1 rounded">
+                                ❌ Out of Stock
+                              </p>
+                            )}
+                            {item.quantity > item.maxStock && item.maxStock > 0 && (
+                              <p className="text-xs text-red-600 mt-1 font-semibold bg-red-50 px-2 py-1 rounded">
+                                ⚠️ Only {item.maxStock} available
                               </p>
                             )}
                           </div>
@@ -392,7 +416,8 @@ export default function CartPageClient() {
                                     item.selectedCuttingStyle
                                   )
                                 }
-                                className="p-2 hover:bg-gray-50 transition-colors"
+                                disabled={item.maxStock === 0}
+                                className="p-2 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 <IconMinus size={16} />
                               </button>
@@ -408,13 +433,18 @@ export default function CartPageClient() {
                                     item.selectedCuttingStyle
                                   )
                                 }
-                                disabled={item.quantity >= item.maxStock}
+                                disabled={item.quantity >= item.maxStock || item.maxStock === 0}
                                 className="p-2 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 <IconPlus size={16} />
                               </button>
                             </div>
-                            {item.quantity >= item.maxStock && (
+                            {item.maxStock === 0 && (
+                              <span className="text-xs text-red-600 font-medium">
+                                Out of stock
+                              </span>
+                            )}
+                            {item.quantity >= item.maxStock && item.maxStock > 0 && (
                               <span className="text-xs text-orange-600">
                                 Max stock
                               </span>
@@ -450,6 +480,35 @@ export default function CartPageClient() {
 
             {/* Order Summary */}
             <div className="lg:col-span-1">
+              {/* Stock Issues Warning */}
+              {hasStockIssues && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-start gap-3">
+                    <div className="text-red-500 mt-0.5">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-sm font-semibold text-red-800 mb-2">
+                        Stock Issues Found
+                      </h4>
+                      <div className="text-xs text-red-700 space-y-1">
+                        {outOfStockItems.length > 0 && (
+                          <p>• {outOfStockItems.length} item(s) are out of stock</p>
+                        )}
+                        {overStockItems.length > 0 && (
+                          <p>• {overStockItems.length} item(s) exceed available stock</p>
+                        )}
+                        <p className="font-medium mt-2">
+                          Please remove out-of-stock items or adjust quantities before checkout.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 lg:sticky lg:top-24">
                 <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4 sm:mb-6">
                   Order Summary
@@ -519,12 +578,21 @@ export default function CartPageClient() {
 
                 {/* Action Buttons */}
                 <div className="space-y-3 mb-3 sm:mb-4">
-                  <Link
-                    href="/checkout"
-                    className="w-full bg-[#e63946] text-white py-2.5 sm:py-3 rounded-md hover:bg-[#c1121f] transition-colors font-semibold text-sm sm:text-base shadow-sm flex items-center justify-center"
-                  >
-                    Proceed to Checkout
-                  </Link>
+                  {hasStockIssues ? (
+                    <button
+                      disabled
+                      className="w-full bg-gray-300 text-gray-500 py-2.5 sm:py-3 rounded-md font-semibold text-sm sm:text-base shadow-sm flex items-center justify-center cursor-not-allowed"
+                    >
+                      Cannot Proceed - Stock Issues
+                    </button>
+                  ) : (
+                    <Link
+                      href="/checkout"
+                      className="w-full bg-[#e63946] text-white py-2.5 sm:py-3 rounded-md hover:bg-[#c1121f] transition-colors font-semibold text-sm sm:text-base shadow-sm flex items-center justify-center"
+                    >
+                      Proceed to Checkout
+                    </Link>
+                  )}
                   <Link
                     href="/products"
                     className="w-full border-2 border-gray-300 text-gray-700 py-2.5 sm:py-3 rounded-md hover:border-gray-400 hover:bg-gray-50 transition-colors font-medium text-sm sm:text-base flex items-center justify-center"

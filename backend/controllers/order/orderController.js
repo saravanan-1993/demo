@@ -95,8 +95,38 @@ const prepareOnlinePaymentOrder = async (req, res) => {
       if (!customer) throw new Error("Customer not found");
       if (!customer.cartItems || customer.cartItems.length === 0) throw new Error("Cart is empty");
 
-      const address = await tx.customerAddress.findUnique({ where: { id: deliveryAddressId } });
-      if (!address || address.customerId !== customer.id) throw new Error("Invalid delivery address");
+      let address;
+      
+      // Handle special case for profile address
+      if (deliveryAddressId === "profile-address") {
+        // Fetch user profile data
+        const user = await tx.user.findUnique({ where: { id: userId } });
+        if (!user || !user.address || !user.city || !user.state || !user.zipCode || !user.country) {
+          throw new Error("Profile address is incomplete. Please add a complete address.");
+        }
+        
+        // Create address object from user profile
+        address = {
+          id: "profile-address",
+          customerId: customer.id,
+          name: user.name,
+          phone: user.phoneNumber || "",
+          alternatePhone: "",
+          addressLine1: user.address,
+          addressLine2: "",
+          landmark: "",
+          city: user.city,
+          state: user.state,
+          pincode: user.zipCode,
+          country: user.country,
+          addressType: "home",
+          isDefault: false,
+        };
+      } else {
+        // Regular saved address
+        address = await tx.customerAddress.findUnique({ where: { id: deliveryAddressId } });
+        if (!address || address.customerId !== customer.id) throw new Error("Invalid delivery address");
+      }
 
       const cartItemsWithDetails = [];
       for (const cartItem of customer.cartItems) {
@@ -240,8 +270,38 @@ const createCODOrder = async (req, res) => {
       if (!customer) throw new Error("Customer not found");
       if (!customer.cartItems || customer.cartItems.length === 0) throw new Error("Cart is empty");
 
-      const address = await tx.customerAddress.findUnique({ where: { id: deliveryAddressId } });
-      if (!address || address.customerId !== customer.id) throw new Error("Invalid delivery address");
+      let address;
+      
+      // Handle special case for profile address
+      if (deliveryAddressId === "profile-address") {
+        // Fetch user profile data
+        const user = await tx.user.findUnique({ where: { id: userId } });
+        if (!user || !user.address || !user.city || !user.state || !user.zipCode || !user.country) {
+          throw new Error("Profile address is incomplete. Please add a complete address.");
+        }
+        
+        // Create address object from user profile
+        address = {
+          id: "profile-address",
+          customerId: customer.id,
+          name: user.name,
+          phone: user.phoneNumber || "",
+          alternatePhone: "",
+          addressLine1: user.address,
+          addressLine2: "",
+          landmark: "",
+          city: user.city,
+          state: user.state,
+          pincode: user.zipCode,
+          country: user.country,
+          addressType: "home",
+          isDefault: false,
+        };
+      } else {
+        // Regular saved address
+        address = await tx.customerAddress.findUnique({ where: { id: deliveryAddressId } });
+        if (!address || address.customerId !== customer.id) throw new Error("Invalid delivery address");
+      }
 
       const cartItemsWithDetails = [];
       for (const cartItem of customer.cartItems) {
@@ -518,8 +578,38 @@ const confirmOrder = async (req, res) => {
       if (!customer) throw new Error("Customer not found");
       if (!customer.cartItems || customer.cartItems.length === 0) throw new Error("Cart is empty");
 
-      const address = await tx.customerAddress.findUnique({ where: { id: deliveryAddressId } });
-      if (!address || address.customerId !== customer.id) throw new Error("Invalid delivery address");
+      let address;
+      
+      // Handle special case for profile address
+      if (deliveryAddressId === "profile-address") {
+        // Fetch user profile data
+        const user = await tx.user.findUnique({ where: { id: userId } });
+        if (!user || !user.address || !user.city || !user.state || !user.zipCode || !user.country) {
+          throw new Error("Profile address is incomplete. Please add a complete address.");
+        }
+        
+        // Create address object from user profile
+        address = {
+          id: "profile-address",
+          customerId: customer.id,
+          name: user.name,
+          phone: user.phoneNumber || "",
+          alternatePhone: "",
+          addressLine1: user.address,
+          addressLine2: "",
+          landmark: "",
+          city: user.city,
+          state: user.state,
+          pincode: user.zipCode,
+          country: user.country,
+          addressType: "home",
+          isDefault: false,
+        };
+      } else {
+        // Regular saved address
+        address = await tx.customerAddress.findUnique({ where: { id: deliveryAddressId } });
+        if (!address || address.customerId !== customer.id) throw new Error("Invalid delivery address");
+      }
 
       const cartItemsWithDetails = [];
       for (const cartItem of customer.cartItems) {
