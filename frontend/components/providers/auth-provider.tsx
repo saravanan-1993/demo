@@ -85,17 +85,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 setUser(freshUserData);
               }
             } catch (refreshError) {
-              console.error("Failed to refresh user data:", refreshError);
+              // Silent error handling
             }
           }
         } catch (parseError) {
-          console.error("Error parsing user data:", parseError);
+          // Silent error handling
           localStorage.removeItem("token");
           localStorage.removeItem("user");
           sessionStorage.removeItem("sessionOnly");
         }
       } catch (error) {
-        console.error("Auth check error:", error);
+        // Silent error handling
       } finally {
         setIsLoading(false);
       }
@@ -142,7 +142,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUser(parsedUser);
           setIsAuthenticated(true);
         } catch (error) {
-          console.error('Error parsing user data:', error);
+          // Silent error handling
           setUser(null);
           setIsAuthenticated(false);
         }
@@ -178,7 +178,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       await axiosInstance.post("/api/auth/logout");
     } catch (error) {
-      console.error("Logout error:", error);
+      // Silent error handling
     } finally {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
@@ -203,7 +203,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
     } catch (error) {
-      console.error("Error refreshing user data:", error);
+      // Silent error handling
     }
     return null;
   };

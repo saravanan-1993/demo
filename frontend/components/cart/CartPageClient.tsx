@@ -524,7 +524,7 @@ export default function CartPageClient() {
                       {totalPrice.toFixed(2)}
                     </span>
                   </div>
-                  {totalSavings > 0 && (
+                  {/* {totalSavings > 0 && (
                     <div className="flex justify-between text-green-600 text-sm sm:text-base">
                       <span>Discount</span>
                       <span className="font-semibold">
@@ -532,7 +532,7 @@ export default function CartPageClient() {
                         {totalSavings.toFixed(2)}
                       </span>
                     </div>
-                  )}
+                  )} */}
                   <div className="flex justify-between text-sm sm:text-base">
                     <span className="text-gray-600">Delivery Fee</span>
                     <span className="font-semibold">

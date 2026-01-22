@@ -73,7 +73,7 @@ export const useAuth = (requireAuth: boolean = true) => {
           setUser(parsedUser);
           setIsAuthenticated(true);
         } catch (parseError) {
-          console.error("Error parsing user data:", parseError);
+          // Silent handling - no console logs
           localStorage.removeItem("token");
           localStorage.removeItem("user");
           setUser(null);
@@ -83,7 +83,7 @@ export const useAuth = (requireAuth: boolean = true) => {
           }
         }
       } catch (error) {
-        console.error("Auth check error:", error);
+        // Silent handling - no console logs
         if (requireAuth) {
           router.push("/signin");
         }
@@ -94,10 +94,10 @@ export const useAuth = (requireAuth: boolean = true) => {
 
     // Listen for auth failures from axios interceptor
     const handleAuthFailure = () => {
-      console.log('🔒 Auth failure detected, clearing state');
+      // Silent handling - no console logs
       setUser(null);
       setIsAuthenticated(false);
-      if (requireAuth && typeof window !== 'undefined' && window.location.pathname !== '/') {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/signin') {
         router.push('/signin');
       }
     };
@@ -117,19 +117,16 @@ export const useAuth = (requireAuth: boolean = true) => {
   }, [router, requireAuth]);
 
   const logout = async () => {
-    console.log('🔓 Starting logout process...');
+    // Silent logout - no console logs
     
     try {
-      console.log('📡 Calling backend logout...');
       // Call backend logout first while token is still valid
       try {
         await axiosInstance.post('/api/auth/logout');
-        console.log('✅ Backend logout successful');
       } catch (error) {
-        console.log('⚠️ Backend logout failed (continuing anyway):', error);
+        // Silent error handling
       }
       
-      console.log('🧹 Clearing local storage and state...');
       // Clear local storage after backend call
       localStorage.removeItem("token");
       localStorage.removeItem("user");
@@ -138,21 +135,17 @@ export const useAuth = (requireAuth: boolean = true) => {
       setUser(null);
       setIsAuthenticated(false);
       
-      console.log('✅ Logout completed successfully');
-      
       // Only navigate if we're not already on the home page
       if (typeof window !== 'undefined' && window.location.pathname !== '/') {
-        console.log('🏠 Navigating to home page...');
         router.push('/');
         // Refresh the page after 1 second
         setTimeout(() => {
-          console.log('🔄 Refreshing page...');
           window.location.reload();
         }, 1000);
       }
       
     } catch (error) {
-      console.error('❌ Logout error:', error);
+      // Silent error handling
       
       // Even if there's an error, clear the state
       setUser(null);
@@ -165,7 +158,6 @@ export const useAuth = (requireAuth: boolean = true) => {
         router.push('/');
         // Refresh the page after 1 second even on error
         setTimeout(() => {
-          console.log('🔄 Refreshing page after error...');
           window.location.reload();
         }, 1000);
       }

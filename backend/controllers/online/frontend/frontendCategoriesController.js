@@ -10,9 +10,11 @@ const getCategories = async (req, res) => {
     console.log("[Frontend Categories] Fetching all active categories");
 
     // Fetch only active categories with active subcategories
+    // Filter: Only show categories that have BOTH name AND image
     const categories = await prisma.category.findMany({
       where: {
         isActive: true,
+        image: { not: null }, // Must have image
       },
       include: {
         subcategories: {
@@ -29,7 +31,7 @@ const getCategories = async (req, res) => {
       },
     });
 
-    console.log(`[Frontend Categories] Found ${categories.length} active categories`);
+    console.log(`[Frontend Categories] Found ${categories.length} active categories with images`);
 
     // Generate pre-signed URLs for images
     const categoriesWithUrls = await Promise.all(

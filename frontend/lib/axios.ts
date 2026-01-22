@@ -48,7 +48,7 @@ axiosInstance.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      console.log("🔒 401 Unauthorized - clearing auth data");
+      // Silent handling - no console logs
       
       // Only access localStorage on client-side
       if (typeof window !== "undefined") {

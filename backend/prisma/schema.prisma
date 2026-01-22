@@ -29,8 +29,8 @@ model Admin {
   resetTokenExpiry DateTime?
   verificationToken String?
   
-  // FCM Push Notification Token
-  fcmToken      String?   // Firebase Cloud Messaging device token
+  // FCM Push Notification Tokens (Multi-device support)
+  fcmTokens     Json[]    @default([]) // Array of { token, device, lastUsed }
   
   // Additional admin profile fields
   phoneNumber   String?
@@ -90,8 +90,8 @@ model User {
   resetTokenExpiry DateTime?
   verificationToken String?
   
-  // FCM Push Notification Token
-  fcmToken      String?   // Firebase Cloud Messaging device token
+  // FCM Push Notification Tokens (Multi-device support)
+  fcmTokens     Json[]    @default([]) // Array of { token, device, lastUsed }
   
   // Additional user profile fields
   phoneNumber   String? 
