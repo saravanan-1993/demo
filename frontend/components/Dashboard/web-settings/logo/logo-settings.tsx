@@ -40,7 +40,6 @@ export default function LogoSettings() {
       setLogoPreview(response.data.data.logoUrl || "");
       setFaviconPreview(response.data.data.faviconUrl || "");
     } catch (error) {
-      console.error("Error fetching settings:", error);
       toast.error("Failed to load settings");
     } finally {
       setLoading(false);
@@ -139,7 +138,6 @@ export default function LogoSettings() {
       // Refresh settings
       await fetchSettings();
     } catch (error) {
-      console.error("Error saving settings:", error);
       const errorMessage = error instanceof Error && 'response' in error 
         ? (error as { response?: { data?: { error?: string } } }).response?.data?.error 
         : "Failed to save settings";

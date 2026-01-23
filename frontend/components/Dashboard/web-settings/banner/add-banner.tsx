@@ -127,9 +127,20 @@ export default function AddBanner({
         onSuccess();
       }
     } catch (error) {
-      console.error("Error saving banner:", error);
-      const err = error as { response?: { data?: { error?: string } } };
-      toast.error(err.response?.data?.error || "Failed to save banner");
+      const err = error as { 
+        response?: { 
+          data?: { 
+            error?: string;
+            details?: string;
+          } 
+        };
+        message?: string;
+      };
+      
+      const errorMessage = err.response?.data?.error || err.message || "Failed to save banner";
+      const errorDetails = err.response?.data?.details;
+      
+      toast.error(errorDetails ? `${errorMessage}: ${errorDetails}` : errorMessage);
     } finally {
       setIsSubmitting(false);
     }

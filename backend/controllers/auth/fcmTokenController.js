@@ -43,9 +43,10 @@ const saveFCMToken = async (req, res) => {
       // Get existing tokens array
       let tokens = Array.isArray(user.fcmTokens) ? user.fcmTokens : [];
 
-      // ✅ FIX: Remove duplicate tokens from same device/browser
-      // This prevents multiple notifications when user has multiple tabs open
-      tokens = tokens.filter(t => t.token !== fcmToken && t.device !== device);
+      // ✅ FIX: Only remove the EXACT same token (not by device name)
+      // This allows multiple systems with same browser/OS combination
+      // Each system generates a unique FCM token even if device name is same
+      tokens = tokens.filter(t => t.token !== fcmToken);
 
       // Add new token to the beginning
       tokens.unshift({
@@ -92,9 +93,10 @@ const saveFCMToken = async (req, res) => {
       // Get existing tokens array
       let tokens = Array.isArray(admin.fcmTokens) ? admin.fcmTokens : [];
 
-      // ✅ FIX: Remove duplicate tokens from same device/browser
-      // This prevents multiple notifications when admin has multiple tabs open
-      tokens = tokens.filter(t => t.token !== fcmToken && t.device !== device);
+      // ✅ FIX: Only remove the EXACT same token (not by device name)
+      // This allows multiple systems with same browser/OS combination
+      // Each system generates a unique FCM token even if device name is same
+      tokens = tokens.filter(t => t.token !== fcmToken);
 
       // Add new token to the beginning
       tokens.unshift({

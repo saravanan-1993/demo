@@ -127,9 +127,9 @@ export default function OrderDetailsClient({
 
     setIsDownloadingInvoice(true);
     try {
-      // Use the online service API to generate and download the PDF
+      // Use the correct my-orders API endpoint to generate and download the PDF
       const response = await axiosInstance.get(
-        `/api/online/invoices/download/${order.orderNumber}?userId=${user.id}`,
+        `/api/online/my-orders/${order.orderNumber}/invoice/download?userId=${user.id}`,
         {
           responseType: 'blob', // Important: Tell axios to expect binary data
         }

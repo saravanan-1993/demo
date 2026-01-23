@@ -100,7 +100,6 @@ export default function AddExpense({
       const expenseNumber = await expenseService.getNextExpenseNumber();
       return expenseNumber;
     } catch (error) {
-      console.error("Error fetching expense number:", error);
       toast.error("Failed to generate expense number");
       return "";
     }
@@ -123,7 +122,6 @@ export default function AddExpense({
           setFormData((prev) => ({ ...prev, expenseNumber }));
         }
       } catch (error) {
-        console.error("Error loading data:", error);
         toast.error("Failed to load form data");
       } finally {
         setLoading(false);
@@ -197,7 +195,6 @@ export default function AddExpense({
 
       toast.success("Expense category created successfully");
     } catch (error) {
-      console.error("Error adding category:", error);
       toast.error("Failed to create expense category");
     }
   };
@@ -317,7 +314,6 @@ export default function AddExpense({
 
       onSubmit(finalFormData);
     } catch (error) {
-      console.error("Error uploading receipt:", error);
       toast.error("Failed to upload receipt");
     }
   };
@@ -761,7 +757,6 @@ export default function AddExpense({
         <FileUpload
           onUploadSuccess={handleReceiptSelect}
           onUploadError={(error) => {
-            console.error("Upload error:", error);
             toast.error(error.message);
           }}
           acceptedFileTypes={[

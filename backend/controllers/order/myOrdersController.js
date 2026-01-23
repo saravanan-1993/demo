@@ -1,5 +1,6 @@
 const { prisma } = require("../../config/database");
 const { getPresignedUrl } = require("../../utils/online/uploadS3");
+const { generateInvoicePDF, getCompanyData } = require("../../utils/order/invoicePDFGenerator");
 
 /**
  * Convert S3 keys to presigned URLs in order items
@@ -123,7 +124,89 @@ const getOrderByNumber = async (req, res) => {
   }
 };
 
+/**
+ * Download order invoice PDF (User)
+ * GET /api/online/my-orders/:orderNumber/invoice/download
+ */
+const downloadOrderInvoice = async (req, res) => {
+  try {
+    const { orderNumber } = req.params;
+    const { userId } = req.query;
+
+    console.log(`📄 User invoice download requested for order: ${orderNumber}`);
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+
+    // Find the order by order number and verify it belongs to the user
+    const order = await prisma.onlineOrder.findFirst({
+      where: {
+        orderNumber: orderNumber,
+        userId: userId
+      }
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found or does not belong to you'
+      });
+    }
+
+    console.log(`📄 Order found: ${order.orderNumber}, Status: ${order.orderStatus}`);
+
+    // Only allow invoice download for confirmed, packing, shipped, and delivered orders
+    if (!['confirmed', 'packing', 'shipped', 'delivered'].includes(order.orderStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invoice not available for ${order.orderStatus} orders`
+      });
+    }
+
+    // Get company data
+    const companyData = await getCompanyData();
+
+    // Prepare order data for PDF generation
+    const orderData = {
+      ...order,
+      items: order.items || [],
+      deliveryAddress: order.deliveryAddress || {},
+      createdAt: order.createdAt,
+      invoiceNumber: order.invoiceNumber || order.orderNumber
+    };
+
+    console.log(`📄 Generating PDF for user download: ${orderNumber}`);
+
+    // Generate PDF
+    const pdfBuffer = await generateInvoicePDF(orderData, companyData);
+
+    console.log(`📄 PDF generated successfully for user download: ${orderNumber}`);
+
+    // Set response headers for PDF download
+    const filename = `invoice-${orderNumber}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+
+    // Send PDF buffer
+    res.send(pdfBuffer);
+
+  } catch (error) {
+    console.error('Error generating user invoice PDF:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate invoice PDF',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getMyOrders,
   getOrderByNumber,
+  downloadOrderInvoice,
 };

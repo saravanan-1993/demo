@@ -55,6 +55,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           if (payload.exp <= currentTime) {
             localStorage.removeItem("token");
             localStorage.removeItem("user");
+            localStorage.removeItem("fcm_token"); // ✅ Clear FCM token on expiry
             sessionStorage.removeItem("sessionOnly");
             setIsLoading(false);
             return;
@@ -62,6 +63,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } catch (tokenError) {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
+          localStorage.removeItem("fcm_token"); // ✅ Clear FCM token on token error
           sessionStorage.removeItem("sessionOnly");
           setIsLoading(false);
           return;
@@ -92,6 +94,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // Silent error handling
           localStorage.removeItem("token");
           localStorage.removeItem("user");
+          localStorage.removeItem("fcm_token"); // ✅ Clear FCM token on parse error
           sessionStorage.removeItem("sessionOnly");
         }
       } catch (error) {
@@ -176,12 +179,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
-      await axiosInstance.post("/api/auth/logout");
+      // ✅ Remove FCM token before logout
+      const fcmToken = localStorage.getItem('fcm_token');
+      
+      if (fcmToken && user) {
+        try {
+          const { removeFCMToken } = await import('@/lib/fcmTokenService');
+          await removeFCMToken(user.id, user.role === 'admin' ? 'admin' : 'user', fcmToken);
+        } catch (fcmError) {
+          // Silent - continue with logout
+        }
+      }
+
+      // Send logout request to backend with FCM token
+      await axiosInstance.post("/api/auth/logout", { fcmToken });
     } catch (error) {
-      // Silent error handling
+      // Silent - continue with logout
     } finally {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+      localStorage.removeItem("fcm_token");
       sessionStorage.removeItem("sessionOnly");
       setUser(null);
       setIsAuthenticated(false);

@@ -42,6 +42,11 @@ const sendToDevice = async (fcmToken, notification, data = {}) => {
 
     const messaging = getMessaging();
     
+    if (!messaging) {
+      console.log('⚠️ Firebase messaging not initialized');
+      return { success: false, error: 'Firebase messaging not initialized' };
+    }
+    
     // Get company logo
     const logoUrl = await getCompanyLogo();
     console.log('📷 Using logo URL for notification:', logoUrl);
@@ -93,12 +98,16 @@ const sendToDevice = async (fcmToken, notification, data = {}) => {
       },
     };
 
+    console.log(`📤 Sending notification: "${notification.title}" to token: ${fcmToken.substring(0, 20)}...`);
+    
     const response = await messaging.send(message);
     console.log('✅ Notification sent successfully:', response);
     return { success: true, messageId: response };
   } catch (error) {
     console.error('❌ Error sending notification:', error.message);
-    return { success: false, error: error.message };
+    console.error('Error code:', error.code);
+    console.error('Error details:', error.errorInfo);
+    return { success: false, error: error.message, code: error.code };
   }
 };
 
@@ -107,17 +116,23 @@ const sendToDevice = async (fcmToken, notification, data = {}) => {
  */
 const sendToUser = async (userId, notification, data = {}) => {
   try {
+    console.log('🔔 sendToUser called with userId:', userId);
+    console.log('📋 Notification:', { title: notification.title, body: notification.body?.substring(0, 50) + '...' });
+    
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { fcmTokens: true, name: true, email: true },
     });
 
     if (!user) {
-      console.log(`⚠️ User ${userId} not found`);
+      console.log(`❌ User ${userId} not found`);
       return { success: false, error: 'User not found' };
     }
 
+    console.log(`✅ User found: ${user.name} (${user.email})`);
+
     const tokens = Array.isArray(user.fcmTokens) ? user.fcmTokens : [];
+    console.log(`📱 User has ${tokens.length} FCM token(s)`);
 
     if (tokens.length === 0) {
       console.log(`⚠️ User ${user.name} has no FCM tokens`);
@@ -125,10 +140,14 @@ const sendToUser = async (userId, notification, data = {}) => {
     }
 
     console.log(`📤 Sending notification to user: ${user.name} (${user.email}) - ${tokens.length} device(s)`);
+    console.log('📱 Devices:', tokens.map(t => ({ device: t.device, lastUsed: t.lastUsed })));
 
     // Send to all devices
     const results = await Promise.allSettled(
-      tokens.map((tokenObj) => sendToDevice(tokenObj.token, notification, data))
+      tokens.map((tokenObj, index) => {
+        console.log(`📤 Sending to device ${index + 1}/${tokens.length}: ${tokenObj.device}`);
+        return sendToDevice(tokenObj.token, notification, data);
+      })
     );
 
     const successCount = results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
@@ -138,6 +157,14 @@ const sendToUser = async (userId, notification, data = {}) => {
     results.forEach((result, index) => {
       if (result.status === 'rejected' || (result.status === 'fulfilled' && !result.value.success)) {
         failedTokens.push(tokens[index].token);
+        console.log(`❌ Failed to send to device ${index + 1}: ${tokens[index].device}`);
+        if (result.status === 'rejected') {
+          console.error('Rejection reason:', result.reason);
+        } else if (result.value) {
+          console.error('Failure reason:', result.value.error);
+        }
+      } else {
+        console.log(`✅ Successfully sent to device ${index + 1}: ${tokens[index].device}`);
       }
     });
 
@@ -156,6 +183,7 @@ const sendToUser = async (userId, notification, data = {}) => {
     return { success: true, sent: successCount, total: tokens.length };
   } catch (error) {
     console.error('❌ Error sending notification to user:', error.message);
+    console.error('Stack:', error.stack);
     return { success: false, error: error.message };
   }
 };
@@ -223,12 +251,16 @@ const sendToAdmin = async (adminId, notification, data = {}) => {
  */
 const sendToAllAdmins = async (notification, data = {}) => {
   try {
+    console.log('🔔 sendToAllAdmins called with:', { title: notification.title, dataType: data.type });
+    
     const admins = await prisma.admin.findMany({
       where: {
         isActive: true,
       },
-      select: { id: true, fcmTokens: true, name: true },
+      select: { id: true, fcmTokens: true, name: true, email: true },
     });
+
+    console.log(`📊 Found ${admins.length} active admin(s)`);
 
     if (admins.length === 0) {
       console.log('⚠️ No active admins found');
@@ -239,11 +271,13 @@ const sendToAllAdmins = async (notification, data = {}) => {
     const allTokens = [];
     admins.forEach(admin => {
       const tokens = Array.isArray(admin.fcmTokens) ? admin.fcmTokens : [];
+      console.log(`👤 Admin: ${admin.name} (${admin.email}) has ${tokens.length} device(s)`);
       tokens.forEach(tokenObj => {
         allTokens.push({
           adminId: admin.id,
           adminName: admin.name,
           token: tokenObj.token,
+          device: tokenObj.device,
         });
       });
     });
@@ -254,12 +288,16 @@ const sendToAllAdmins = async (notification, data = {}) => {
     }
 
     console.log(`📤 Sending notification to ${admins.length} admin(s) across ${allTokens.length} device(s)`);
+    console.log(`📱 Devices:`, allTokens.map(t => `${t.adminName} - ${t.device}`));
 
     const results = await Promise.allSettled(
       allTokens.map((item) => sendToDevice(item.token, notification, data))
     );
 
     const successCount = results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
+    const failedCount = results.length - successCount;
+    
+    console.log(`📊 Notification results: ${successCount} success, ${failedCount} failed`);
     
     // Cleanup invalid tokens per admin
     const failedTokensByAdmin = {};
@@ -270,6 +308,9 @@ const sendToAllAdmins = async (notification, data = {}) => {
           failedTokensByAdmin[adminId] = [];
         }
         failedTokensByAdmin[adminId].push(allTokens[index].token);
+        console.log(`❌ Failed to send to ${allTokens[index].adminName} - ${allTokens[index].device}`);
+      } else {
+        console.log(`✅ Sent to ${allTokens[index].adminName} - ${allTokens[index].device}`);
       }
     });
 
@@ -292,6 +333,7 @@ const sendToAllAdmins = async (notification, data = {}) => {
     return { success: true, sent: successCount, total: allTokens.length, admins: admins.length };
   } catch (error) {
     console.error('❌ Error sending notification to admins:', error.message);
+    console.error('Stack:', error.stack);
     return { success: false, error: error.message };
   }
 };
@@ -341,6 +383,8 @@ const sendLowStockAlert = async (itemName, currentStock, alertLevel, warehouseNa
  * Send order status update to user
  */
 const sendOrderStatusUpdate = async (userId, orderNumber, status, statusMessage) => {
+  console.log('🔔 sendOrderStatusUpdate called with:', { userId, orderNumber, status });
+  
   const statusEmojis = {
     pending: '⏳',
     confirmed: '✅',
@@ -379,7 +423,7 @@ const sendOrderStatusUpdate = async (userId, orderNumber, status, statusMessage)
     status,
     color: statusColors[status],
     backgroundColor: statusBackgrounds[status],
-    link: '/orders', // User orders page (frontend route)
+    link: '/my-orders', // User orders page (frontend route)
     urgency: status === 'delivered' ? 'high' : 'normal',
     vibrate: status === 'delivered' ? [200, 100, 200, 100, 200] : [200, 100, 200],
     requireInteraction: status === 'delivered' || status === 'cancelled',
@@ -395,7 +439,11 @@ const sendOrderStatusUpdate = async (userId, orderNumber, status, statusMessage)
     ],
   };
 
-  return await sendToUser(userId, notification, data);
+  console.log('📤 Calling sendToUser with userId:', userId);
+  const result = await sendToUser(userId, notification, data);
+  console.log('📊 sendToUser result:', result);
+  
+  return result;
 };
 
 /**
@@ -609,11 +657,207 @@ const sendDailyExpirySummary = async (expirySummary) => {
   return await sendToAllAdmins(notification, data);
 };
 
+/**
+ * Send notification to all devices of a specific user or admin
+ * @param {string} userId - User or Admin ID
+ * @param {string} userType - 'user' or 'admin'
+ * @param {object} notification - Notification payload
+ * @param {object} data - Additional data payload
+ */
+const sendToAllDevices = async (userId, userType, notification, data = {}) => {
+  try {
+    console.log(`🔔 sendToAllDevices called for ${userType}:`, userId);
+    console.log('📋 Notification:', { title: notification.title, body: notification.body?.substring(0, 50) + '...' });
+
+    if (!['user', 'admin'].includes(userType)) {
+      console.error('❌ Invalid userType. Must be "user" or "admin"');
+      return { success: false, error: 'Invalid userType' };
+    }
+
+    // Fetch user or admin based on type
+    const entity = userType === 'user'
+      ? await prisma.user.findUnique({
+          where: { id: userId },
+          select: { fcmTokens: true, name: true, email: true },
+        })
+      : await prisma.admin.findUnique({
+          where: { id: userId },
+          select: { fcmTokens: true, name: true, email: true },
+        });
+
+    if (!entity) {
+      console.log(`❌ ${userType} ${userId} not found`);
+      return { success: false, error: `${userType} not found` };
+    }
+
+    console.log(`✅ ${userType} found: ${entity.name} (${entity.email})`);
+
+    const tokens = Array.isArray(entity.fcmTokens) ? entity.fcmTokens : [];
+    console.log(`📱 ${userType} has ${tokens.length} FCM token(s)`);
+
+    if (tokens.length === 0) {
+      console.log(`⚠️ ${userType} ${entity.name} has no FCM tokens`);
+      return { success: false, error: `${userType} has no FCM tokens` };
+    }
+
+    console.log(`📤 Sending notification to ${userType}: ${entity.name} (${entity.email}) - ${tokens.length} device(s)`);
+    console.log('📱 Devices:', tokens.map(t => ({ device: t.device, lastUsed: t.lastUsed })));
+
+    // Send to all devices
+    const results = await Promise.allSettled(
+      tokens.map((tokenObj, index) => {
+        console.log(`📤 Sending to device ${index + 1}/${tokens.length}: ${tokenObj.device}`);
+        return sendToDevice(tokenObj.token, notification, data);
+      })
+    );
+
+    const successCount = results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
+    const failedTokens = [];
+
+    // Collect failed tokens for cleanup
+    results.forEach((result, index) => {
+      if (result.status === 'rejected' || (result.status === 'fulfilled' && !result.value.success)) {
+        failedTokens.push(tokens[index].token);
+        console.log(`❌ Failed to send to device ${index + 1}: ${tokens[index].device}`);
+        if (result.status === 'rejected') {
+          console.error('Rejection reason:', result.reason);
+        } else if (result.value) {
+          console.error('Failure reason:', result.value.error);
+        }
+      } else {
+        console.log(`✅ Successfully sent to device ${index + 1}: ${tokens[index].device}`);
+      }
+    });
+
+    // Remove invalid tokens from database
+    if (failedTokens.length > 0) {
+      const validTokens = tokens.filter(t => !failedTokens.includes(t.token));
+      
+      if (userType === 'user') {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { fcmTokens: validTokens },
+        });
+      } else {
+        await prisma.admin.update({
+          where: { id: userId },
+          data: { fcmTokens: validTokens },
+        });
+      }
+      
+      console.log(`🧹 Cleaned up ${failedTokens.length} invalid token(s) for ${userType} ${entity.name}`);
+    }
+
+    console.log(`✅ Sent to ${successCount}/${tokens.length} device(s) for ${userType} ${entity.name}`);
+
+    return { success: true, sent: successCount, total: tokens.length };
+  } catch (error) {
+    console.error(`❌ Error sending notification to all devices of ${userType}:`, error.message);
+    console.error('Stack:', error.stack);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Send notification to all users (Multi-device support)
+ * Sends to ALL active users across ALL their devices
+ */
+const sendToAllUsers = async (notification, data = {}) => {
+  try {
+    console.log('🔔 sendToAllUsers called with:', { title: notification.title, dataType: data.type });
+    
+    const users = await prisma.user.findMany({
+      where: {
+        isActive: true,
+      },
+      select: { id: true, fcmTokens: true, name: true, email: true },
+    });
+
+    console.log(`📊 Found ${users.length} active user(s)`);
+
+    if (users.length === 0) {
+      console.log('⚠️ No active users found');
+      return { success: false, error: 'No active users' };
+    }
+
+    // Collect all tokens from all users
+    const allTokens = [];
+    users.forEach(user => {
+      const tokens = Array.isArray(user.fcmTokens) ? user.fcmTokens : [];
+      console.log(`👤 User: ${user.name} (${user.email}) has ${tokens.length} device(s)`);
+      tokens.forEach(tokenObj => {
+        allTokens.push({
+          userId: user.id,
+          userName: user.name,
+          token: tokenObj.token,
+          device: tokenObj.device,
+        });
+      });
+    });
+
+    if (allTokens.length === 0) {
+      console.log('⚠️ No users with FCM tokens found');
+      return { success: false, error: 'No users with FCM tokens' };
+    }
+
+    console.log(`📤 Sending notification to ${users.length} user(s) across ${allTokens.length} device(s)`);
+    console.log(`📱 Devices:`, allTokens.map(t => `${t.userName} - ${t.device}`));
+
+    const results = await Promise.allSettled(
+      allTokens.map((item) => sendToDevice(item.token, notification, data))
+    );
+
+    const successCount = results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
+    const failedCount = results.length - successCount;
+    
+    console.log(`📊 Notification results: ${successCount} success, ${failedCount} failed`);
+    
+    // Cleanup invalid tokens per user
+    const failedTokensByUser = {};
+    results.forEach((result, index) => {
+      if (result.status === 'rejected' || (result.status === 'fulfilled' && !result.value.success)) {
+        const userId = allTokens[index].userId;
+        if (!failedTokensByUser[userId]) {
+          failedTokensByUser[userId] = [];
+        }
+        failedTokensByUser[userId].push(allTokens[index].token);
+        console.log(`❌ Failed to send to ${allTokens[index].userName} - ${allTokens[index].device}`);
+      } else {
+        console.log(`✅ Sent to ${allTokens[index].userName} - ${allTokens[index].device}`);
+      }
+    });
+
+    // Remove invalid tokens from each user
+    for (const [userId, failedTokens] of Object.entries(failedTokensByUser)) {
+      const user = users.find(u => u.id === userId);
+      if (user) {
+        const tokens = Array.isArray(user.fcmTokens) ? user.fcmTokens : [];
+        const validTokens = tokens.filter(t => !failedTokens.includes(t.token));
+        await prisma.user.update({
+          where: { id: userId },
+          data: { fcmTokens: validTokens },
+        });
+        console.log(`🧹 Cleaned up ${failedTokens.length} invalid token(s) for user ${user.name}`);
+      }
+    }
+
+    console.log(`✅ Sent to ${successCount}/${allTokens.length} device(s) across ${users.length} user(s)`);
+
+    return { success: true, sent: successCount, total: allTokens.length, users: users.length };
+  } catch (error) {
+    console.error('❌ Error sending notification to all users:', error.message);
+    console.error('Stack:', error.stack);
+    return { success: false, error: error.message };
+  }
+};
+
 module.exports = {
   sendToDevice,
   sendToUser,
   sendToAdmin,
   sendToAllAdmins,
+  sendToAllUsers,
+  sendToAllDevices,
   sendLowStockAlert,
   sendOrderStatusUpdate,
   sendOrderPlacedNotification,

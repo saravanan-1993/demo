@@ -216,6 +216,16 @@ const updateOrderStatus = async (req, res) => {
 
     // Send order status update notification to user
     try {
+      console.log('🔔 Preparing to send order status notification to user');
+      console.log('📊 Order details:', {
+        orderId: updatedOrder.id,
+        orderNumber: updatedOrder.orderNumber,
+        userId: updatedOrder.userId,
+        customerId: updatedOrder.customerId,
+        customerName: updatedOrder.customerName,
+        status: status
+      });
+
       const statusMessages = {
         pending: 'Your order is pending confirmation',
         confirmed: 'Your order has been confirmed and will be processed soon',
@@ -225,15 +235,76 @@ const updateOrderStatus = async (req, res) => {
         cancelled: 'Your order has been cancelled',
       };
 
-      await sendOrderStatusUpdate(
+      // Verify user exists and has FCM tokens
+      const user = await prisma.user.findUnique({
+        where: { id: updatedOrder.userId },
+        select: { id: true, name: true, email: true, fcmTokens: true }
+      });
+
+      if (!user) {
+        console.error(`❌ User not found with ID: ${updatedOrder.userId}`);
+      } else {
+        console.log(`✅ User found: ${user.name} (${user.email})`);
+        console.log(`📱 User has ${user.fcmTokens?.length || 0} FCM token(s)`);
+        if (user.fcmTokens && user.fcmTokens.length > 0) {
+          console.log('📱 FCM Tokens:', user.fcmTokens.map(t => ({
+            device: t.device,
+            token: t.token?.substring(0, 20) + '...',
+            lastUsed: t.lastUsed
+          })));
+        }
+      }
+
+      const notificationResult = await sendOrderStatusUpdate(
         updatedOrder.userId,
         updatedOrder.orderNumber,
         status,
         statusMessages[status]
       );
-      console.log(`📱 Order status notification sent to user`);
+      
+      console.log(`📱 Order status notification result:`, notificationResult);
     } catch (notifError) {
       console.error(`⚠️ Failed to send order status notification:`, notifError.message);
+      console.error('Stack:', notifError.stack);
+    }
+
+    // Send notification to all admins about order status change
+    try {
+      const { sendToAllAdmins } = require('../../utils/notification/sendNotification');
+      
+      const adminStatusMessages = {
+        pending: `Order #${updatedOrder.orderNumber} is pending`,
+        confirmed: `Order #${updatedOrder.orderNumber} has been confirmed`,
+        packing: `Order #${updatedOrder.orderNumber} is being packed`,
+        shipped: `Order #${updatedOrder.orderNumber} has been shipped`,
+        delivered: `Order #${updatedOrder.orderNumber} has been delivered`,
+        cancelled: `Order #${updatedOrder.orderNumber} has been cancelled`,
+      };
+
+      const adminNotification = {
+        title: `📦 Order ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+        body: `${adminStatusMessages[status]}\n\n👤 Customer: ${updatedOrder.customerName}\n💰 Amount: ₹${updatedOrder.total.toFixed(2)}`,
+      };
+
+      const adminData = {
+        type: 'ADMIN_ORDER_UPDATE',
+        orderNumber: updatedOrder.orderNumber,
+        orderId: updatedOrder.id,
+        status,
+        customerName: updatedOrder.customerName,
+        total: updatedOrder.total.toString(),
+        link: `/dashboard/order-management/online-orders/${updatedOrder.id}`,
+        urgency: 'normal',
+        vibrate: [200, 100, 200],
+        requireInteraction: false,
+        color: '#2196F3',
+        backgroundColor: '#E3F2FD',
+      };
+
+      await sendToAllAdmins(adminNotification, adminData);
+      console.log(`📱 Order status notification sent to all admins`);
+    } catch (adminNotifError) {
+      console.error(`⚠️ Failed to send admin notification:`, adminNotifError.message);
     }
 
     res.json({

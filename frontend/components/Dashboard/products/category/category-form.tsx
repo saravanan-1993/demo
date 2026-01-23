@@ -107,7 +107,6 @@ export const CategoryForm = ({ id }: { id?: string }) => {
           setExistingSubcategoryImage(data.subcategoryImage || "");
         }
       } catch (error) {
-        console.error("Error fetching data:", error);
         toast.error("Failed to load data");
       } finally {
         setIsLoading(false);
@@ -146,7 +145,6 @@ export const CategoryForm = ({ id }: { id?: string }) => {
 
       toast.success("Category created successfully");
     } catch (error) {
-      console.error("Error adding category:", error);
       toast.error("Failed to create category");
     }
   };
@@ -185,7 +183,6 @@ export const CategoryForm = ({ id }: { id?: string }) => {
 
       toast.success("Category name updated successfully");
     } catch (error) {
-      console.error("Error editing category:", error);
       toast.error("Failed to update category name");
     }
   };
@@ -484,7 +481,6 @@ export const CategoryForm = ({ id }: { id?: string }) => {
       // Redirect back to category list
       router.push("/dashboard/products-list/category-list");
     } catch (error: unknown) {
-      console.error("Error saving category:", error);
       if (error instanceof Error) {
         const apiError = error as {
           response?: { data?: { message?: string } };
@@ -781,7 +777,6 @@ export const CategoryForm = ({ id }: { id?: string }) => {
                 <FileUpload
                   onUploadSuccess={(file) => setCategoryImage(file)}
                   onUploadError={(error) => {
-                    console.error("Upload error:", error);
                     if (error.code === "FILE_TOO_LARGE") {
                       toast.error(
                         "Category image file size exceeds 5 MB. Please choose a smaller file."
@@ -814,7 +809,6 @@ export const CategoryForm = ({ id }: { id?: string }) => {
                 <FileUpload
                   onUploadSuccess={(file) => setSubcategoryImage(file)}
                   onUploadError={(error) => {
-                    console.error("Upload error:", error);
                     if (error.code === "FILE_TOO_LARGE") {
                       toast.error(
                         "Subcategory image file size exceeds 5 MB. Please choose a smaller file."

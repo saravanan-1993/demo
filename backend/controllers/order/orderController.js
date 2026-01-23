@@ -504,6 +504,36 @@ const createCODOrder = async (req, res) => {
       console.error(`⚠️ Failed to send order notification:`, notifError.message);
     }
 
+    // Send new order notification to all admins
+    try {
+      const { sendToAllAdmins } = require('../../utils/notification/sendNotification');
+      
+      const adminNotification = {
+        title: '🛒 New Order Received!',
+        body: `New order from ${result.savedOrder.customerName}\n\n📦 Order #${result.savedOrder.orderNumber}\n💰 Amount: ₹${result.savedOrder.total.toFixed(2)}\n💳 Payment: COD`,
+      };
+
+      const adminData = {
+        type: 'NEW_ORDER',
+        orderNumber: result.savedOrder.orderNumber,
+        orderId: result.savedOrder.id,
+        customerName: result.savedOrder.customerName,
+        total: result.savedOrder.total.toString(),
+        paymentMethod: 'cod',
+        link: `/dashboard/order-management/online-orders/${result.savedOrder.id}`,
+        urgency: 'high',
+        vibrate: [200, 100, 200, 100, 200],
+        requireInteraction: true,
+        color: '#4CAF50',
+        backgroundColor: '#E8F5E9',
+      };
+
+      await sendToAllAdmins(adminNotification, adminData);
+      console.log(`📱 New order notification sent to all admins`);
+    } catch (adminNotifError) {
+      console.error(`⚠️ Failed to send admin notification:`, adminNotifError.message);
+    }
+
     console.log(`✅ COD order created: ${result.orderNumber}`);
 
     return res.status(201).json({
@@ -803,6 +833,36 @@ const confirmOrder = async (req, res) => {
       console.log(`📱 Order placed notification sent to user`);
     } catch (notifError) {
       console.error(`⚠️ Failed to send order notification:`, notifError.message);
+    }
+
+    // Send new order notification to all admins
+    try {
+      const { sendToAllAdmins } = require('../../utils/notification/sendNotification');
+      
+      const adminNotification = {
+        title: '🛒 New Order Received!',
+        body: `New order from ${result.savedOrder.customerName}\n\n📦 Order #${result.savedOrder.orderNumber}\n💰 Amount: ₹${result.savedOrder.total.toFixed(2)}\n💳 Payment: ${paymentMethod.toUpperCase()}`,
+      };
+
+      const adminData = {
+        type: 'NEW_ORDER',
+        orderNumber: result.savedOrder.orderNumber,
+        orderId: result.savedOrder.id,
+        customerName: result.savedOrder.customerName,
+        total: result.savedOrder.total.toString(),
+        paymentMethod: paymentMethod,
+        link: `/dashboard/order-management/online-orders/${result.savedOrder.id}`,
+        urgency: 'high',
+        vibrate: [200, 100, 200, 100, 200],
+        requireInteraction: true,
+        color: '#4CAF50',
+        backgroundColor: '#E8F5E9',
+      };
+
+      await sendToAllAdmins(adminNotification, adminData);
+      console.log(`📱 New order notification sent to all admins`);
+    } catch (adminNotifError) {
+      console.error(`⚠️ Failed to send admin notification:`, adminNotifError.message);
     }
 
     console.log(`✅ Online order confirmed: ${result.orderNumber}`);

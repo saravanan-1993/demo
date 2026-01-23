@@ -954,20 +954,46 @@ const logout = async (req, res) => {
   try {
     const userId = req.userId;
     const token = req.headers.authorization?.replace("Bearer ", "");
+    const { fcmToken } = req.body; // Get FCM token from request body
 
-    // Get user info before logout for Kafka event
+    // Get user info before logout
     let user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { email: true, name: true },
+      select: { email: true, name: true, fcmTokens: true },
     });
     let userType = "user";
 
     if (!user) {
       user = await prisma.admin.findUnique({
         where: { id: userId },
-        select: { email: true, name: true },
+        select: { email: true, name: true, fcmTokens: true },
       });
       userType = "admin";
+    }
+
+    // ✅ FIX: Remove FCM token from database on logout
+    if (fcmToken && user) {
+      try {
+        const tokens = Array.isArray(user.fcmTokens) ? user.fcmTokens : [];
+        const updatedTokens = tokens.filter(t => t.token !== fcmToken);
+
+        if (userType === 'user') {
+          await prisma.user.update({
+            where: { id: userId },
+            data: { fcmTokens: updatedTokens },
+          });
+        } else {
+          await prisma.admin.update({
+            where: { id: userId },
+            data: { fcmTokens: updatedTokens },
+          });
+        }
+
+        console.log(`✅ FCM token removed on logout for ${userType}: ${user.name} - Remaining devices: ${updatedTokens.length}`);
+      } catch (fcmError) {
+        console.error('⚠️ Failed to remove FCM token on logout:', fcmError.message);
+        // Continue with logout even if FCM removal fails
+      }
     }
 
     // Remove session from tracking
@@ -997,7 +1023,6 @@ const logout = async (req, res) => {
       message: "Logged out successfully",
     });
 
-    // Logout event removed - not needed for customer sync
   } catch (error) {
     console.error("Logout error:", error);
     res.status(500).json({
