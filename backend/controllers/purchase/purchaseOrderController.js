@@ -294,6 +294,39 @@ const createPurchaseOrder = async (req, res) => {
           : "Purchase order created and marked as completed"
         : "Purchase order saved as draft";
 
+    // Send purchase order notification to all admins
+    try {
+      const { sendToAllAdmins } = require('../../utils/notification/sendNotification');
+      
+      const statusEmoji = poStatus === 'completed' ? '✅' : '📝';
+      const statusText = poStatus === 'completed' ? 'Completed' : 'Draft';
+      
+      const adminNotification = {
+        title: `${statusEmoji} Purchase Order ${statusText}`,
+        body: `PO #${purchaseOrder.poId}\n\n🏢 Supplier: ${supplierInfo.supplierName}\n💰 Amount: ₹${grandTotal.toFixed(2)}\n📦 Items: ${totalQuantity}`,
+      };
+
+      const adminData = {
+        type: 'PURCHASE_ORDER_CREATED',
+        poId: purchaseOrder.poId,
+        purchaseOrderId: purchaseOrder.id,
+        supplierName: supplierInfo.supplierName,
+        grandTotal: grandTotal.toString(),
+        status: poStatus,
+        link: `/dashboard/purchase-management/purchase-orders/${purchaseOrder.id}`,
+        urgency: poStatus === 'completed' ? 'high' : 'normal',
+        vibrate: [200, 100, 200],
+        requireInteraction: poStatus === 'completed',
+        color: poStatus === 'completed' ? '#4CAF50' : '#2196F3',
+        backgroundColor: poStatus === 'completed' ? '#E8F5E9' : '#E3F2FD',
+      };
+
+      await sendToAllAdmins(adminNotification, adminData);
+      console.log(`📱 Purchase order notification sent to all admins`);
+    } catch (adminNotifError) {
+      console.error(`⚠️ Failed to send admin notification:`, adminNotifError.message);
+    }
+
     res.status(201).json({
       success: true,
       message,

@@ -92,6 +92,8 @@ const createBanner = async (req, res) => {
     const { title, linkUrl } = req.body;
     const imageFile = req.file;
 
+    console.log("Creating banner with data:", { title, linkUrl, hasFile: !!imageFile });
+
     // Validation
     if (!title || !title.trim()) {
       return res.status(400).json({
@@ -108,7 +110,18 @@ const createBanner = async (req, res) => {
     }
 
     // Upload image to S3
-    const imageKey = await uploadToS3(imageFile, "banners");
+    let imageKey;
+    try {
+      imageKey = await uploadToS3(imageFile, "banners");
+      console.log("Image uploaded successfully:", imageKey);
+    } catch (uploadError) {
+      console.error("S3 upload error:", uploadError);
+      return res.status(500).json({
+        success: false,
+        error: "Failed to upload image. Please check AWS S3 configuration.",
+        details: uploadError.message,
+      });
+    }
 
     // Create banner in database
     const banner = await prisma.banner.create({
@@ -118,6 +131,8 @@ const createBanner = async (req, res) => {
         imageUrl: imageKey, // Store S3 key, not full URL
       },
     });
+
+    console.log("Banner created in database:", banner.id);
 
     // Generate pre-signed URL for response
     const imageUrl = await getPresignedUrl(banner.imageUrl, 3600);
@@ -135,6 +150,7 @@ const createBanner = async (req, res) => {
     res.status(500).json({
       success: false,
       error: "Failed to create banner",
+      details: error.message,
     });
   }
 };
@@ -145,6 +161,8 @@ const updateBanner = async (req, res) => {
     const { id } = req.params;
     const { title, linkUrl, existingImageUrl } = req.body;
     const imageFile = req.file;
+
+    console.log("Updating banner:", { id, title, linkUrl, hasFile: !!imageFile });
 
     // Check if banner exists
     const existingBanner = await prisma.banner.findUnique({
@@ -170,18 +188,29 @@ const updateBanner = async (req, res) => {
 
     // If new image is uploaded
     if (imageFile) {
-      // Delete old image from S3
-      if (existingBanner.imageUrl) {
-        try {
-          await deleteFromS3(existingBanner.imageUrl);
-        } catch (error) {
-          console.error("Error deleting old image:", error);
-          // Continue even if delete fails
-        }
-      }
-
       // Upload new image to S3
-      imageKey = await uploadToS3(imageFile, "banners");
+      try {
+        imageKey = await uploadToS3(imageFile, "banners");
+        console.log("New image uploaded successfully:", imageKey);
+        
+        // Delete old image from S3
+        if (existingBanner.imageUrl) {
+          try {
+            await deleteFromS3(existingBanner.imageUrl);
+            console.log("Old image deleted successfully");
+          } catch (error) {
+            console.error("Error deleting old image:", error);
+            // Continue even if delete fails
+          }
+        }
+      } catch (uploadError) {
+        console.error("S3 upload error:", uploadError);
+        return res.status(500).json({
+          success: false,
+          error: "Failed to upload new image. Please check AWS S3 configuration.",
+          details: uploadError.message,
+        });
+      }
     }
 
     // Update banner in database
@@ -193,6 +222,8 @@ const updateBanner = async (req, res) => {
         imageUrl: imageKey,
       },
     });
+
+    console.log("Banner updated in database:", banner.id);
 
     // Generate pre-signed URL for response
     const imageUrl = await getPresignedUrl(banner.imageUrl, 3600);
@@ -210,6 +241,7 @@ const updateBanner = async (req, res) => {
     res.status(500).json({
       success: false,
       error: "Failed to update banner",
+      details: error.message,
     });
   }
 };

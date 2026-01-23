@@ -234,6 +234,36 @@ const createPOSOrder = async (req, res) => {
       // Order is still created, stock update failure is logged
     }
 
+    // Send POS order notification to all admins
+    try {
+      const { sendToAllAdmins } = require('../../utils/notification/sendNotification');
+      
+      const adminNotification = {
+        title: '🏪 New POS Order!',
+        body: `POS Order from ${customer?.name || 'Walk-in Customer'}\n\n📦 Order #${order.orderNumber}\n💰 Amount: ₹${total.toFixed(2)}\n💳 Payment: ${paymentMethod.toUpperCase()}`,
+      };
+
+      const adminData = {
+        type: 'NEW_POS_ORDER',
+        orderNumber: order.orderNumber,
+        orderId: order.id,
+        customerName: customer?.name || 'Walk-in Customer',
+        total: total.toString(),
+        paymentMethod: paymentMethod,
+        link: `/dashboard/order-management/pos-orders/${order.id}`,
+        urgency: 'normal',
+        vibrate: [200, 100, 200],
+        requireInteraction: false,
+        color: '#FF9800',
+        backgroundColor: '#FFF3E0',
+      };
+
+      await sendToAllAdmins(adminNotification, adminData);
+      console.log(`📱 POS order notification sent to all admins`);
+    } catch (adminNotifError) {
+      console.error(`⚠️ Failed to send admin notification:`, adminNotifError.message);
+    }
+
     res.status(201).json({
       success: true,
       message: "POS order created successfully",

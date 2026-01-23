@@ -47,6 +47,7 @@ export const useAuth = (requireAuth: boolean = true) => {
             // Token expired
             localStorage.removeItem("token");
             localStorage.removeItem("user");
+            localStorage.removeItem("fcm_token"); // ✅ Clear FCM token on expiry
             setUser(null);
             setIsAuthenticated(false);
             if (requireAuth && !isRootPath) {
@@ -59,6 +60,7 @@ export const useAuth = (requireAuth: boolean = true) => {
           // Invalid token
           localStorage.removeItem("token");
           localStorage.removeItem("user");
+          localStorage.removeItem("fcm_token"); // ✅ Clear FCM token on invalid token
           setUser(null);
           setIsAuthenticated(false);
           if (requireAuth && !isRootPath) {
@@ -76,6 +78,7 @@ export const useAuth = (requireAuth: boolean = true) => {
           // Silent handling - no console logs
           localStorage.removeItem("token");
           localStorage.removeItem("user");
+          localStorage.removeItem("fcm_token"); // ✅ Clear FCM token on parse error
           setUser(null);
           setIsAuthenticated(false);
           if (requireAuth && !isRootPath) {
@@ -117,37 +120,45 @@ export const useAuth = (requireAuth: boolean = true) => {
   }, [router, requireAuth]);
 
   const logout = async () => {
-    // Silent logout - no console logs
-    
     try {
-      // Call backend logout first while token is still valid
+      // ✅ Remove FCM token before logout
+      const fcmToken = localStorage.getItem('fcm_token');
+      
+      if (fcmToken && user) {
+        try {
+          const { removeFCMToken } = await import('@/lib/fcmTokenService');
+          await removeFCMToken(user.id, user.role === 'admin' ? 'admin' : 'user', fcmToken);
+        } catch (fcmError) {
+          // Silent - continue with logout
+        }
+      }
+
+      // Call backend logout with FCM token
       try {
-        await axiosInstance.post('/api/auth/logout');
+        await axiosInstance.post('/api/auth/logout', { fcmToken });
       } catch (error) {
-        // Silent error handling
+        // Silent - continue with logout
       }
       
-      // Clear local storage after backend call
+      // Clear local storage
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+      localStorage.removeItem("fcm_token");
       
-      // Clear state immediately to prevent UI issues
+      // Clear state
       setUser(null);
       setIsAuthenticated(false);
       
-      // Only navigate if we're not already on the home page
+      // Navigate if not on home page
       if (typeof window !== 'undefined' && window.location.pathname !== '/') {
         router.push('/');
-        // Refresh the page after 1 second
         setTimeout(() => {
           window.location.reload();
         }, 1000);
       }
       
     } catch (error) {
-      // Silent error handling
-      
-      // Even if there's an error, clear the state
+      // Even if error, clear state
       setUser(null);
       setIsAuthenticated(false);
       localStorage.removeItem("token");

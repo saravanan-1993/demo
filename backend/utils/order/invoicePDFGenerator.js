@@ -659,22 +659,39 @@ const getCompanyData = async () => {
 const getLogoData = async () => {
   try {
     const { prisma } = require('../../config/database');
-    const { getPresignedUrl } = require('../web/uploadS3');
+    const { getPresignedUrl } = require('../web/uploadsS3');
     
     const webSettings = await prisma.webSettings.findFirst();
     
-    if (webSettings && webSettings.logoKey) {
-      // Get presigned URL for the logo
-      const logoUrl = await getPresignedUrl(webSettings.logoKey, 3600);
+    console.log('📄 Web settings found:', webSettings ? 'Yes' : 'No');
+    
+    if (webSettings) {
+      let logoUrl = null;
+      
+      // Try logoUrl first (direct URL)
+      if (webSettings.logoUrl) {
+        console.log('📄 Using logoUrl from web settings');
+        logoUrl = webSettings.logoUrl;
+      }
+      // Try logoKey (S3 key) if logoUrl not available
+      else if (webSettings.logoKey) {
+        console.log('📄 Using logoKey from web settings, generating presigned URL');
+        logoUrl = await getPresignedUrl(webSettings.logoKey, 3600);
+      }
+      
+      console.log('📄 Final logo URL:', logoUrl ? 'Generated' : 'Not available');
       
       if (logoUrl) {
         // Convert URL to base64 for PDF embedding
         const logoBase64 = await urlToBase64(logoUrl);
+        console.log('📄 Logo converted to base64:', logoBase64 ? 'Yes' : 'No');
         return logoBase64;
       }
+    } else {
+      console.log('📄 No web settings found in database');
     }
   } catch (error) {
-    console.error('Error fetching logo from web settings:', error);
+    console.error('📄 Error fetching logo from web settings:', error);
   }
   
   return null;

@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { getMyOrders, getOrderByNumber } = require("../../controllers/order/myOrdersController");
+const { getMyOrders, getOrderByNumber, downloadOrderInvoice } = require("../../controllers/order/myOrdersController");
 
 /**
  * @route   GET /api/online/my-orders
@@ -8,6 +8,13 @@ const { getMyOrders, getOrderByNumber } = require("../../controllers/order/myOrd
  * @access  Public
  */
 router.get("/", getMyOrders);
+
+/**
+ * @route   GET /api/online/my-orders/:orderNumber/invoice/download
+ * @desc    Download order invoice PDF
+ * @access  Public
+ */
+router.get("/:orderNumber/invoice/download", downloadOrderInvoice);
 
 /**
  * @route   GET /api/online/my-orders/:orderNumber

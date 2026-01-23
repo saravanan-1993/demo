@@ -34,6 +34,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         if (payload.exp * 1000 < Date.now()) {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
+          localStorage.removeItem("fcm_token"); // ✅ Clear FCM token on expiry
           router.replace("/signin");
           return;
         }
@@ -84,6 +85,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       } catch {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+        localStorage.removeItem("fcm_token"); // ✅ Clear FCM token on error
         router.replace("/signin");
         return;
       }

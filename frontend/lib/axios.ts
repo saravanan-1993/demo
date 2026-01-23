@@ -54,6 +54,7 @@ axiosInstance.interceptors.response.use(
       if (typeof window !== "undefined") {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+        localStorage.removeItem("fcm_token"); // ✅ Clear FCM token on auth failure
 
         // Don't redirect during logout process - let the logout function handle navigation
         const isLogoutRequest = error.config?.url?.includes("/logout");
