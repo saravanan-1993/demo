@@ -72,46 +72,11 @@ export default function Header({ initialCategories, initialWebSettings, initialP
   const { user, isAuthenticated, logout } = useAuthContext();
   const currencySymbol = useCurrency();
   const router = useRouter();
-  const [authKey, setAuthKey] = useState(0);
 
   // Handle client-side hydration
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  // Rotate offers every 3 seconds
-  useEffect(() => {
-    if (promotionalOffers.length <= 1) return;
-
-    const interval = setInterval(() => {
-      setCurrentOfferIndex((prev) => (prev + 1) % promotionalOffers.length);
-    }, 7000);
-
-    return () => clearInterval(interval);
-  }, [promotionalOffers.length]);
-
-  // Force re-render when auth state changes
-  useEffect(() => {
-    const handleAuthChange = () => {
-      setAuthKey(prev => prev + 1);
-      // Force a small delay to ensure localStorage is fully updated
-      setTimeout(() => {
-        setAuthKey(prev => prev + 1);
-      }, 50);
-    };
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('auth-refresh', handleAuthChange);
-      window.addEventListener('storage', handleAuthChange);
-    }
-
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('auth-refresh', handleAuthChange);
-        window.removeEventListener('storage', handleAuthChange);
-      }
-    };
-  }, [user, isAuthenticated]);
 
   // Close search results when clicking outside
   useEffect(() => {
@@ -251,33 +216,17 @@ export default function Header({ initialCategories, initialWebSettings, initialP
 
             {/* Center - Promotional Offers */}
             <div className="text-center flex-1 overflow-hidden">
-              {promotionalOffers.length > 0 ? (
+              {isClient && promotionalOffers.length > 0 ? (
                 <p 
                   key={currentOfferIndex}
-                  className="font-medium text-white"
-                  style={{
-                    animation: 'fadeIn 0.5s ease-in-out'
-                  }}
+                  className="font-medium text-white animate-fade-in"
                 >
                   {formatOfferText(promotionalOffers[currentOfferIndex])}
                 </p>
               ) : (
-                <p className="font-medium">🎊 Welcome! Explore our latest products and deals</p>
+                <p className="font-medium text-white">🎊 Welcome! Explore our latest products and deals</p>
               )}
             </div>
-            
-            <style jsx>{`
-              @keyframes fadeIn {
-                from {
-                  opacity: 0;
-                  transform: translateY(-5px);
-                }
-                to {
-                  opacity: 1;
-                  transform: translateY(0);
-                }
-              }
-            `}</style>
           </div>
         </div>
       </div>
