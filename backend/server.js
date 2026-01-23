@@ -104,13 +104,13 @@ const routes = require("./routes");
 
 // Allowed origins for CORS
 const allowedOrigins = [
-  process.env.FRONTEND_URL || "http://localhost:3000",
-  process.env.BACKEND_URL || "http://localhost:5000",
-  "http://localhost:3000", // Local frontend
-  "http://localhost:5000", // Local backend
-  "https://monolith-ecommerce.vercel.app", // Production frontend
-  "https://monolith-ecommerce-3pwa.vercel.app", // Production backend
-].filter(Boolean);
+  process.env.FRONTEND_URL,
+  process.env.BACKEND_URL,
+  "http://localhost:3000",
+  "http://localhost:5000",
+  "https://monolith-ecommerce.vercel.app",
+  "https://monolith-ecommerce-3pwa.vercel.app",
+].filter(Boolean).map(origin => origin.replace(/\/$/, "")); // Normalize by removing trailing slashes
 
 console.log("🔒 CORS Configuration:");
 console.log("   Allowed Origins:", allowedOrigins);
@@ -121,22 +121,25 @@ app.use(
     origin: (origin, callback) => {
       // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) {
-        console.log("✅ CORS: Allowing request with no origin");
         return callback(null, true);
       }
       
-      if (allowedOrigins.indexOf(origin) !== -1) {
-        console.log(`✅ CORS: Allowing request from: ${origin}`);
+      // Normalize origin for comparison
+      const normalizedOrigin = origin.replace(/\/$/, "");
+      
+      if (allowedOrigins.includes(normalizedOrigin)) {
         callback(null, true);
       } else {
-        console.warn(`⚠️  CORS: Blocked request from origin: ${origin}`);
-        console.warn(`   Allowed origins: ${allowedOrigins.join(", ")}`);
-        callback(new Error('Not allowed by CORS'));
+        console.warn(`⚠️ CORS: Blocked request from origin: ${origin}`);
+        // Instead of erroring, we allow the request but won't set CORS headers
+        // This helps in debugging and prevents the middleware from crashing the request
+        callback(null, false);
       }
     },
-    credentials: true, // Important: Allow cookies
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
   })
 );
 
@@ -208,9 +211,17 @@ app.use((req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error("[Monolith Error]", err);
-  res.status(500).json({
+  
+  // Ensure CORS headers are present even on errors
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin.replace(/\/$/, ""))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+
+  res.status(err.status || 500).json({
     success: false,
-    error: "Internal server error",
+    error: err.name || "Internal server error",
     message: err.message,
   });
 });
@@ -287,3 +298,6 @@ process.on("SIGINT", async () => {
   await disconnectDB();
   process.exit(0);
 });
+
+// Export app for Vercel
+module.exports = app;
