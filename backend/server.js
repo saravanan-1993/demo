@@ -102,10 +102,38 @@ async function initializeApp() {
 // Import routes
 const routes = require("./routes");
 
+// Allowed origins for CORS
+const allowedOrigins = [
+  process.env.FRONTEND_URL || "http://localhost:3000",
+  process.env.BACKEND_URL || "http://localhost:5000",
+  "http://localhost:3000", // Local frontend
+  "http://localhost:5000", // Local backend
+  "https://monolith-ecommerce.vercel.app", // Production frontend
+  "https://monolith-ecommerce-3pwa.vercel.app", // Production backend
+].filter(Boolean);
+
+console.log("🔒 CORS Configuration:");
+console.log("   Allowed Origins:", allowedOrigins);
+
 // Middleware
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) {
+        console.log("✅ CORS: Allowing request with no origin");
+        return callback(null, true);
+      }
+      
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        console.log(`✅ CORS: Allowing request from: ${origin}`);
+        callback(null, true);
+      } else {
+        console.warn(`⚠️  CORS: Blocked request from origin: ${origin}`);
+        console.warn(`   Allowed origins: ${allowedOrigins.join(", ")}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true, // Important: Allow cookies
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
