@@ -287,7 +287,7 @@ export default function OrderDetailsClient({
             </div>
             <div className="flex items-center gap-3">
               {/* Download Invoice Button */}
-              {canDownloadInvoice() && (
+              {/* {canDownloadInvoice() && (
                 <Button
                   onClick={handleDownloadInvoice}
                   disabled={isDownloadingInvoice}
@@ -298,7 +298,7 @@ export default function OrderDetailsClient({
                   <IconDownload size={16} />
                   {isDownloadingInvoice ? 'Downloading...' : 'Download Invoice'}
                 </Button>
-              )}
+              )} */}
               
               {/* Order Status Badge */}
               <div
