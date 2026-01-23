@@ -229,35 +229,6 @@ app.use((err, req, res, next) => {
 // Start server
 app.listen(PORT, async () => {
   try {
-    console.log("═══════════════════════════════════════════════════");
-    console.log("🚀 Starting Monolith E-Commerce Backend...");
-    console.log("═══════════════════════════════════════════════════");
-    
-    // Connect to database
-    console.log("📡 Connecting to database...");
-    await connectDB();
-    
-    // Auto-initialize admin user FIRST (before Firebase)
-    console.log("👤 Initializing admin user...");
-    const { initializeAdmin } = require("./utils/auth/initializeAdmin");
-    const initResult = await initializeAdmin();
-    
-    if (initResult.success) {
-      console.log("✅ Admin initialization completed successfully");
-    } else {
-      console.error("⚠️  Admin initialization failed:", initResult.message);
-      console.error("   Please check the logs above for details");
-    }
-    
-    // Initialize Firebase Admin SDK (after admin creation)
-    try {
-      initializeFirebase();
-      console.log("🔥 Firebase Admin SDK initialized");
-    } catch (firebaseError) {
-      console.error("⚠️ Firebase initialization failed:", firebaseError.message);
-      console.log("📱 Push notifications will not be available");
-    }
-    
     // Initialize Cron Jobs for automated notifications
     try {
       const { initializeCronJobs } = require("./utils/notification/cronJobs");
