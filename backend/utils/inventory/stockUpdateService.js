@@ -193,40 +193,51 @@ const updateStockAfterOrder = async (order, source = "POS_ORDER") => {
             `⚠️ LOW STOCK ALERT: ${product.itemName} - Quantity: ${newQuantity} (Alert Level: ${product.lowStockAlertLevel})`
           );
           
-          // Send low stock notification to admins
-          try {
-            const warehouseName = product.warehouse && typeof product.warehouse === 'object' 
-              ? product.warehouse.name 
-              : (product.warehouse || "Unknown");
-              
-            await sendLowStockAlert(
-              product.itemName, 
-              newQuantity, 
-              product.lowStockAlertLevel, 
-              warehouseName
-            );
-            console.log(`📱 Low stock notification sent for: ${product.itemName}`);
-          } catch (notifError) {
-            console.error('⚠️ Failed to send low stock notification:', notifError.message);
+          // Only send notification if we weren't ALREADY low stock/out of stock
+          // or if this is a significant drop (optional, but for now strict state change)
+          const wasLowOrOut = previousQuantity <= product.lowStockAlertLevel;
+          
+          if (!wasLowOrOut) {
+            // Send low stock notification to admins
+            try {
+              const warehouseName = product.warehouse && typeof product.warehouse === 'object' 
+                ? product.warehouse.name 
+                : (product.warehouse || "Unknown");
+                
+              await sendLowStockAlert(
+                product.itemName, 
+                newQuantity, 
+                product.lowStockAlertLevel, 
+                warehouseName
+              );
+              console.log(`📱 Low stock notification sent for: ${product.itemName}`);
+            } catch (notifError) {
+              console.error('⚠️ Failed to send low stock notification:', notifError.message);
+            }
           }
         } else if (status === "out_of_stock") {
           console.error(`❌ OUT OF STOCK: ${product.itemName} - Quantity: ${newQuantity}`);
           
-          // Send out of stock notification to admins
-          try {
-            const warehouseName = product.warehouse && typeof product.warehouse === 'object' 
-              ? product.warehouse.name 
-              : (product.warehouse || "Unknown");
-              
-            await sendLowStockAlert(
-              product.itemName, 
-              newQuantity, 
-              product.lowStockAlertLevel, 
-              warehouseName
-            );
-            console.log(`📱 Out of stock notification sent for: ${product.itemName}`);
-          } catch (notifError) {
-            console.error('⚠️ Failed to send out of stock notification:', notifError.message);
+          // Only send notification if we weren't ALREADY out of stock
+          const wasOutOfStock = previousQuantity === 0;
+          
+          if (!wasOutOfStock) {
+            // Send out of stock notification to admins
+            try {
+              const warehouseName = product.warehouse && typeof product.warehouse === 'object' 
+                ? product.warehouse.name 
+                : (product.warehouse || "Unknown");
+                
+              await sendLowStockAlert(
+                product.itemName, 
+                newQuantity, 
+                product.lowStockAlertLevel, 
+                warehouseName
+              );
+              console.log(`📱 Out of stock notification sent for: ${product.itemName}`);
+            } catch (notifError) {
+              console.error('⚠️ Failed to send out of stock notification:', notifError.message);
+            }
           }
         }
 

@@ -451,31 +451,153 @@ export default function ProductDetailClient({
               <p className="text-xs sm:text-sm text-gray-500 mb-0.5 sm:mb-1">
                 {product.brand}
               </p>
-              <h1 className="text-lg sm:text-2xl font-bold text-gray-800 mb-2 sm:mb-3">
-                {currentVariant?.displayName || product.shortDescription}
-              </h1>
-              <div className="mb-3 sm:mb-4 flex items-center gap-3">
-                <span
-                  className={`text-xs sm:text-sm px-2 sm:px-3 py-1 rounded ${
-                    isOutOfStock
-                      ? "bg-red-100 text-red-700"
-                      : isLowStock
-                      ? "bg-orange-100 text-orange-700"
-                      : "bg-green-100 text-green-700"
-                  }`}
-                >
-                  {isOutOfStock
-                    ? "Out of Stock"
-                    : isLowStock
-                    ? `Only ${availableStock} left`
-                    : "In Stock"}
-                </span>
-                {!isOutOfStock && availableStock > 0 && (
-                  <span className="text-xs sm:text-sm text-gray-600">
-                    {availableStock} units available
-                  </span>
-                )}
+              
+              {/* Product Title with Wishlist and Share buttons */}
+              <div className="flex items-start justify-between gap-3 mb-2 sm:mb-3">
+                <h1 className="text-lg sm:text-2xl font-bold text-gray-800 flex-1">
+                  {currentVariant?.displayName || product.shortDescription}
+                </h1>
+                
+                {/* Wishlist and Share buttons - Right side of title */}
+                <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                  <button
+                    onClick={handleWishlistToggle}
+                    className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                    title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
+                  >
+                    <IconHeart
+                      size={20}
+                      className={`sm:w-6 sm:h-6 transition-colors ${
+                        isWishlisted ? "fill-red-500 text-red-500" : "text-gray-600"
+                      }`}
+                    />
+                  </button>
+                  
+                  {/* Share Button with Dropdown */}
+                  <div className="relative" ref={shareButtonRef}>
+                    <button 
+                      onClick={() => setShowShareMenu(!showShareMenu)}
+                      className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                      title="Share"
+                    >
+                      <IconShare size={20} className="sm:w-6 sm:h-6 text-gray-600" />
+                    </button>
+                    
+                    {/* Share Menu - Bottom Sheet on Mobile, Dropdown on Desktop */}
+                    {showShareMenu && (
+                      <>
+                        {/* Backdrop */}
+                        <div 
+                          className="fixed inset-0 z-40 bg-black/50 sm:bg-transparent" 
+                          onClick={() => setShowShareMenu(false)}
+                        />
+                        
+                        {/* Mobile: Bottom Sheet */}
+                        <div className="sm:hidden fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom duration-300">
+                          <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3" />
+                          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                            <span className="text-base font-semibold text-gray-800">Share via</span>
+                            <button 
+                              onClick={() => setShowShareMenu(false)}
+                              className="p-1 text-gray-400 hover:text-gray-600"
+                            >
+                              <IconX size={20} />
+                            </button>
+                          </div>
+                          
+                          <div className="grid grid-cols-4 gap-4 p-4">
+                            <button
+                              onClick={() => handleShare('whatsapp')}
+                              className="flex flex-col items-center gap-2"
+                            >
+                              <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center">
+                                <IconBrandWhatsapp size={24} className="text-white" />
+                              </div>
+                              <span className="text-xs text-gray-600">WhatsApp</span>
+                            </button>
+                            
+                            <button
+                              onClick={() => handleShare('facebook')}
+                              className="flex flex-col items-center gap-2"
+                            >
+                              <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center">
+                                <IconBrandFacebook size={24} className="text-white" />
+                              </div>
+                              <span className="text-xs text-gray-600">Facebook</span>
+                            </button>
+                            
+                            <button
+                              onClick={() => handleShare('twitter')}
+                              className="flex flex-col items-center gap-2"
+                            >
+                              <div className="w-12 h-12 rounded-full bg-sky-500 flex items-center justify-center">
+                                <IconBrandTwitter size={24} className="text-white" />
+                              </div>
+                              <span className="text-xs text-gray-600">Twitter</span>
+                            </button>
+                            
+                            <button
+                              onClick={() => handleShare('copy')}
+                              className="flex flex-col items-center gap-2"
+                            >
+                              <div className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center">
+                                <IconLink size={24} className="text-white" />
+                              </div>
+                              <span className="text-xs text-gray-600">Copy Link</span>
+                            </button>
+                          </div>
+                          
+                          {'share' in navigator && (
+                            <div className="px-4 pb-4">
+                              <button
+                                onClick={() => handleShare('native')}
+                                className="w-full py-3 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors"
+                              >
+                                More Options
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Desktop: Dropdown Menu */}
+                        <div className="hidden sm:block absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                          <button
+                            onClick={() => handleShare('whatsapp')}
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-3"
+                          >
+                            <IconBrandWhatsapp size={18} className="text-green-500" />
+                            <span>WhatsApp</span>
+                          </button>
+                          <button
+                            onClick={() => handleShare('facebook')}
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-3"
+                          >
+                            <IconBrandFacebook size={18} className="text-blue-600" />
+                            <span>Facebook</span>
+                          </button>
+                          <button
+                            onClick={() => handleShare('twitter')}
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-3"
+                          >
+                            <IconBrandTwitter size={18} className="text-sky-500" />
+                            <span>Twitter</span>
+                          </button>
+                          <div className="border-t border-gray-100 my-1"></div>
+                          <button
+                            onClick={() => handleShare('copy')}
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-3"
+                          >
+                            <IconLink size={18} className="text-gray-600" />
+                            <span>Copy Link</span>
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
+              
+             
               <div className="mb-3 sm:mb-4">
                 <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                   <span className="text-2xl sm:text-3xl font-bold text-gray-900">
@@ -634,169 +756,6 @@ export default function ProductDetailClient({
                 )}
               </div>
 
-              <div className="flex items-center gap-4 mb-4 sm:mb-6">
-                <button
-                  onClick={handleWishlistToggle}
-                  className="flex items-center gap-1.5 sm:gap-2 text-gray-600 hover:text-[#e63946] transition-colors"
-                >
-                  <IconHeart
-                    size={18}
-                    className={`sm:w-5 sm:h-5 transition-colors ${
-                      isWishlisted ? "fill-red-500 text-red-500" : ""
-                    }`}
-                  />
-                  <span className="text-xs sm:text-sm">
-                    {isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
-                  </span>
-                </button>
-                
-                {/* Share Button with Dropdown */}
-                <div className="relative" ref={shareButtonRef}>
-                  <button 
-                    onClick={() => setShowShareMenu(!showShareMenu)}
-                    className="flex items-center gap-1.5 sm:gap-2 text-gray-600 hover:text-[#e63946] transition-colors"
-                  >
-                    <IconShare size={18} className="sm:w-5 sm:h-5" />
-                    <span className="text-xs sm:text-sm">Share</span>
-                  </button>
-                  
-                  {/* Share Menu - Bottom Sheet on Mobile, Dropdown on Desktop */}
-                  {showShareMenu && (
-                    <>
-                      {/* Backdrop */}
-                      <div 
-                        className="fixed inset-0 z-40 bg-black/50 sm:bg-transparent" 
-                        onClick={() => setShowShareMenu(false)}
-                      />
-                      
-                      {/* Mobile: Bottom Sheet */}
-                      <div className="sm:hidden fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom duration-300">
-                        <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3" />
-                        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                          <span className="text-base font-semibold text-gray-800">Share via</span>
-                          <button 
-                            onClick={() => setShowShareMenu(false)}
-                            className="p-1 text-gray-400 hover:text-gray-600"
-                          >
-                            <IconX size={20} />
-                          </button>
-                        </div>
-                        
-                        <div className="grid grid-cols-4 gap-4 p-4">
-                          <button
-                            onClick={() => handleShare('whatsapp')}
-                            className="flex flex-col items-center gap-2"
-                          >
-                            <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center">
-                              <IconBrandWhatsapp size={24} className="text-white" />
-                            </div>
-                            <span className="text-xs text-gray-600">WhatsApp</span>
-                          </button>
-                          
-                          <button
-                            onClick={() => handleShare('facebook')}
-                            className="flex flex-col items-center gap-2"
-                          >
-                            <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center">
-                              <IconBrandFacebook size={24} className="text-white" />
-                            </div>
-                            <span className="text-xs text-gray-600">Facebook</span>
-                          </button>
-                          
-                          <button
-                            onClick={() => handleShare('twitter')}
-                            className="flex flex-col items-center gap-2"
-                          >
-                            <div className="w-12 h-12 rounded-full bg-sky-500 flex items-center justify-center">
-                              <IconBrandTwitter size={24} className="text-white" />
-                            </div>
-                            <span className="text-xs text-gray-600">Twitter</span>
-                          </button>
-                          
-                          <button
-                            onClick={() => handleShare('copy')}
-                            className="flex flex-col items-center gap-2"
-                          >
-                            <div className="w-12 h-12 rounded-full bg-gray-500 flex items-center justify-center">
-                              <IconLink size={24} className="text-white" />
-                            </div>
-                            <span className="text-xs text-gray-600">Copy Link</span>
-                          </button>
-                        </div>
-                        
-                        {/* Native Share Button for Mobile */}
-                        {'share' in navigator && (
-                          <div className="px-4 pb-6">
-                            <button
-                              onClick={() => handleShare('native')}
-                              className="w-full py-3 bg-[#e63946] text-white rounded-lg font-medium flex items-center justify-center gap-2"
-                            >
-                              <IconShare size={18} />
-                              More Sharing Options
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Desktop: Dropdown Menu */}
-                      <div className="hidden sm:block absolute left-0 sm:left-auto sm:right-0 top-full mt-2 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 min-w-[200px]">
-                        <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
-                          <span className="text-sm font-medium text-gray-700">Share via</span>
-                          <button 
-                            onClick={() => setShowShareMenu(false)}
-                            className="text-gray-400 hover:text-gray-600"
-                          >
-                            <IconX size={16} />
-                          </button>
-                        </div>
-                        
-                        <button
-                          onClick={() => handleShare('whatsapp')}
-                          className="w-full px-3 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
-                            <IconBrandWhatsapp size={18} className="text-white" />
-                          </div>
-                          <span className="text-sm text-gray-700">WhatsApp</span>
-                        </button>
-                        
-                        <button
-                          onClick={() => handleShare('facebook')}
-                          className="w-full px-3 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
-                            <IconBrandFacebook size={18} className="text-white" />
-                          </div>
-                          <span className="text-sm text-gray-700">Facebook</span>
-                        </button>
-                        
-                        <button
-                          onClick={() => handleShare('twitter')}
-                          className="w-full px-3 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center">
-                            <IconBrandTwitter size={18} className="text-white" />
-                          </div>
-                          <span className="text-sm text-gray-700">Twitter / X</span>
-                        </button>
-                        
-                        <div className="border-t border-gray-100 my-1" />
-                        
-                        <button
-                          onClick={() => handleShare('copy')}
-                          className="w-full px-3 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="w-8 h-8 rounded-full bg-gray-500 flex items-center justify-center">
-                            <IconLink size={18} className="text-white" />
-                          </div>
-                          <span className="text-sm text-gray-700">Copy Link</span>
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
               <div className="border-t pt-4">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                   <div className="flex items-center gap-2 sm:gap-3">
@@ -849,28 +808,28 @@ export default function ProductDetailClient({
                   )}
                 </div>
               </div>
+              
+              {/* Frequently Bought Together Section - Below Delivery Icons */}
+              {frequentlyBoughtTogether.length > 0 && currentVariant && (
+                <div className="mt-4 sm:mt-6">
+                  <FrequentlyBoughtTogether
+                    mainProduct={{
+                      id: product.id,
+                      name: currentVariant.displayName || product.shortDescription,
+                      price: price,
+                      mrp: mrp,
+                      image: currentImage,
+                      inventoryProductId: inventoryProductId,
+                      variantIndex: selectedVariant,
+                    }}
+                    addons={frequentlyBoughtTogether}
+                    onAddToCart={handleAddMultipleToCart}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
-
-        {/* Frequently Bought Together Section - Above Product Description */}
-        {frequentlyBoughtTogether.length > 0 && currentVariant && (
-          <div className="mb-4 sm:mb-6">
-            <FrequentlyBoughtTogether
-              mainProduct={{
-                id: product.id,
-                name: currentVariant.displayName || product.shortDescription,
-                price: price,
-                mrp: mrp,
-                image: currentImage,
-                inventoryProductId: inventoryProductId,
-                variantIndex: selectedVariant,
-              }}
-              addons={frequentlyBoughtTogether}
-              onAddToCart={handleAddMultipleToCart}
-            />
-          </div>
-        )}
 
         {/* Product Information Section - Professional E-commerce Style */}
         <div className="bg-white rounded-lg mb-4 sm:mb-6">

@@ -53,7 +53,7 @@ function generatePassword(length = 12) {
 // Send approval email with credentials
 async function sendApprovalEmail(partner, password) {
   try {
-    const emailTemplate = getApprovedEmailTemplate({
+    const emailTemplate = await getApprovedEmailTemplate({
       name: partner.name,
       email: partner.email,
       partnerId: partner.partnerId,
@@ -82,7 +82,7 @@ async function sendApprovalEmail(partner, password) {
 // Send rejection email
 async function sendRejectionEmail(partner, reason, note) {
   try {
-    const emailTemplate = getRejectedEmailTemplate({
+    const emailTemplate = await getRejectedEmailTemplate({
       name: partner.name,
       email: partner.email,
       reason: reason || "Not specified",
@@ -108,7 +108,7 @@ async function sendRejectionEmail(partner, reason, note) {
 // Send suspension email
 async function sendSuspensionEmail(partner, reason, note) {
   try {
-    const emailTemplate = getSuspendedEmailTemplate({
+    const emailTemplate = await getSuspendedEmailTemplate({
       name: partner.name,
       email: partner.email,
       partnerId: partner.partnerId,

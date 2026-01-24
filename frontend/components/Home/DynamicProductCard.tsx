@@ -129,9 +129,20 @@ export default function DynamicProductCard({
       return;
     }
 
+    // ✅ FIX: Find the actual index in the original product.variants array
+    // selectedVariant is the index in activeVariants, but we need the index in product.variants
+    const actualVariantIndex = product.variants.findIndex(
+      v => v.inventoryProductId === currentVariant?.inventoryProductId
+    );
+
+    if (actualVariantIndex === -1) {
+      toast.error("Variant not found");
+      return;
+    }
+
     await addToCart(
       product,
-      selectedVariant,
+      actualVariantIndex, // ✅ Use actual index from product.variants
       selectedCuttingStyle || undefined
     );
   };

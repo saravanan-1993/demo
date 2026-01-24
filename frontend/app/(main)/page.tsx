@@ -3,6 +3,8 @@ import PopularProducts from '@/components/Home/PopularProducts';
 import DealsSection from '@/components/Home/DealsSection';
 import MidBannerCategory from '@/components/Home/MidBannerCategory';
 import TrendingProducts from '@/components/Home/TrendingProducts';
+import NewArrivalProducts from '@/components/Home/NewArrivalProducts';
+import HotDealsProducts from '@/components/Home/HotDealsProducts';
 import { generatePageMetadata } from '@/lib/seo';
 import { 
   fetchBanners, 
@@ -21,21 +23,27 @@ export async function generateMetadata() {
 
 export default async function Home() {
   // Fetch all data in parallel on server-side using server-fetch utilities
-  const [banners, categories, bestsellerProducts, trendingProducts] = await Promise.all([
+  const [banners, categories, bestsellerProducts, trendingProducts, newArrivalProducts, hotDealsProducts] = await Promise.all([
     fetchBanners(),
     fetchCategories(),
     fetchHomepageProducts({ badge: 'Bestseller', limit: 10 }),
     fetchHomepageProducts({ badge: 'Trending', limit: 10 }),
+    fetchHomepageProducts({ badge: 'New Arrival', limit: 10 }),
+    fetchHomepageProducts({ badge: 'Hot Deal', limit: 10 }),
   ]);
 
   return (
     <div className="min-h-screen bg-white">
       <HeroSection banners={banners} />
+      
       <PopularProducts 
         initialProducts={bestsellerProducts} 
         categories={categories} 
       />
       <DealsSection categories={categories} />
+      <NewArrivalProducts products={newArrivalProducts} />
+      <HotDealsProducts products={hotDealsProducts} />
+      
       <MidBannerCategory />
       <TrendingProducts products={trendingProducts} />
     </div>

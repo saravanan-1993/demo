@@ -178,8 +178,11 @@ export function VisibilitySEOTab({ formData, onChange }: VisibilitySEOTabProps) 
             value={formData.homepageBadge || ""}
             onChange={(value) => onChange("homepageBadge", value)}
             staticBadges={staticBadges.filter(badge => 
-              badge.name === "Bestseller" || badge.name === "Trending"
-            )} // Only show Bestseller and Trending for homepage
+              badge.name === "Bestseller" || 
+              badge.name === "Trending" || 
+              badge.name === "New Arrival" || 
+              badge.name === "Hot Deal"
+            )} // Show Bestseller, Trending, New Arrival, and Hot Deal for homepage
             customBadges={[]} // No custom badges for homepage
             onAddBadge={handleHomepageAddBadge}
             onEditBadge={handleHomepageEditBadge}
