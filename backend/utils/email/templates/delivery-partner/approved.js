@@ -1,33 +1,17 @@
-const { prisma } = require("../../../../config/database");
-const { getPresignedUrl } = require("../../../web/uploadsS3");
-
-/**
- * Fetch company logo from web settings
- */
-async function getCompanyLogo() {
-  try {
-    const webSettings = await prisma.webSettings.findFirst();
-    if (webSettings && webSettings.logoUrl) {
-      return await getPresignedUrl(webSettings.logoUrl);
-    }
-    return null;
-  } catch (error) {
-    console.error("Error fetching company logo:", error);
-    return null;
-  }
-}
+const { getCompanyData } = require("./helpers");
 
 /**
  * Delivery Partner Approval Email Template
  */
 async function getApprovedEmailTemplate({ name, email, partnerId, password, verificationToken }) {
-  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-  const verificationLink = `${frontendUrl}/verify-partner?token=${verificationToken}`;
-  const loginLink = `${frontendUrl}/partner/login`;
-  const logoUrl = await getCompanyLogo();
+  // Fetch dynamic company data from database
+  const companyData = await getCompanyData();
+  
+  const verificationLink = `${companyData.frontendUrl}/verify-partner?token=${verificationToken}`;
+  const loginLink = `${companyData.frontendUrl}/partner/login`;
 
   return {
-    subject: "Welcome to Our Delivery Partner Network! 🎉",
+    subject: `Welcome to ${companyData.companyName} Delivery Partner Network! 🎉`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -155,7 +139,7 @@ async function getApprovedEmailTemplate({ name, email, partnerId, password, veri
         <div class="container">
           <div class="header">
             <div class="header-left">
-              ${logoUrl ? `<img src="${logoUrl}" alt="Company Logo" class="header-logo" />` : ''}
+              ${companyData.logoUrl ? `<img src="${companyData.logoUrl}" alt="${companyData.companyName}" class="header-logo" />` : ''}
             </div>
             <div class="header-right">
               <h1>🎉 Welcome Aboard!</h1>
@@ -166,7 +150,7 @@ async function getApprovedEmailTemplate({ name, email, partnerId, password, veri
           <div class="content">
             <p>Dear <strong>${name}</strong>,</p>
             
-            <p>Congratulations! We're excited to inform you that your application to join our delivery partner network has been <strong>approved</strong>!</p>
+            <p>Congratulations! We're excited to inform you that your application to join <strong>${companyData.companyName}</strong> delivery partner network has been <strong>approved</strong>!</p>
             
             <div class="credentials">
               <h3>Your Account Details:</h3>
@@ -195,17 +179,17 @@ async function getApprovedEmailTemplate({ name, email, partnerId, password, veri
               </ol>
             </div>
             
-            <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
+            <p>If you have any questions or need assistance, please contact our support team at <strong>${companyData.supportEmail}</strong> or call <strong>${companyData.supportPhone}</strong>.</p>
             
             <p>We look forward to working with you!</p>
             
             <p>Best regards,<br>
-            <strong>The Delivery Team</strong></p>
+            <strong>${companyData.companyName} Delivery Team</strong></p>
           </div>
           
           <div class="footer">
             <p>This is an automated email. Please do not reply to this message.</p>
-            <p>If you didn't apply to become a delivery partner, please contact us immediately.</p>
+            <p>If you didn't apply to become a delivery partner, please contact us at ${companyData.supportEmail}</p>
           </div>
         </div>
       </body>

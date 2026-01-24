@@ -1,32 +1,14 @@
-const { prisma } = require("../../../../config/database");
-const { getPresignedUrl } = require("../../../web/uploadsS3");
-
-/**
- * Fetch company logo from web settings
- */
-async function getCompanyLogo() {
-  try {
-    const webSettings = await prisma.webSettings.findFirst();
-    if (webSettings && webSettings.logoUrl) {
-      return await getPresignedUrl(webSettings.logoUrl);
-    }
-    return null;
-  } catch (error) {
-    console.error("Error fetching company logo:", error);
-    return null;
-  }
-}
+const { getCompanyData } = require("./helpers");
 
 /**
  * Delivery Partner Suspension Email Template
  */
 async function getSuspendedEmailTemplate({ name, email, partnerId, reason, note }) {
-  const supportEmail = process.env.SUPPORT_EMAIL || "support@example.com";
-  const supportPhone = process.env.SUPPORT_PHONE || "+91 1800-XXX-XXXX";
-  const logoUrl = await getCompanyLogo();
+  // Fetch dynamic company data from database
+  const companyData = await getCompanyData();
 
   return {
-    subject: "Important: Your Delivery Partner Account Has Been Suspended",
+    subject: `Important: Your ${companyData.companyName} Delivery Partner Account Has Been Suspended`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -135,7 +117,7 @@ async function getSuspendedEmailTemplate({ name, email, partnerId, reason, note 
         <div class="container">
           <div class="header">
             <div class="header-left">
-              ${logoUrl ? `<img src="${logoUrl}" alt="Company Logo" class="header-logo" />` : ''}
+              ${companyData.logoUrl ? `<img src="${companyData.logoUrl}" alt="${companyData.companyName}" class="header-logo" />` : ''}
             </div>
             <div class="header-right">
               <div class="warning-icon">⚠️</div>
@@ -146,7 +128,7 @@ async function getSuspendedEmailTemplate({ name, email, partnerId, reason, note 
           <div class="content">
             <p>Dear <strong>${name}</strong>,</p>
             
-            <p>Your delivery partner account (<strong>${partnerId}</strong>) has been temporarily suspended.</p>
+            <p>Your <strong>${companyData.companyName}</strong> delivery partner account (<strong>${partnerId}</strong>) has been temporarily suspended.</p>
             
             <div class="suspension-box">
               <h3>Suspension Details:</h3>
@@ -170,24 +152,24 @@ async function getSuspendedEmailTemplate({ name, email, partnerId, reason, note 
             <div class="contact-box">
               <h3>📞 Need to Discuss This?</h3>
               <p>Contact our support team:</p>
-              <p><strong>Email:</strong> ${supportEmail}</p>
-              <p><strong>Phone:</strong> ${supportPhone}</p>
+              <p><strong>Email:</strong> ${companyData.supportEmail}</p>
+              <p><strong>Phone:</strong> ${companyData.supportPhone}</p>
               <p><strong>Partner ID:</strong> ${partnerId}</p>
             </div>
             
             <div class="button-container">
-              <a href="mailto:${supportEmail}?subject=Account Suspension Appeal - ${partnerId}" class="button">Contact Support</a>
+              <a href="mailto:${companyData.supportEmail}?subject=Account Suspension Appeal - ${partnerId}" class="button">Contact Support</a>
             </div>
             
             <p>Our team will review your case and contact you with further instructions.</p>
             
             <p>Best regards,<br>
-            <strong>The Delivery Team</strong></p>
+            <strong>${companyData.companyName} Delivery Team</strong></p>
           </div>
           
           <div class="footer">
             <p>This is an automated email. Please do not reply to this message.</p>
-            <p>For assistance, contact ${supportEmail} or call ${supportPhone}</p>
+            <p>For assistance, contact ${companyData.supportEmail} or call ${companyData.supportPhone}</p>
           </div>
         </div>
       </body>

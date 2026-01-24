@@ -46,6 +46,15 @@ export const saveFCMToken = async (
   userType: 'user' | 'admin'
 ): Promise<{ success: boolean; message?: string; totalDevices?: number }> => {
   try {
+    // ✅ Check if token is already saved for this user
+    const savedTokenKey = `fcm_token_${userId}_${userType}`;
+    const savedToken = localStorage.getItem(savedTokenKey);
+    
+    if (savedToken === fcmToken) {
+      console.log('✅ FCM token already saved for this user, skipping...');
+      return { success: true, totalDevices: 1 };
+    }
+
     const deviceInfo = getDeviceInfo();
     
     const response = await axiosInstance.post('/api/auth/fcm-token', {
@@ -59,6 +68,10 @@ export const saveFCMToken = async (
       const totalDevices = response.data.data?.totalDevices || 1;
       console.log(`✅ FCM token saved to backend - Total devices: ${totalDevices}`);
       console.log(`📱 Device: ${deviceInfo}`);
+      
+      // ✅ Cache the token to prevent duplicate saves
+      localStorage.setItem(savedTokenKey, fcmToken);
+      
       return { success: true, totalDevices };
     } else {
       console.error('❌ Failed to save FCM token:', response.data.error);
@@ -95,8 +108,9 @@ export const removeFCMToken = async (
 
     if (response.data.success) {
       console.log('✅ FCM token removed from backend');
-      // ✅ FIX: Clear cached token from localStorage
-      localStorage.removeItem('fcm_token');
+      // ✅ Clear cached token from localStorage
+      const savedTokenKey = `fcm_token_${userId}_${userType}`;
+      localStorage.removeItem(savedTokenKey);
       return { success: true };
     } else {
       console.error('❌ Failed to remove FCM token:', response.data.error);

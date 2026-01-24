@@ -3,25 +3,25 @@ const { sendExpiringProductAlert, sendDailyExpirySummary } = require('./sendNoti
 
 /**
  * Check all inventory items for expiring products and send alerts
+ * ✅ FIXED: Only send alerts for items expiring within 7 days (not 30 days)
  * Categories:
  * - Critical: Expiring in 3 days or less
  * - Urgent: Expiring in 4-7 days
- * - Upcoming: Expiring in 8-30 days
  */
 const checkAndSendExpiryAlerts = async () => {
   try {
     console.log('🔍 [Expiry Alert Scheduler] Starting expiry check...');
 
     const now = new Date();
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(now.getDate() + 30);
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(now.getDate() + 7); // ✅ Changed from 30 to 7 days
 
-    // Fetch all items with expiry dates within next 30 days
+    // ✅ Fetch only items expiring within next 7 days (not 30)
     const expiringItems = await prisma.item.findMany({
       where: {
         expiryDate: {
           gte: now,
-          lte: thirtyDaysFromNow,
+          lte: sevenDaysFromNow, // ✅ Changed from thirtyDaysFromNow
         },
       },
       include: {
@@ -37,17 +37,16 @@ const checkAndSendExpiryAlerts = async () => {
     });
 
     if (expiringItems.length === 0) {
-      console.log('✅ [Expiry Alert Scheduler] No expiring items found in next 30 days');
+      console.log('✅ [Expiry Alert Scheduler] No items expiring in next 7 days');
       return { success: true, alertsSent: 0, message: 'No expiring items' };
     }
 
-    console.log(`⚠️ [Expiry Alert Scheduler] Found ${expiringItems.length} items expiring in next 30 days`);
+    console.log(`⚠️ [Expiry Alert Scheduler] Found ${expiringItems.length} items expiring in next 7 days`);
 
     // Categorize items by urgency
     const categorizedItems = {
       critical: [], // ≤3 days
       urgent: [],   // 4-7 days
-      upcoming: [], // 8-30 days
     };
 
     expiringItems.forEach((item) => {
@@ -57,16 +56,13 @@ const checkAndSendExpiryAlerts = async () => {
         categorizedItems.critical.push({ ...item, daysUntilExpiry });
       } else if (daysUntilExpiry <= 7) {
         categorizedItems.urgent.push({ ...item, daysUntilExpiry });
-      } else {
-        categorizedItems.upcoming.push({ ...item, daysUntilExpiry });
       }
     });
 
     console.log(`   - Critical (≤3 days): ${categorizedItems.critical.length} items`);
     console.log(`   - Urgent (4-7 days): ${categorizedItems.urgent.length} items`);
-    console.log(`   - Upcoming (8-30 days): ${categorizedItems.upcoming.length} items`);
 
-    // Send individual alerts for critical and urgent items
+    // ✅ Send individual alerts for critical and urgent items (all items within 7 days)
     const alertsToSend = [
       ...categorizedItems.critical,
       ...categorizedItems.urgent,
@@ -106,7 +102,6 @@ const checkAndSendExpiryAlerts = async () => {
       totalItems: expiringItems.length,
       criticalCount: categorizedItems.critical.length,
       urgentCount: categorizedItems.urgent.length,
-      upcomingCount: categorizedItems.upcoming.length,
     };
   } catch (error) {
     console.error('❌ [Expiry Alert Scheduler] Error during expiry check:', error);
@@ -119,6 +114,7 @@ const checkAndSendExpiryAlerts = async () => {
 
 /**
  * Send a daily summary notification to admins about expiring products
+ * ✅ FIXED: Only report items expiring within 7 days (not 30 days)
  * This provides a comprehensive overview instead of individual alerts
  */
 const sendDailyExpiryReport = async () => {
@@ -126,15 +122,15 @@ const sendDailyExpiryReport = async () => {
     console.log('📊 [Expiry Alert Scheduler] Generating daily expiry report...');
 
     const now = new Date();
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(now.getDate() + 30);
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(now.getDate() + 7); // ✅ Changed from 30 to 7 days
 
-    // Get all expiring items
+    // ✅ Get only items expiring within 7 days
     const expiringItems = await prisma.item.findMany({
       where: {
         expiryDate: {
           gte: now,
-          lte: thirtyDaysFromNow,
+          lte: sevenDaysFromNow, // ✅ Changed from thirtyDaysFromNow
         },
       },
       include: {
@@ -147,11 +143,16 @@ const sendDailyExpiryReport = async () => {
       },
     });
 
+    // ✅ Only send summary if there are items expiring within 7 days
+    if (expiringItems.length === 0) {
+      console.log('✅ [Expiry Alert Scheduler] No items expiring in next 7 days - no summary needed');
+      return { success: true, message: 'No items expiring soon' };
+    }
+
     // Categorize by urgency
     const summary = {
       critical: 0,
       urgent: 0,
-      upcoming: 0,
       total: expiringItems.length,
     };
 
@@ -162,8 +163,6 @@ const sendDailyExpiryReport = async () => {
         summary.critical++;
       } else if (daysUntilExpiry <= 7) {
         summary.urgent++;
-      } else {
-        summary.upcoming++;
       }
     });
 

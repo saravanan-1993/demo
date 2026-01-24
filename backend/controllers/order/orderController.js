@@ -254,14 +254,53 @@ const prepareOnlinePaymentOrder = async (req, res) => {
   }
 };
 
+// In-memory lock to prevent race conditions for order creation
+const processingOrders = new Set();
+
 /**
  * Create COD order immediately
  */
 const createCODOrder = async (req, res) => {
   const { userId, deliveryAddressId, couponCode } = req.body;
 
+  // Prevent double-submission (Race Condition Protection)
+  const lockKey = `${userId}_cod_order`;
+  if (processingOrders.has(lockKey)) {
+    console.log(`🔒 Request locked: Concurrent order creation attempt for user ${userId}`);
+    return res.status(429).json({ 
+      success: false, 
+      message: "Your order is being processed. Please wait." 
+    });
+  }
+
+  processingOrders.add(lockKey);
+
   try {
     const result = await prisma.$transaction(async (tx) => {
+      // 1. Check for duplicate order (Idempotency)
+      // Look for an order created by this user with the same total amount in the last 30 seconds
+      const tenSecondsAgo = new Date(Date.now() - 30 * 1000);
+      
+      const recentOrder = await tx.onlineOrder.findFirst({
+        where: {
+          userId,
+          paymentMethod: 'cod',
+          createdAt: { gt: tenSecondsAgo }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      if (recentOrder) {
+        console.log(`⚠️ Prevented duplicate COD order for user ${userId}. Returning existing order: ${recentOrder.orderNumber}`);
+        return { 
+          orderNumber: recentOrder.orderNumber, 
+          invoiceNumber: recentOrder.invoiceNumber, 
+          total: recentOrder.total, 
+          savedOrder: recentOrder,
+          isDuplicate: true // Flag to skip notifications
+        };
+      }
+
       const customer = await tx.customer.findUnique({
         where: { userId },
         include: { cartItems: { include: { customer: true } } },
@@ -469,6 +508,26 @@ const createCODOrder = async (req, res) => {
       return { orderNumber, invoiceNumber, total: totals.total, savedOrder };
     });
 
+    
+    // Skip notifications if this was a duplicate order request
+    if (result.isDuplicate) {
+      console.log(`ℹ️ Skipping notifications for duplicate order ${result.orderNumber}`);
+      return res.status(200).json({
+        success: true,
+        requiresPayment: false,
+        data: {
+          orderNumber: result.orderNumber,
+          invoiceNumber: result.invoiceNumber,
+          total: result.total,
+          paymentMethod: "cod",
+          paymentStatus: "pending",
+          orderStatus: "pending",
+          isDuplicate: true
+        },
+        message: "Order placed successfully (Existing)",
+      });
+    }
+
     // Create transaction record (outside transaction to avoid blocking)
     try {
       await createOnlineTransaction(result.savedOrder);
@@ -509,23 +568,34 @@ const createCODOrder = async (req, res) => {
       const { sendToAllAdmins } = require('../../utils/notification/sendNotification');
       
       const adminNotification = {
-        title: '🛒 New Order Received!',
+        title: '🛒 [Admin] New Order Received!',
         body: `New order from ${result.savedOrder.customerName}\n\n📦 Order #${result.savedOrder.orderNumber}\n💰 Amount: ₹${result.savedOrder.total.toFixed(2)}\n💳 Payment: COD`,
       };
 
       const adminData = {
         type: 'NEW_ORDER',
         orderNumber: result.savedOrder.orderNumber,
+        orderNumberRaw: result.savedOrder.orderNumber.replace(/[^a-zA-Z0-9]/g, '-'), // ✅ Add stable identifier for tag
         orderId: result.savedOrder.id,
         customerName: result.savedOrder.customerName,
         total: result.savedOrder.total.toString(),
         paymentMethod: 'cod',
-        link: `/dashboard/order-management/online-orders/${result.savedOrder.id}`,
+        link: `/dashboard/orders/online`, // Corrected link to list page as per folder structure
         urgency: 'high',
         vibrate: [200, 100, 200, 100, 200],
         requireInteraction: true,
         color: '#4CAF50',
         backgroundColor: '#E8F5E9',
+        actions: [
+          {
+            action: 'view',
+            title: '👁️ View Order',
+          },
+          {
+            action: 'dismiss',
+            title: '✖️ Close',
+          },
+        ],
       };
 
       await sendToAllAdmins(adminNotification, adminData);
@@ -552,6 +622,9 @@ const createCODOrder = async (req, res) => {
   } catch (error) {
     console.error("Error creating COD order:", error);
     return res.status(500).json({ success: false, error: error.message || "Failed to create order" });
+  } finally {
+    // Release lock
+    processingOrders.delete(`${userId}_cod_order`);
   }
 };
 
@@ -847,6 +920,7 @@ const confirmOrder = async (req, res) => {
       const adminData = {
         type: 'NEW_ORDER',
         orderNumber: result.savedOrder.orderNumber,
+        orderNumberRaw: result.savedOrder.orderNumber.replace(/[^a-zA-Z0-9]/g, '-'), // ✅ Add stable identifier for tag
         orderId: result.savedOrder.id,
         customerName: result.savedOrder.customerName,
         total: result.savedOrder.total.toString(),

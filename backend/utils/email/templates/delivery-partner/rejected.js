@@ -1,33 +1,16 @@
-const { prisma } = require("../../../../config/database");
-const { getPresignedUrl } = require("../../../web/uploadsS3");
-
-/**
- * Fetch company logo from web settings
- */
-async function getCompanyLogo() {
-  try {
-    const webSettings = await prisma.webSettings.findFirst();
-    if (webSettings && webSettings.logoUrl) {
-      return await getPresignedUrl(webSettings.logoUrl);
-    }
-    return null;
-  } catch (error) {
-    console.error("Error fetching company logo:", error);
-    return null;
-  }
-}
+const { getCompanyData } = require("./helpers");
 
 /**
  * Delivery Partner Rejection Email Template
  */
 async function getRejectedEmailTemplate({ name, email, reason, note }) {
-  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-  const supportEmail = process.env.SUPPORT_EMAIL || "support@example.com";
-  const reapplyLink = `${frontendUrl}/partner/apply`;
-  const logoUrl = await getCompanyLogo();
+  // Fetch dynamic company data from database
+  const companyData = await getCompanyData();
+  
+  const reapplyLink = `${companyData.frontendUrl}/partner/apply`;
 
   return {
-    subject: "Delivery Partner Application Status Update",
+    subject: `${companyData.companyName} - Delivery Partner Application Status Update`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -124,7 +107,7 @@ async function getRejectedEmailTemplate({ name, email, reason, note }) {
         <div class="container">
           <div class="header">
             <div class="header-left">
-              ${logoUrl ? `<img src="${logoUrl}" alt="Company Logo" class="header-logo" />` : ''}
+              ${companyData.logoUrl ? `<img src="${companyData.logoUrl}" alt="${companyData.companyName}" class="header-logo" />` : ''}
             </div>
             <div class="header-right">
               <h1>Application Status Update</h1>
@@ -134,7 +117,7 @@ async function getRejectedEmailTemplate({ name, email, reason, note }) {
           <div class="content">
             <p>Dear <strong>${name}</strong>,</p>
             
-            <p>Thank you for your interest in joining our delivery partner network.</p>
+            <p>Thank you for your interest in joining <strong>${companyData.companyName}</strong> delivery partner network.</p>
             
             <p>After careful review, we are unable to approve your application at this time.</p>
             
@@ -152,7 +135,8 @@ async function getRejectedEmailTemplate({ name, email, reason, note }) {
             <div class="contact-info">
               <h3>Need More Information?</h3>
               <p>If you have questions, please contact our support team:</p>
-              <p><strong>Email:</strong> ${supportEmail}</p>
+              <p><strong>Email:</strong> ${companyData.supportEmail}</p>
+              <p><strong>Phone:</strong> ${companyData.supportPhone}</p>
             </div>
             
             <div class="button-container">
@@ -162,12 +146,12 @@ async function getRejectedEmailTemplate({ name, email, reason, note }) {
             <p>Thank you for your understanding.</p>
             
             <p>Best regards,<br>
-            <strong>The Delivery Team</strong></p>
+            <strong>${companyData.companyName} Delivery Team</strong></p>
           </div>
           
           <div class="footer">
             <p>This is an automated email. Please do not reply to this message.</p>
-            <p>For inquiries, please contact ${supportEmail}</p>
+            <p>For inquiries, please contact ${companyData.supportEmail} or call ${companyData.supportPhone}</p>
           </div>
         </div>
       </body>

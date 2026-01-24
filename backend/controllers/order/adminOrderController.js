@@ -268,7 +268,8 @@ const updateOrderStatus = async (req, res) => {
       console.error('Stack:', notifError.stack);
     }
 
-    // Send notification to all admins about order status change
+    // Send notification to all admins about order status change - DISABLED as per requirement
+    /*
     try {
       const { sendToAllAdmins } = require('../../utils/notification/sendNotification');
       
@@ -306,6 +307,7 @@ const updateOrderStatus = async (req, res) => {
     } catch (adminNotifError) {
       console.error(`⚠️ Failed to send admin notification:`, adminNotifError.message);
     }
+    */
 
     res.json({
       success: true,

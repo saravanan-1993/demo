@@ -61,36 +61,38 @@ const sendToDevice = async (fcmToken, notification, data = {}) => {
       }
     }
     
+    // Add title, body, and image to data payload (Data-Only Message)
+    // This suppresses the automatic browser notification
+    // ✅ Renamed to notifTitle/notifBody to avoid potential reserved key conflicts in 'data'
+    stringifiedData.notifTitle = notification.title;
+    stringifiedData.notifBody = notification.body;
+    // ✅ Redundant keys to ensure delivery (in case SDK treats custom keys differently)
+    stringifiedData.title = notification.title;
+    stringifiedData.body = notification.body;
+    if (notification.image) {
+      stringifiedData.notifImage = notification.image;
+      stringifiedData.image = notification.image;
+    }
+    
     // Add logo URL to data
     stringifiedData.logoUrl = logoUrl;
     stringifiedData.notificationType = data.type || 'general';
     
     const message = {
       token: fcmToken,
-      notification: {
-        title: notification.title,
-        body: notification.body,
-        ...(notification.image && { image: notification.image }),
-      },
+      // NOTE: We REMOVE the 'notification' key to prevent automatic browser display
+      // notification: {
+      //   title: notification.title,
+      //   body: notification.body,
+      //   ...(notification.image && { image: notification.image }),
+      // },
       data: stringifiedData,
       webpush: {
-        notification: {
-          title: notification.title,
-          body: notification.body,
-          icon: logoUrl, // Use company logo
-          badge: logoUrl, // Use company logo
-          ...(notification.image && { image: notification.image }),
-          // Enhanced visual options
-          requireInteraction: data.requireInteraction !== false, // Keep notification visible
-          vibrate: data.vibrate || [200, 100, 200], // Vibration pattern
-          timestamp: Date.now(),
-          // Action buttons
-          ...(data.actions && { actions: data.actions }),
-        },
+        // We keep fcmOptions and headers, but remove 'notification' from webpush too
+        // or keep it just for the 'icon' if strictly needed, but better to control fully in SW
         fcmOptions: {
           link: data.link || '/',
         },
-        // Custom headers for better delivery
         headers: {
           Urgency: data.urgency || 'high',
           TTL: '86400', // 24 hours
@@ -99,6 +101,7 @@ const sendToDevice = async (fcmToken, notification, data = {}) => {
     };
 
     console.log(`📤 Sending notification: "${notification.title}" to token: ${fcmToken.substring(0, 20)}...`);
+    console.log('📦 Data Payload:', JSON.stringify(stringifiedData, null, 2));
     
     const response = await messaging.send(message);
     console.log('✅ Notification sent successfully:', response);
@@ -248,6 +251,7 @@ const sendToAdmin = async (adminId, notification, data = {}) => {
 
 /**
  * Send notification to all admins (Multi-device support)
+ * ✅ FIXED: Deduplicate tokens to prevent sending same notification multiple times
  */
 const sendToAllAdmins = async (notification, data = {}) => {
   try {
@@ -267,18 +271,26 @@ const sendToAllAdmins = async (notification, data = {}) => {
       return { success: false, error: 'No active admins' };
     }
 
-    // Collect all tokens from all admins
+    // ✅ FIX: Collect all tokens and DEDUPLICATE to prevent sending to same device multiple times
     const allTokens = [];
+    const seenTokens = new Set(); // Track tokens we've already added
+    
     admins.forEach(admin => {
       const tokens = Array.isArray(admin.fcmTokens) ? admin.fcmTokens : [];
       console.log(`👤 Admin: ${admin.name} (${admin.email}) has ${tokens.length} device(s)`);
       tokens.forEach(tokenObj => {
-        allTokens.push({
-          adminId: admin.id,
-          adminName: admin.name,
-          token: tokenObj.token,
-          device: tokenObj.device,
-        });
+        // ✅ Only add token if we haven't seen it before
+        if (!seenTokens.has(tokenObj.token)) {
+          seenTokens.add(tokenObj.token);
+          allTokens.push({
+            adminId: admin.id,
+            adminName: admin.name,
+            token: tokenObj.token,
+            device: tokenObj.device,
+          });
+        } else {
+          console.log(`⚠️ Skipping duplicate token for ${admin.name} - ${tokenObj.device}`);
+        }
       });
     });
 
@@ -287,7 +299,7 @@ const sendToAllAdmins = async (notification, data = {}) => {
       return { success: false, error: 'No admins with FCM tokens' };
     }
 
-    console.log(`📤 Sending notification to ${admins.length} admin(s) across ${allTokens.length} device(s)`);
+    console.log(`📤 Sending notification to ${admins.length} admin(s) across ${allTokens.length} unique device(s)`);
     console.log(`📱 Devices:`, allTokens.map(t => `${t.adminName} - ${t.device}`));
 
     const results = await Promise.allSettled(
@@ -358,6 +370,7 @@ const sendLowStockAlert = async (itemName, currentStock, alertLevel, warehouseNa
     currentStock: currentStock.toString(),
     alertLevel: alertLevel.toString(),
     warehouse: warehouseName,
+    warehouseRaw: warehouseName.replace(/\s+/g, '-'), // ✅ Add stable warehouse identifier for tag
     link: '/dashboard/inventory-management', // Correct link from sidebar
     urgency: 'high',
     vibrate: isOutOfStock ? [400, 100, 400, 100, 400, 100, 400] : [300, 100, 300, 100, 300], // More urgent for out of stock
@@ -423,7 +436,7 @@ const sendOrderStatusUpdate = async (userId, orderNumber, status, statusMessage)
     status,
     color: statusColors[status],
     backgroundColor: statusBackgrounds[status],
-    link: '/my-orders', // User orders page (frontend route)
+    link: `/my-orders/${orderNumber}`, // User orders page (frontend route)
     urgency: status === 'delivered' ? 'high' : 'normal',
     vibrate: status === 'delivered' ? [200, 100, 200, 100, 200] : [200, 100, 200],
     requireInteraction: status === 'delivered' || status === 'cancelled',
@@ -459,7 +472,7 @@ const sendOrderPlacedNotification = async (userId, orderNumber, total) => {
     type: 'ORDER_PLACED',
     orderNumber,
     total: total.toString(),
-    link: '/orders', // User orders page (frontend route)
+    link: `/my-orders/${orderNumber}`, // User orders page (frontend route)
     urgency: 'high',
     vibrate: [200, 100, 200, 100, 200, 100, 200], // Celebration vibration
     requireInteraction: true,
@@ -577,6 +590,7 @@ const sendExpiringProductAlert = async (itemName, expiryDate, daysUntilExpiry, w
     itemName,
     itemId: itemId || '',
     expiryDate: formattedDate,
+    expiryDateRaw: new Date(expiryDate).toISOString().split('T')[0], // ✅ Add raw date for stable tag
     daysUntilExpiry: daysUntilExpiry.toString(),
     warehouse: warehouseName,
     link: '/dashboard/inventory-management',
@@ -602,19 +616,19 @@ const sendExpiringProductAlert = async (itemName, expiryDate, daysUntilExpiry, w
 
 /**
  * Send daily expiry summary to all admins
+ * ✅ FIXED: Only summarize items expiring within 7 days
  */
 const sendDailyExpirySummary = async (expirySummary) => {
-  const { critical, urgent, upcoming, total } = expirySummary;
+  const { critical, urgent, total } = expirySummary;
   
   if (total === 0) {
     console.log('✅ No expiring products - no summary needed');
     return { success: true, message: 'No expiring products' };
   }
 
-  let summaryBody = `📊 Daily Expiry Report\n\n`;
+  let summaryBody = `📊 Daily Expiry Report (Next 7 Days)\n\n`;
   summaryBody += `🚨 Critical (≤3 days): ${critical} items\n`;
   summaryBody += `⚠️ Urgent (4-7 days): ${urgent} items\n`;
-  summaryBody += `📅 Upcoming (8-30 days): ${upcoming} items\n`;
   summaryBody += `📦 Total Expiring: ${total} items\n\n`;
   
   if (critical > 0) {
@@ -622,7 +636,7 @@ const sendDailyExpirySummary = async (expirySummary) => {
   } else if (urgent > 0) {
     summaryBody += `⚠️ Please review ${urgent} urgent item(s)`;
   } else {
-    summaryBody += `✅ No critical items, but ${upcoming} items expiring soon`;
+    summaryBody += `✅ All items under control`;
   }
 
   const notification = {
@@ -634,14 +648,13 @@ const sendDailyExpirySummary = async (expirySummary) => {
     type: 'DAILY_EXPIRY_SUMMARY',
     criticalCount: critical.toString(),
     urgentCount: urgent.toString(),
-    upcomingCount: upcoming.toString(),
     totalCount: total.toString(),
     link: '/dashboard/inventory-management',
     urgency: critical > 0 ? 'high' : 'normal',
     vibrate: [200, 100, 200],
     requireInteraction: critical > 0,
-    color: critical > 0 ? '#D32F2F' : urgent > 0 ? '#F57C00' : '#FFA726',
-    backgroundColor: critical > 0 ? '#FFCDD2' : urgent > 0 ? '#FFE0B2' : '#FFF3E0',
+    color: critical > 0 ? '#D32F2F' : urgent > 0 ? '#F57C00' : '#4CAF50',
+    backgroundColor: critical > 0 ? '#FFCDD2' : urgent > 0 ? '#FFE0B2' : '#E8F5E9',
     actions: [
       {
         action: 'view',

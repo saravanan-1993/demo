@@ -1,7 +1,7 @@
 const { prisma } = require("../../config/database");
 
 // Static badges (always available)
-// For Homepage: Only "Bestseller" and "Trending" are used
+// For Homepage: "Bestseller", "Trending", "New Arrival", and "Hot Deal" are used
 // For Products Page: All badges are available
 const STATIC_BADGES = [
   { id: "static-new-arrival", name: "New Arrival", isStatic: true },

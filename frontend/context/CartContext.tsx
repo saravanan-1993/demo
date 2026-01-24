@@ -134,10 +134,40 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     const variant = product.variants[variantIndex];
     const inventoryProductId = variant.inventoryProductId || '';
-    const availableStock = variant.variantStockQuantity;
+    
+    // ✅ FIX: Properly get available stock from variant
+    // The field should be variantStockQuantity based on the Product interface
+    const availableStock = variant?.variantStockQuantity || 0;
+    
+    // ✅ DEBUG: Log stock information for troubleshooting
+    console.log('🛒 Add to cart - Stock check:', {
+      productName: product.shortDescription,
+      variantName: variant?.variantName,
+      variantIndex,
+      inventoryProductId,
+      availableStock,
+      variantStockStatus: variant?.variantStockStatus,
+      hasVariant: !!variant
+    });
+    
+    // ✅ FIX: Check if variant exists and validate stock
+    if (!variant) {
+      console.error('❌ Variant not found');
+      toast.error('Product variant not found');
+      return;
+    }
+    
+    // ✅ FIX: Check both stock quantity AND stock status
+    const isOutOfStock = availableStock <= 0 || variant.variantStockStatus === 'out-of-stock';
     
     // Check stock availability
-    if (availableStock <= 0) {
+    if (isOutOfStock) {
+      console.error('❌ Out of stock:', { 
+        availableStock, 
+        status: variant.variantStockStatus,
+        productId: product.id,
+        variantIndex 
+      });
       toast.error('This item is currently out of stock');
       return;
     }
