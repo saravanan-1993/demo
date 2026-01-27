@@ -742,7 +742,7 @@ export function InvoiceView({ order, companySettings, isOpen, onClose }: Invoice
                         <span className="font-semibold text-left">{item.displayName || item.variantName || item.productName}</span>
                         <span className="text-center">{item.quantity}</span>
                         <span className="text-right">{formatCurrency(item.unitPrice)}</span>
-                        <span className="text-right">{item.gstPercentage ? `${formatCurrency(item.totalGstAmount || item.igstAmount || item.gstAmount || 0)}(${item.gstPercentage}%)` : '-'}</span>
+                        <span className="text-right">{item.gstPercentage ? `${item.gstPercentage}%` : '-'}</span>
                         <span className="text-right font-semibold">{formatCurrency(item.totalPrice || item.total)}</span>
                       </div>
                       {item.selectedCuttingStyle && (

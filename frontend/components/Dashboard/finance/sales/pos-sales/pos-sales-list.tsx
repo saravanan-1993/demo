@@ -32,8 +32,7 @@ import {
 import { useCurrency } from "@/hooks/useCurrency";
 import { financeService, type SalesOrder, type SalesFilters, type OrderDetails } from "@/services/financeService";
 import { toast } from "sonner";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { InvoiceView } from "../../../orders/InvoiceView";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { POSInvoiceView } from "../../../orders/POSInvoiceView";
 import axiosInstance from "@/lib/axios";
 

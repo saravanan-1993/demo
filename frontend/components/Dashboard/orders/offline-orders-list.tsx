@@ -641,9 +641,30 @@ export function OfflineOrdersList() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => {
-                            setSelectedOrder(order);
-                            setShowInvoiceModal(true);
+                          onClick={async () => {
+                            try {
+                              // Fetch full order details to get GST data
+                              const response = await axiosInstance.get(`/api/pos/orders/${order.id}`);
+                              console.log('POS Order Data:', response.data.data); // Debug log
+                              if (response.data.success) {
+                                const orderData = response.data.data;
+                                // Ensure tax field exists
+                                if (!orderData.tax && orderData.items) {
+                                  // Calculate total tax from items if not present
+                                  orderData.tax = orderData.items.reduce((sum: number, item: any) => {
+                                    return sum + (item.gstAmount || 0);
+                                  }, 0);
+                                }
+                                console.log('Order with tax:', orderData); // Debug log
+                                setSelectedOrder(orderData);
+                                setShowInvoiceModal(true);
+                              } else {
+                                toast.error('Failed to fetch order details');
+                              }
+                            } catch (error) {
+                              console.error('Error fetching order details:', error);
+                              toast.error('Failed to fetch order details');
+                            }
                           }}
                           title="View invoice"
                         >

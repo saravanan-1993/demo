@@ -15,6 +15,7 @@ import { toast } from "sonner";
 
 interface POSOrderItem {
   productId: string;
+  invoiceNumber?: string;
   productName: string;
   productSku?: string;
   unitPrice: number;
@@ -61,13 +62,18 @@ export function POSInvoiceView({ order, companySettings, isOpen, onClose }: POSI
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
-    const itemsHtml = order.items.map((item: POSOrderItem) => `
+    const itemsHtml = order.items.map((item: POSOrderItem) => {
+      // Calculate GST amount if not provided
+      const gstAmount = item.gstAmount || (item.gstPercentage ? (item.total * item.gstPercentage) / (100 + item.gstPercentage) : 0);
+      const gstPercentage = item.gstPercentage || 0;
+      
+      return `
       <div style="margin: 5px 0;">
         <div style="display: grid; grid-template-columns: 2fr 0.5fr 1fr 1.2fr 1fr; gap: 4px; font-size: 11px;">
           <span style="font-weight: bold;">${item.productName}</span>
           <span style="text-align: center;">${item.quantity}</span>
           <span style="text-align: right;">${formatCurrency(item.unitPrice)}</span>
-          <span style="text-align: right;">${item.gstPercentage ? `${formatCurrency(item.gstAmount || 0)}(${item.gstPercentage}%)` : '-'}</span>
+          <span style="text-align: right;">${gstPercentage > 0 ? `${formatCurrency(gstAmount)} (${Math.round(gstPercentage)}%)` : '-'}</span>
           <span style="text-align: right; font-weight: bold;">${formatCurrency(item.total)}</span>
         </div>
         ${item.productSku ? `
@@ -76,7 +82,8 @@ export function POSInvoiceView({ order, companySettings, isOpen, onClose }: POSI
           </div>
         ` : ''}
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -586,7 +593,7 @@ export function POSInvoiceView({ order, companySettings, isOpen, onClose }: POSI
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             POS Invoice View
@@ -627,7 +634,7 @@ export function POSInvoiceView({ order, companySettings, isOpen, onClose }: POSI
               <div className="mb-3 text-xs space-y-1">
                 <div className="flex justify-between">
                   <span>Invoice No:</span>
-                  <span className="font-semibold">{order.orderNumber}</span>
+                  <span className="font-semibold">{order.invoiceNumber || order.orderNumber}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Date:</span>
@@ -665,13 +672,19 @@ export function POSInvoiceView({ order, companySettings, isOpen, onClose }: POSI
                   <span className="text-right">Total</span>
                 </div>
                 {order.items.map((item: POSOrderItem, index) => {
+                  // Calculate GST amount if not provided
+                  const gstAmount = item.gstAmount || (item.gstPercentage ? (item.total * item.gstPercentage) / (100 + item.gstPercentage) : 0);
+                  const gstPercentage = item.gstPercentage || 0;
+                  
                   return (
                     <div key={index} className="mb-2">
                       <div className="grid grid-cols-[2fr_0.5fr_1fr_1.2fr_1fr] gap-1 text-xs">
                         <span className="font-semibold text-left">{item.productName}</span>
                         <span className="text-center">{item.quantity}</span>
                         <span className="text-right">{formatCurrency(item.unitPrice)}</span>
-                        <span className="text-right">{item.gstPercentage ? `${formatCurrency(item.gstAmount || 0)}(${item.gstPercentage}%)` : '-'}</span>
+                        <span className="text-right">
+                          {gstPercentage > 0 ? `${Math.round(gstPercentage)}%` : '-'}
+                        </span>
                         <span className="text-right font-semibold">{formatCurrency(item.total)}</span>
                       </div>
                       {item.productSku && (
@@ -688,22 +701,22 @@ export function POSInvoiceView({ order, companySettings, isOpen, onClose }: POSI
               <div className="mt-3 space-y-1">
                 <div className="flex justify-between text-xs">
                   <span>Subtotal:</span>
-                  <span>{formatCurrency(order.subtotal)}</span>
+                  <span className="font-medium">{formatCurrency(order.subtotal)}</span>
                 </div>
                 {(order.discount ?? 0) > 0 && (
                   <div className="flex justify-between text-xs text-green-600">
                     <span>Discount:</span>
-                    <span>-{formatCurrency(order.discount)}</span>
+                    <span className="font-medium">-{formatCurrency(order.discount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-xs">
                   <span>Tax (GST):</span>
-                  <span>{formatCurrency(order.tax)}</span>
+                  <span className="font-medium">{formatCurrency(order.tax || 0)}</span>
                 </div>
                 {(order.roundingOff ?? 0) !== 0 && (
                   <div className="flex justify-between text-xs">
                     <span>Rounding Off:</span>
-                    <span>{formatCurrency(order.roundingOff)}</span>
+                    <span className="font-medium">{formatCurrency(order.roundingOff)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm font-bold border-t-2 border-gray-800 pt-2 mt-2">
@@ -713,7 +726,7 @@ export function POSInvoiceView({ order, companySettings, isOpen, onClose }: POSI
                 {order.amountReceived && (
                   <div className="flex justify-between text-xs">
                     <span>Amount Received:</span>
-                    <span>{formatCurrency(order.amountReceived)}</span>
+                    <span className="font-medium">{formatCurrency(order.amountReceived)}</span>
                   </div>
                 )}
                 {(order.changeGiven ?? 0) > 0 && (

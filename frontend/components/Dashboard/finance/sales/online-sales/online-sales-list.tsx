@@ -525,33 +525,7 @@ export default function OnlineSalesList() {
     `;
   };
 
-  const handleViewInvoice = (sale: SalesOrder) => {
-    // Convert SalesOrder to OnlineOrder format for InvoiceView
-    const orderForInvoice = {
-      id: sale.id,
-      orderNumber: sale.orderNumber,
-      invoiceNumber: sale.invoiceNumber,
-      customerName: sale.customerName || 'Guest Customer',
-      customerEmail: sale.customerEmail || '',
-      customerPhone: sale.customerPhone || '',
-      deliveryAddress: sale.deliveryAddress,
-      items: [], // Items will be loaded from the order details if needed
-      subtotal: sale.subtotal,
-      tax: sale.tax, // Fixed: was taxAmount
-      discount: sale.discount,
-      couponDiscount: sale.couponDiscount || 0,
-      shippingCharge: sale.shippingCharge || 0,
-      total: sale.total, // Fixed: was totalAmount
-      paymentMethod: sale.paymentMethod,
-      paymentStatus: sale.paymentStatus,
-      orderStatus: sale.orderStatus,
-      createdAt: sale.saleDate,
-      updatedAt: sale.createdAt,
-    };
-    
-    setSelectedSale(orderForInvoice as unknown as SalesOrder);
-    setShowInvoiceModal(true);
-  };
+  
 
   return (
     <div className="space-y-6">

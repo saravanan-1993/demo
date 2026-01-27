@@ -29,6 +29,12 @@ interface Coupon {
   createdAt: string;
 }
 
+interface Category {
+  id: string;
+  categoryName: string;
+  categoryImage?: string;
+}
+
 export function CouponList() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,8 +42,20 @@ export function CouponList() {
   const [showForm, setShowForm] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const [filterActive, setFilterActive] = useState<string>("all");
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const currencySymbol = useCurrency();
+
+  const fetchCategories = async () => {
+    try {
+      const response = await axiosInstance.get("/api/online/category-subcategory/unique");
+      if (response.data.success) {
+        setCategories(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  };
 
   const fetchCoupons = async () => {
     try {
@@ -61,6 +79,20 @@ export function CouponList() {
       setLoading(false);
     }
   };
+
+  const getCategoryNames = (categoryIds: string[]) => {
+    if (categoryIds.length === 0) return "All Categories";
+    return categoryIds
+      .map((id) => {
+        const category = categories.find((cat) => cat.id === id);
+        return category ? category.categoryName : id;
+      })
+      .join(", ");
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     fetchCoupons();
@@ -211,16 +243,14 @@ export function CouponList() {
                     </p>
                   )}
 
-                  {coupon.applicableCategories.length > 0 && (
-                    <div className="mt-2">
-                      <span className="text-sm text-gray-500">
-                        Applicable to:{" "}
-                      </span>
-                      <span className="text-sm">
-                        {coupon.applicableCategories.join(", ")}
-                      </span>
-                    </div>
-                  )}
+                  <div className="mt-2">
+                    <span className="text-sm text-gray-500">
+                      Applicable to:{" "}
+                    </span>
+                    <span className="text-sm font-medium">
+                      {getCategoryNames(coupon.applicableCategories)}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex gap-2">

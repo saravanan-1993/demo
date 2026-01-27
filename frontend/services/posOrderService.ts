@@ -29,6 +29,7 @@ export interface CreatePOSOrderRequest {
 export interface POSOrder {
   id: string;
   orderNumber: string;
+  invoiceNumber?: string;
   orderType: string;
   customerId?: string;
   customerName?: string;

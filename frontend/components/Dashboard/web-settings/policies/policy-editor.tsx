@@ -61,12 +61,12 @@ const POLICY_TYPES = [
     description: "Shipping methods, costs, and delivery times",
     icon: "📦",
   },
-  {
-    type: "cookie",
-    title: "Cookie Policy",
-    description: "How we use cookies and tracking technologies",
-    icon: "🍪",
-  },
+  // {
+  //   type: "cookie",
+  //   title: "Cookie Policy",
+  //   description: "How we use cookies and tracking technologies",
+  //   icon: "🍪",
+  // },
 ];
 
 export const PolicyEditor = () => {

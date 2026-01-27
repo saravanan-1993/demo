@@ -38,9 +38,9 @@ const routeMap: Record<string, { title: string; parent?: string }> = {
   // Dashboard
   "/dashboard": { title: "Dashboard" },
 
-  // Online Products
+  // Products List
   "/dashboard/products-list": {
-    title: "Online Products",
+    title: "Products",
     parent: "/dashboard",
   },
   "/dashboard/products-list/online": {
@@ -49,6 +49,14 @@ const routeMap: Record<string, { title: string; parent?: string }> = {
   },
   "/dashboard/products-list/online/add-product": {
     title: "Add Product",
+    parent: "/dashboard/products-list/online",
+  },
+  "/dashboard/products-list/online/edit": {
+    title: "Edit Product",
+    parent: "/dashboard/products-list/online",
+  },
+  "/dashboard/products-list/online/view": {
+    title: "View Product",
     parent: "/dashboard/products-list/online",
   },
   "/dashboard/products-list/offline": {
@@ -61,6 +69,10 @@ const routeMap: Record<string, { title: string; parent?: string }> = {
   },
   "/dashboard/products-list/category-list/add-category": {
     title: "Add Category",
+    parent: "/dashboard/products-list/category-list",
+  },
+  "/dashboard/products-list/category-list/view": {
+    title: "View Category",
     parent: "/dashboard/products-list/category-list",
   },
 
@@ -80,6 +92,10 @@ const routeMap: Record<string, { title: string; parent?: string }> = {
     title: "Stock Adjustment",
     parent: "/dashboard/inventory-management",
   },
+  "/dashboard/inventory-management/stock-adjustment/adjustment": {
+    title: "Adjustment",
+    parent: "/dashboard/inventory-management/stock-adjustment",
+  },
   "/dashboard/inventory-management/reports": {
     title: "Reports",
     parent: "/dashboard/inventory-management",
@@ -87,7 +103,7 @@ const routeMap: Record<string, { title: string; parent?: string }> = {
 
   // Purchase Orders
   "/dashboard/purchase-orders": {
-    title: "Purchase Order",
+    title: "Purchase",
     parent: "/dashboard",
   },
   "/dashboard/purchase-orders/suppliers-list": {
@@ -98,27 +114,85 @@ const routeMap: Record<string, { title: string; parent?: string }> = {
     title: "Purchase Orders",
     parent: "/dashboard/purchase-orders",
   },
+  "/dashboard/purchase-orders/purchases-list/view": {
+    title: "View Purchase Order",
+    parent: "/dashboard/purchase-orders/purchases-list",
+  },
   "/dashboard/purchase-orders/bills-list": {
     title: "Bills",
     parent: "/dashboard/purchase-orders",
   },
+  "/dashboard/purchase-orders/bills-list/view": {
+    title: "View Bill",
+    parent: "/dashboard/purchase-orders/bills-list",
+  },
   "/dashboard/purchase-orders/expenses-list": {
     title: "Expenses",
+    parent: "/dashboard/purchase-orders",
+  },
+  "/dashboard/purchase-orders/reports": {
+    title: "Reports",
     parent: "/dashboard/purchase-orders",
   },
 
   // POS
   "/dashboard/pos": { title: "POS", parent: "/dashboard" },
   "/dashboard/pos/products": { title: "Products", parent: "/dashboard/pos" },
+  "/dashboard/pos/products/edit": {
+    title: "Edit Product",
+    parent: "/dashboard/pos/products",
+  },
 
   // Customer Management
   "/dashboard/customer-management": {
-    title: "Customer Management",
+    title: "Customers",
     parent: "/dashboard",
   },
   "/dashboard/customer-management/view": {
     title: "View Customer",
     parent: "/dashboard/customer-management",
+  },
+
+  // Delivery Partner
+  "/dashboard/delivery-partner": {
+    title: "Delivery Partners",
+    parent: "/dashboard",
+  },
+  "/dashboard/delivery-partner/all": {
+    title: "All Partners",
+    parent: "/dashboard/delivery-partner",
+  },
+  "/dashboard/delivery-partner/pending": {
+    title: "Pending",
+    parent: "/dashboard/delivery-partner",
+  },
+  "/dashboard/delivery-partner/verified": {
+    title: "Verified",
+    parent: "/dashboard/delivery-partner",
+  },
+  "/dashboard/delivery-partner/approved": {
+    title: "Approved",
+    parent: "/dashboard/delivery-partner",
+  },
+  "/dashboard/delivery-partner/rejected": {
+    title: "Rejected",
+    parent: "/dashboard/delivery-partner",
+  },
+  "/dashboard/delivery-partner/new": {
+    title: "New Application",
+    parent: "/dashboard/delivery-partner",
+  },
+  "/dashboard/delivery-partner/manage": {
+    title: "Manage",
+    parent: "/dashboard/delivery-partner",
+  },
+  "/dashboard/delivery-partner/profile": {
+    title: "Profile",
+    parent: "/dashboard/delivery-partner",
+  },
+  "/dashboard/delivery-partner/edit": {
+    title: "Edit Partner",
+    parent: "/dashboard/delivery-partner",
   },
 
   // Orders
@@ -127,7 +201,10 @@ const routeMap: Record<string, { title: string; parent?: string }> = {
     title: "Online Orders",
     parent: "/dashboard/orders",
   },
-  "/dashboard/orders/pos": { title: "POS Orders", parent: "/dashboard/orders" },
+  "/dashboard/orders/pos": { 
+    title: "POS Orders", 
+    parent: "/dashboard/orders" 
+  },
 
   // Finances
   "/dashboard/finances": { title: "Finances", parent: "/dashboard" },
@@ -143,21 +220,39 @@ const routeMap: Record<string, { title: string; parent?: string }> = {
     title: "POS Sales",
     parent: "/dashboard/finances/sales",
   },
-  "/dashboard/finances/purchase": {
-    title: "Purchase",
+  "/dashboard/finances/sales/reports": {
+    title: "Reports",
+    parent: "/dashboard/finances/sales",
+  },
+  "/dashboard/finances/transactions": {
+    title: "Transactions",
     parent: "/dashboard/finances",
   },
-  "/dashboard/finances/purchase/purchase-orders": {
-    title: "Purchase Orders",
-    parent: "/dashboard/finances/purchase",
+
+  // Web Settings
+  "/dashboard/web-settings": {
+    title: "Web Settings",
+    parent: "/dashboard",
   },
-  "/dashboard/finances/purchase/bills": {
-    title: "Bills",
-    parent: "/dashboard/finances/purchase",
+  "/dashboard/web-settings/logo": {
+    title: "Logo & Favicon",
+    parent: "/dashboard/web-settings",
   },
-  "/dashboard/finances/purchase/expenses": {
-    title: "Expenses",
-    parent: "/dashboard/finances/purchase",
+  "/dashboard/web-settings/banner": {
+    title: "Banners",
+    parent: "/dashboard/web-settings",
+  },
+  "/dashboard/web-settings/company": {
+    title: "Company Info",
+    parent: "/dashboard/web-settings",
+  },
+  "/dashboard/web-settings/seo": {
+    title: "SEO",
+    parent: "/dashboard/web-settings",
+  },
+  "/dashboard/web-settings/policies": {
+    title: "Policies",
+    parent: "/dashboard/web-settings",
   },
 
   // Settings
