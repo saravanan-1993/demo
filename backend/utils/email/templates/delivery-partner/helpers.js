@@ -24,7 +24,7 @@ async function getCompanyData() {
     const webSettings = await prisma.webSettings.findFirst();
     let logoUrl = null;
     if (webSettings && webSettings.logoUrl) {
-      logoUrl = await getPresignedUrl(webSettings.logoUrl);
+      logoUrl = getPresignedUrl(webSettings.logoUrl);
     }
 
     // Build dynamic data object

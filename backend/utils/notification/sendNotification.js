@@ -864,6 +864,172 @@ const sendToAllUsers = async (notification, data = {}) => {
   }
 };
 
+/**
+ * Send wishlist price drop alert to user
+ */
+const sendPriceDropAlert = async (userId, productName, oldPrice, newPrice, productId) => {
+  const savings = oldPrice - newPrice;
+  
+  const notification = {
+    title: 'Price Drop Alert',
+    body: `${productName} is now ₹${newPrice.toFixed(2)} (was ₹${oldPrice.toFixed(2)}). Save ₹${savings.toFixed(2)}`,
+  };
+
+  const data = {
+    type: 'PRICE_DROP',
+    productName,
+    oldPrice: oldPrice.toString(),
+    newPrice: newPrice.toString(),
+    savings: savings.toString(),
+    productId: productId || '',
+    link: `/products/${productId}`,
+    urgency: 'normal',
+    vibrate: [200, 100, 200, 100, 200],
+    requireInteraction: true,
+    color: '#4CAF50',
+    backgroundColor: '#E8F5E9',
+    actions: [
+      {
+        action: 'view',
+        title: 'View Product',
+      },
+      {
+        action: 'dismiss',
+        title: 'Dismiss',
+      },
+    ],
+  };
+
+  return await sendToUser(userId, notification, data);
+};
+
+/**
+ * Send back in stock alert to user
+ */
+const sendBackInStockAlert = async (userId, productName, stockQuantity, productId) => {
+  const notification = {
+    title: 'Back in Stock',
+    body: `${productName} is available again. Only ${stockQuantity} left in stock`,
+  };
+
+  const data = {
+    type: 'BACK_IN_STOCK',
+    productName,
+    stockQuantity: stockQuantity.toString(),
+    productId: productId || '',
+    link: `/products/${productId}`,
+    urgency: 'high',
+    vibrate: [200, 100, 200, 100, 200, 100, 200],
+    requireInteraction: true,
+    color: '#2196F3',
+    backgroundColor: '#E3F2FD',
+    actions: [
+      {
+        action: 'view',
+        title: 'View Product',
+      },
+      {
+        action: 'dismiss',
+        title: 'Dismiss',
+      },
+    ],
+  };
+
+  return await sendToUser(userId, notification, data);
+};
+
+/**
+ * Send abandoned cart reminder to user
+ */
+const sendAbandonedCartReminder = async (userId, itemCount, cartValue, savings, reminderType = '1hour') => {
+  let title, body;
+  
+  switch (reminderType) {
+    case '1hour':
+      title = 'Cart Reminder';
+      body = `You have ${itemCount} items waiting in your cart. Complete your order now`;
+      break;
+    case '24hours':
+      title = 'Your Cart is Waiting';
+      body = `${itemCount} items in cart worth ₹${cartValue.toFixed(2)}. Some items may go out of stock`;
+      break;
+    case '3days':
+      title = 'Complete Your Purchase';
+      body = `Your cart has ${itemCount} items. Complete checkout and save ₹${savings.toFixed(2)}`;
+      break;
+    default:
+      title = 'Cart Reminder';
+      body = `You have ${itemCount} items in your cart worth ₹${cartValue.toFixed(2)}`;
+  }
+
+  const notification = {
+    title,
+    body,
+  };
+
+  const data = {
+    type: 'ABANDONED_CART',
+    reminderType,
+    itemCount: itemCount.toString(),
+    cartValue: cartValue.toString(),
+    savings: savings.toString(),
+    link: '/cart',
+    urgency: reminderType === '3days' ? 'high' : 'normal',
+    vibrate: [200, 100, 200],
+    requireInteraction: reminderType === '3days',
+    color: reminderType === '3days' ? '#FF9800' : '#2196F3',
+    backgroundColor: reminderType === '3days' ? '#FFF3E0' : '#E3F2FD',
+    actions: [
+      {
+        action: 'view',
+        title: 'View Cart',
+      },
+      {
+        action: 'dismiss',
+        title: 'Dismiss',
+      },
+    ],
+  };
+
+  return await sendToUser(userId, notification, data);
+};
+
+/**
+ * Send order out for delivery notification
+ */
+const sendOutForDeliveryNotification = async (userId, orderNumber, partnerName, partnerPhone, estimatedTime) => {
+  const notification = {
+    title: 'Out for Delivery',
+    body: `${partnerName} is delivering your order #${orderNumber}. Track your order in real-time`,
+  };
+
+  const data = {
+    type: 'OUT_FOR_DELIVERY',
+    orderNumber,
+    partnerName,
+    partnerPhone: partnerPhone || '',
+    estimatedTime: estimatedTime || '',
+    link: `/my-orders/${orderNumber}`,
+    urgency: 'high',
+    vibrate: [200, 100, 200, 100, 200],
+    requireInteraction: true,
+    color: '#9C27B0',
+    backgroundColor: '#F3E5F5',
+    actions: [
+      {
+        action: 'view',
+        title: 'Track Order',
+      },
+      {
+        action: 'dismiss',
+        title: 'Dismiss',
+      },
+    ],
+  };
+
+  return await sendToUser(userId, notification, data);
+};
+
 module.exports = {
   sendToDevice,
   sendToUser,
@@ -878,4 +1044,9 @@ module.exports = {
   sendWelcomeNotification,
   sendExpiringProductAlert,
   sendDailyExpirySummary,
+  // New notifications
+  sendPriceDropAlert,
+  sendBackInStockAlert,
+  sendAbandonedCartReminder,
+  sendOutForDeliveryNotification,
 };

@@ -111,10 +111,10 @@ const getAllCategories = async (req, res) => {
 
     // Generate pre-signed URLs for images
     const dataWithPresignedUrls = await Promise.all(
-      paginatedTransformedData.map(async (item) => ({
+      paginatedTransformedData.map((item) => ({
         ...item,
-        categoryImage: item.categoryImage ? await getPresignedUrl(item.categoryImage, 3600) : null,
-        subcategoryImage: item.subcategoryImage ? await getPresignedUrl(item.subcategoryImage, 3600) : null,
+        categoryImage: item.categoryImage ? getPresignedUrl(item.categoryImage, 3600) : null,
+        subcategoryImage: item.subcategoryImage ? getPresignedUrl(item.subcategoryImage, 3600) : null,
       }))
     );
 
@@ -163,7 +163,7 @@ const getCategoryByName = async (req, res) => {
         id: category.id,
         categoryName: category.name,
         subcategoryName: "",
-        categoryImage: category.image ? await getPresignedUrl(category.image, 3600) : null,
+        categoryImage: category.image ? getPresignedUrl(category.image, 3600) : null,
         subcategoryImage: null,
         categoryMetaTitle: category.metaTitle,
         categoryMetaDescription: category.metaDescription,
@@ -228,8 +228,8 @@ const getCategoryById = async (req, res) => {
         id: `${category.id}-${subcategory.id}`,
         categoryName: category.name,
         subcategoryName: subcategory.name,
-        categoryImage: category.image ? await getPresignedUrl(category.image, 3600) : null,
-        subcategoryImage: subcategory.image ? await getPresignedUrl(subcategory.image, 3600) : null,
+        categoryImage: category.image ? getPresignedUrl(category.image, 3600) : null,
+        subcategoryImage: subcategory.image ? getPresignedUrl(subcategory.image, 3600) : null,
         categoryMetaTitle: category.metaTitle,
         categoryMetaDescription: category.metaDescription,
         categoryMetaKeywords: category.metaKeywords,
@@ -265,7 +265,7 @@ const getCategoryById = async (req, res) => {
           id: category.id,
           categoryName: category.name,
           subcategoryName: "",
-          categoryImage: category.image ? await getPresignedUrl(category.image, 3600) : null,
+          categoryImage: category.image ? getPresignedUrl(category.image, 3600) : null,
           subcategoryImage: null,
           categoryMetaTitle: category.metaTitle,
           categoryMetaDescription: category.metaDescription,

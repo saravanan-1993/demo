@@ -41,9 +41,9 @@ const getAllItems = async (req, res) => {
     });
 
     const itemsWithPresignedUrls = await Promise.all(
-      items.map(async (item) => ({
+      items.map((item) => ({
         ...item,
-        itemImage: item.itemImage ? await getPresignedUrl(item.itemImage, 3600) : null,
+        itemImage: item.itemImage ? getPresignedUrl(item.itemImage, 3600) : null,
       }))
     );
 
@@ -79,9 +79,9 @@ const getItemById = async (req, res) => {
       });
     }
 
-    const itemWithPresignedUrl = {
+    const itemWithProxyUrl = {
       ...item,
-      itemImage: item.itemImage ? await getPresignedUrl(item.itemImage, 3600) : null,
+      itemImage: item.itemImage ? getPresignedUrl(item.itemImage, 3600) : null,
     };
 
     res.status(200).json({

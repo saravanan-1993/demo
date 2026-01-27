@@ -1,6 +1,6 @@
 const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
-const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const multer = require("multer");
+const { getProxyImageUrl } = require("../common/imageProxy");
 require("dotenv").config();
 
 // Configure S3 Client
@@ -78,41 +78,10 @@ const deleteFromS3 = async (fileUrl) => {
   }
 };
 
-// Generate pre-signed URL
-const getPresignedUrl = async (key, expiresIn = 3600) => {
-  if (!key) return null;
-  
-  if (key.includes('X-Amz-Algorithm') || key.includes('X-Amz-Signature')) {
-    return key;
-  }
-  
-  if (key.startsWith('http://') || key.startsWith('https://')) {
-    const bucketName = process.env.AWS_S3_BUCKET_NAME || "mnt-ecommerce-2025";
-    const region = process.env.AWS_REGION || "eu-north-1";
-    const s3UrlPattern = new RegExp(`https://${bucketName}\\.s3\\.${region}\\.amazonaws\\.com/([^?]+)`);
-    const match = key.match(s3UrlPattern);
-    
-    if (match) {
-      key = match[1];
-    } else {
-      return key;
-    }
-  }
-  
-  const bucketName = process.env.AWS_S3_BUCKET_NAME || "mnt-ecommerce-2025";
-  
-  try {
-    const command = new GetObjectCommand({
-      Bucket: bucketName,
-      Key: key,
-    });
-    
-    const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn });
-    return presignedUrl;
-  } catch (error) {
-    console.error("Error generating pre-signed URL:", error);
-    return null;
-  }
+// Get proxy image URL (returns backend proxy URL instead of presigned URL)
+const getPresignedUrl = (key, expiresIn = 3600) => {
+  // Use proxy URL instead of presigned URL
+  return getProxyImageUrl(key);
 };
 
 module.exports = {

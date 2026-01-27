@@ -57,9 +57,7 @@ const convertVariantImagesToUrls = async (variants) => {
   return Promise.all(
     variants.map(async (variant) => {
       if (variant.variantImages && Array.isArray(variant.variantImages)) {
-        const imageUrls = await Promise.all(
-          variant.variantImages.map((img) => getPresignedUrl(img, 3600))
-        );
+        const imageUrls = variant.variantImages.map((img) => getPresignedUrl(img, 3600));
         return { ...variant, variantImages: imageUrls };
       }
       return variant;

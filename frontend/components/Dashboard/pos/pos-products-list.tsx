@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -249,31 +250,22 @@ export const PosProductsList = () => {
               currentProducts.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell>
-                    <div className="w-16 h-16 bg-muted rounded-lg overflow-hidden flex items-center justify-center">
-                      {product.itemImage ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={
-                            product.itemImage.startsWith("http")
-                              ? product.itemImage
-                              : `${axiosInstance.defaults.baseURL}${product.itemImage}`
-                          }
+                    <div className="w-16 h-16 bg-muted rounded-lg overflow-hidden flex items-center justify-center relative">
+                      {product.itemImage && product.itemImage.trim() !== '' ? (
+                        <Image
+                          src={product.itemImage}
                           alt={product.itemName}
-                          className="w-full h-full object-cover"
+                          fill
+                          sizes="64px"
+                          className="object-cover"
+                          priority={false}
+                          quality={75}
                           onError={(e) => {
                             console.error(
                               "Failed to load image:",
                               product.itemImage
                             );
                             e.currentTarget.style.display = "none";
-                            const parent = e.currentTarget.parentElement;
-                            if (parent) {
-                              parent.innerHTML = `
-                                <svg class="w-8 h-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                              `;
-                            }
                           }}
                         />
                       ) : (

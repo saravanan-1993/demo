@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -218,13 +219,14 @@ export default function PurchaseDetails({
                         LOGO
                       </div>
                     ) : (
-                      <img 
+                      <Image 
                         src={webSettings.logoUrl} 
                         alt="Company Logo" 
-                        className="max-w-full max-h-full object-contain"
-                        style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '100%' }}
-                        crossOrigin="anonymous"
-                        referrerPolicy="no-referrer"
+                        fill
+                        sizes="160px"
+                        className="object-contain"
+                        priority={true}
+                        quality={90}
                         onError={() => {
                           console.warn("Logo failed to load, using fallback");
                           setLogoError(true);

@@ -1,5 +1,8 @@
 const express = require('express');
 
+// Common routes
+const imageProxyRoutes = require('./common/imageProxyRoutes');
+
 // Auth routes
 const authRoutes = require('./auth/authRoutes');
 
@@ -118,6 +121,9 @@ router.get('/health', async (req, res) => {
     });
   }
 });
+
+// Image proxy route (must be before auth to allow public access)
+router.use('/image', imageProxyRoutes);
 
 // Auth routes
 router.use('/auth', authRoutes);

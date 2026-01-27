@@ -83,14 +83,14 @@ const uploadLogo = async (req, res) => {
       });
     }
 
-    // Generate presigned URL for response
-    const logoPresignedUrl = await getPresignedUrl(logoKey);
+    // Generate proxy URL for response
+    const logoProxyUrl = getPresignedUrl(logoKey);
 
     res.json({
       success: true,
       message: "Logo uploaded successfully",
       data: {
-        logoUrl: logoPresignedUrl, // Presigned URL for immediate use
+        logoUrl: logoProxyUrl, // Proxy URL for immediate use
         logoKey: logoKey, // S3 key stored in database
       },
     });
@@ -137,14 +137,14 @@ const uploadFavicon = async (req, res) => {
       });
     }
 
-    // Generate presigned URL for response
-    const faviconPresignedUrl = await getPresignedUrl(faviconKey);
+    // Generate proxy URL for response
+    const faviconProxyUrl = getPresignedUrl(faviconKey);
 
     res.json({
       success: true,
       message: "Favicon uploaded successfully",
       data: {
-        faviconUrl: faviconPresignedUrl, // Presigned URL for immediate use
+        faviconUrl: faviconProxyUrl, // Proxy URL for immediate use
         faviconKey: faviconKey, // S3 key stored in database
       },
     });

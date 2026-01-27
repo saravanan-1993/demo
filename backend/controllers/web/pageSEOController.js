@@ -42,10 +42,10 @@ const getAllPageSEO = async (req, res) => {
 
     // Generate pre-signed URLs for OG images
     const pageSEOWithUrls = await Promise.all(
-      pageSEOList.map(async (pageSEO) => {
+      pageSEOList.map((pageSEO) => {
         try {
           const ogImageUrl = pageSEO.ogImage
-            ? await getPresignedUrl(pageSEO.ogImage, 3600)
+            ? getPresignedUrl(pageSEO.ogImage, 3600)
             : null;
           return {
             ...pageSEO,
@@ -134,9 +134,9 @@ const getPageSEOByPath = async (req, res) => {
       });
     }
 
-    // Generate pre-signed URL for OG image
+    // Generate proxy URL for OG image
     const ogImageUrl = pageSEO.ogImage
-      ? await getPresignedUrl(pageSEO.ogImage, 3600)
+      ? getPresignedUrl(pageSEO.ogImage, 3600)
       : null;
 
     res.status(200).json({
@@ -238,9 +238,9 @@ const savePageSEO = async (req, res) => {
       console.log(`Page SEO created for: ${pagePath}`);
     }
 
-    // Generate pre-signed URL for response
+    // Generate proxy URL for response
     const ogImageUrl = pageSEO.ogImage
-      ? await getPresignedUrl(pageSEO.ogImage, 3600)
+      ? getPresignedUrl(pageSEO.ogImage, 3600)
       : null;
 
     res.status(200).json({

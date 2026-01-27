@@ -1,6 +1,6 @@
 const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
-const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const multer = require("multer");
+const { getProxyImageUrl } = require("../common/imageProxy");
 require("dotenv").config();
 
 // Configure S3 Client
@@ -61,39 +61,10 @@ const uploadToS3 = async (file, folder = "web-settings") => {
   }
 };
 
-// Generate presigned URL for secure access (expires in 1 hour by default)
-const getPresignedUrl = async (key, expiresIn = 3600) => {
-  if (!key) return null;
-  
-  // If it's already a full URL, extract the key
-  if (key.startsWith('http://') || key.startsWith('https://')) {
-    const bucketName = process.env.AWS_S3_BUCKET_NAME || "mnt-ecommerce-2025";
-    const region = process.env.AWS_REGION || "eu-north-1";
-    const s3UrlPattern = new RegExp(`https://${bucketName}\\.s3\\.${region}\\.amazonaws\\.com/(.+)`);
-    const match = key.match(s3UrlPattern);
-    
-    if (match) {
-      key = match[1]; // Extract the key
-    } else {
-      return key; // Return as-is if not an S3 URL
-    }
-  }
-  
-  const bucketName = process.env.AWS_S3_BUCKET_NAME || "mnt-ecommerce-2025";
-  
-  try {
-    const command = new GetObjectCommand({
-      Bucket: bucketName,
-      Key: key,
-    });
-    
-    // Generate presigned URL that expires in specified seconds
-    const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn });
-    return presignedUrl;
-  } catch (error) {
-    console.error("Error generating presigned URL:", error);
-    return null;
-  }
+// Get proxy image URL (returns backend proxy URL instead of presigned URL)
+const getPresignedUrl = (key, expiresIn = 3600) => {
+  // Use proxy URL instead of presigned URL
+  return getProxyImageUrl(key);
 };
 
 // Delete file from S3

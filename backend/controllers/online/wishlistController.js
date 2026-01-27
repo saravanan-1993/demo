@@ -215,12 +215,114 @@ const getWishlist = async (req, res) => {
       });
     }
 
-    // Extract product data from wishlist items
-    const wishlistProducts = customer.wishlistItems.map((item) => ({
-      wishlistItemId: item.id,
-      addedAt: item.addedAt,
-      ...item.productData,
-    }));
+    // ✅ FIX: Fetch fresh product data and update wishlist items with current stock
+    const wishlistProducts = await Promise.all(
+      customer.wishlistItems.map(async (item) => {
+        try {
+          // Get current product data from OnlineProduct
+          const currentProduct = await prisma.onlineProduct.findUnique({
+            where: { id: item.productId },
+          });
+
+          if (!currentProduct) {
+            // Product no longer exists, return cached data
+            return {
+              wishlistItemId: item.id,
+              addedAt: item.addedAt,
+              ...item.productData,
+            };
+          }
+
+          // Get the variant index from stored productData
+          const variantIndex = item.productData?.variantIndex || 0;
+          const currentVariant = currentProduct.variants?.[variantIndex];
+
+          if (!currentVariant) {
+            // Variant no longer exists, return cached data
+            return {
+              wishlistItemId: item.id,
+              addedAt: item.addedAt,
+              ...item.productData,
+            };
+          }
+
+          // ✅ New Logic: Update ALL variants with fresh stock from Inventory
+          // This ensures that even if the user switches variants in the UI, they see correct stock
+          const updatedVariants = await Promise.all(
+            (currentProduct.variants || []).map(async (variant) => {
+              if (variant.inventoryProductId) {
+                try {
+                  const inventoryItem = await prisma.item.findUnique({
+                    where: { id: variant.inventoryProductId },
+                    select: { 
+                      quantity: true, 
+                      lowStockAlertLevel: true 
+                    }
+                  });
+                  
+                  if (inventoryItem) {
+                    const quantity = inventoryItem.quantity;
+                    const alertLevel = variant.variantLowStockAlert || inventoryItem.lowStockAlertLevel || 10;
+                    
+                    let status;
+                    if (quantity === 0) {
+                      status = 'out-of-stock';
+                    } else if (quantity <= alertLevel) {
+                      status = 'low-stock';
+                    } else {
+                      status = 'in-stock';
+                    }
+                    
+                    return {
+                      ...variant,
+                      variantStockQuantity: quantity,
+                      variantStockStatus: status,
+                    };
+                  }
+                } catch (invError) {
+                  console.error(`Failed to fetch inventory for variant ${variant.variantName}:`, invError);
+                }
+              }
+              return variant; // Return original if no inventory link or error
+            })
+          );
+
+          // Get the specific variant we originally added (for top-level fields compatibility)
+          const updatedCurrentVariant = updatedVariants[variantIndex] || updatedVariants[0] || {};
+          
+          const updatedProductData = {
+            ...item.productData,
+            variants: updatedVariants, // ✅ Important: Pass updated variants to frontend
+            variantStockQuantity: updatedCurrentVariant.variantStockQuantity || 0,
+            variantStockStatus: updatedCurrentVariant.variantStockStatus || 'out-of-stock',
+            variantSellingPrice: updatedCurrentVariant.variantSellingPrice,
+            variantMRP: updatedCurrentVariant.variantMRP,
+          };
+
+          // ✅ Update the wishlist item in database with fresh data
+          await prisma.wishlistItem.update({
+            where: { id: item.id },
+            data: {
+              productData: updatedProductData,
+            },
+          });
+
+          return {
+            wishlistItemId: item.id,
+            addedAt: item.addedAt,
+            ...updatedProductData,
+          };
+        } catch (error) {
+          console.error(`Error updating wishlist item ${item.id}:`, error);
+          // Return cached data if update fails
+          return {
+            wishlistItemId: item.id,
+            addedAt: item.addedAt,
+            ...item.productData,
+          };
+        }
+      })
+    );
 
     res.json({
       success: true,

@@ -98,7 +98,10 @@ export default function ProductCard({ product }: ProductCardProps) {
             src={product.image}
             alt={product.name}
             fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="object-contain p-1 sm:p-2"
+            loading="lazy"
+            quality={80}
           />
         </div>
       </Link>

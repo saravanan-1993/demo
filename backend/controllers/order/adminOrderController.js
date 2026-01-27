@@ -1,6 +1,6 @@
 const { prisma } = require('../../config/database');
 const { generateInvoicePDF, getCompanyData } = require('../../utils/order/invoicePDFGenerator');
-const { sendOrderStatusUpdate } = require('../../utils/notification/sendNotification');
+const { sendOrderStatusUpdate, sendOutForDeliveryNotification } = require('../../utils/notification/sendNotification');
 
 /**
  * Get all online orders with filters and pagination
@@ -263,6 +263,41 @@ const updateOrderStatus = async (req, res) => {
       );
       
       console.log(`📱 Order status notification result:`, notificationResult);
+      
+      // ✅ Send "Out for Delivery" notification when order is shipped
+      if (status === 'shipped' && updatedOrder.deliveryPartnerId) {
+        try {
+          console.log('🚚 Order shipped - checking for delivery partner...');
+          
+          // Get delivery partner details
+          const deliveryPartner = await prisma.deliveryPartner.findUnique({
+            where: { id: updatedOrder.deliveryPartnerId },
+            select: {
+              name: true,
+              phone: true,
+            },
+          });
+          
+          if (deliveryPartner) {
+            console.log(`📦 Delivery partner found: ${deliveryPartner.name}`);
+            
+            // Send out for delivery notification
+            const deliveryNotifResult = await sendOutForDeliveryNotification(
+              updatedOrder.userId,
+              updatedOrder.orderNumber,
+              deliveryPartner.name,
+              deliveryPartner.phone,
+              updatedOrder.estimatedDeliveryTime || 'Soon'
+            );
+            
+            console.log(`🚚 Out for delivery notification result:`, deliveryNotifResult);
+          } else {
+            console.log('⚠️ Delivery partner not found for this order');
+          }
+        } catch (deliveryNotifError) {
+          console.error(`⚠️ Failed to send out for delivery notification:`, deliveryNotifError.message);
+        }
+      }
     } catch (notifError) {
       console.error(`⚠️ Failed to send order status notification:`, notifError.message);
       console.error('Stack:', notifError.stack);

@@ -8,7 +8,7 @@ async function getCompanyLogo() {
   try {
     const webSettings = await prisma.webSettings.findFirst();
     if (webSettings && webSettings.logoUrl) {
-      return await getPresignedUrl(webSettings.logoUrl);
+      return getPresignedUrl(webSettings.logoUrl);
     }
     return null;
   } catch (error) {

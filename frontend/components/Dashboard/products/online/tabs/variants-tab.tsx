@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -1829,18 +1830,24 @@ export function VariantsTab({
                               Main
                             </div>
                           )}
-                          <div className="absolute top-1 left-1 bg-black/50 text-white text-xs px-1 sm:px-1.5 py-0.5 rounded">
+                          <div className="absolute top-1 left-1 bg-black/50 text-white text-xs px-1 sm:px-1.5 py-0.5 rounded z-10">
                             {imgIndex + 1}
                           </div>
-                          <img
-                            src={
-                              typeof img === "string"
-                                ? img
-                                : URL.createObjectURL(img)
-                            }
-                            alt={`Variant ${index + 1} - Image ${imgIndex + 1}`}
-                            className="w-full h-full object-cover rounded-lg"
-                          />
+                          <div className="relative w-full h-full">
+                            <Image
+                              src={
+                                typeof img === "string"
+                                  ? img
+                                  : URL.createObjectURL(img)
+                              }
+                              alt={`Variant ${index + 1} - Image ${imgIndex + 1}`}
+                              fill
+                              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                              className="object-cover rounded-lg"
+                              priority={imgIndex === 0}
+                              quality={75}
+                            />
+                          </div>
                           <button
                             type="button"
                             onClick={() => {

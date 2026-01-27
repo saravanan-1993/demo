@@ -1,5 +1,6 @@
 const { prisma } = require("../../config/database");
 const { sendLowStockAlert } = require("../notification/sendNotification");
+const { checkWishlistBackInStock } = require("../notification/wishlistAlertScheduler");
 
 /**
  * Update stock after order creation (POS or Online)
@@ -449,6 +450,20 @@ const reverseStockUpdate = async (order, source = "POS_ORDER") => {
  */
 const syncOnlineProductStock = async (inventoryItemId) => {
   try {
+    // Get current inventory quantity FIRST
+    const inventoryItem = await prisma.item.findUnique({
+      where: { id: inventoryItemId },
+      select: { quantity: true, itemName: true },
+    });
+    
+    if (!inventoryItem) {
+      console.error(`⚠️ Inventory item not found: ${inventoryItemId}`);
+      return;
+    }
+    
+    const newStock = inventoryItem.quantity;
+    console.log(`🔄 Syncing OnlineProduct for inventory item: ${inventoryItem.itemName} (Stock: ${newStock})`);
+    
     // Find all online products
     const onlineProducts = await prisma.onlineProduct.findMany({});
     
@@ -463,23 +478,34 @@ const syncOnlineProductStock = async (inventoryItemId) => {
         if (variant.inventoryProductId === inventoryItemId) {
           hasVariant = true;
           
-          // Get current inventory quantity
-          const inventoryItem = await prisma.item.findUnique({
-            where: { id: inventoryItemId },
-            select: { quantity: true },
-          });
+          // ✅ Get PREVIOUS stock from variant BEFORE updating
+          const previousStock = variant.variantStockQuantity || 0;
           
-          if (inventoryItem) {
-            // Update variant stock quantity to match inventory
-            updatedVariants[i] = {
-              ...variant,
-              variantStockQuantity: inventoryItem.quantity,
-              variantStockStatus: inventoryItem.quantity === 0 
-                ? "out-of-stock" 
-                : inventoryItem.quantity <= (variant.variantLowStockAlert || 10)
-                ? "low-stock"
-                : "in-stock"
-            };
+          console.log(`   📦 Variant ${i}: ${variant.variantName} - Stock: ${previousStock} → ${newStock}`);
+          
+          // Update variant stock quantity to match inventory
+          updatedVariants[i] = {
+            ...variant,
+            variantStockQuantity: newStock,
+            variantStockStatus: newStock === 0 
+              ? "out-of-stock" 
+              : newStock <= (variant.variantLowStockAlert || 10)
+              ? "low-stock"
+              : "in-stock"
+          };
+          
+          // ✅ Check if item was out of stock and is now back in stock
+          if (previousStock === 0 && newStock > 0) {
+            console.log(`📦 [Back in Stock] ${onlineProduct.shortDescription} - Variant ${i} (${variant.variantName})`);
+            console.log(`   Previous: ${previousStock}, New: ${newStock}`);
+            
+            // Send back in stock notifications to users with this in wishlist
+            try {
+              const result = await checkWishlistBackInStock(onlineProduct.id, i, newStock);
+              console.log(`   ✅ Back in stock check completed:`, result);
+            } catch (notifError) {
+              console.error('   ⚠️ Failed to send back in stock notifications:', notifError.message);
+            }
           }
         }
       }
@@ -493,11 +519,12 @@ const syncOnlineProductStock = async (inventoryItemId) => {
           },
         });
         
-        console.log(`🔄 OnlineProduct synced: ${onlineProduct.shortDescription} → Variants updated`);
+        console.log(`✅ OnlineProduct synced: ${onlineProduct.shortDescription} → Variants updated`);
       }
     }
   } catch (error) {
     console.error(`⚠️ Failed to sync OnlineProduct:`, error.message);
+    console.error('Stack:', error.stack);
   }
 };
 

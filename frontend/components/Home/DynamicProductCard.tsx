@@ -97,7 +97,9 @@ export default function DynamicProductCard({
 
   // Get image from variant or use placeholder
   const productImage =
-    currentVariant?.variantImages?.[0] || "/placeholder-product.png";
+    (currentVariant?.variantImages?.[0] && currentVariant.variantImages[0].trim() !== '') 
+      ? currentVariant.variantImages[0] 
+      : null;
 
   // Calculate discount
   const price =
@@ -222,7 +224,12 @@ export default function DynamicProductCard({
               height={300}
               sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
               className="w-full h-full object-contain p-4"
+              priority={false}
+              quality={75}
               style={{ maxWidth: '100%', maxHeight: '100%' }}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-gray-400 text-sm">

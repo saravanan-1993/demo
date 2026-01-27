@@ -687,7 +687,7 @@ async function sendPurchaseOrderEmail(purchaseOrderData, action = "sent") {
     try {
       const webSettings = await prisma.webSettings.findFirst();
       if (webSettings && webSettings.logoUrl) {
-        logoUrl = await getPresignedUrl(webSettings.logoUrl);
+        logoUrl = getPresignedUrl(webSettings.logoUrl);
       }
     } catch (error) {
       console.error("Error fetching logo:", error);

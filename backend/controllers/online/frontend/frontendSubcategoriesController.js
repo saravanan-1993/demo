@@ -75,7 +75,7 @@ const getSubcategoriesByCategory = async (req, res) => {
       categoryData.subcategories.map(async (sub) => ({
         id: sub.id,
         name: sub.name,
-        image: sub.image ? await getPresignedUrl(sub.image, 3600) : null,
+        image: sub.image ? getPresignedUrl(sub.image, 3600) : null,
         categoryId: sub.categoryId,
         categoryName: categoryData.name,
         metaTitle: sub.metaTitle,
@@ -136,10 +136,10 @@ const getSubcategoryById = async (req, res) => {
     const subcategoryWithUrls = {
       id: subcategory.id,
       name: subcategory.name,
-      image: subcategory.image ? await getPresignedUrl(subcategory.image, 3600) : null,
+      image: subcategory.image ? getPresignedUrl(subcategory.image, 3600) : null,
       categoryId: subcategory.categoryId,
       categoryName: subcategory.category.name,
-      categoryImage: subcategory.category.image ? await getPresignedUrl(subcategory.category.image, 3600) : null,
+      categoryImage: subcategory.category.image ? getPresignedUrl(subcategory.category.image, 3600) : null,
       metaTitle: subcategory.metaTitle,
       metaDescription: subcategory.metaDescription,
       metaKeywords: subcategory.metaKeywords,

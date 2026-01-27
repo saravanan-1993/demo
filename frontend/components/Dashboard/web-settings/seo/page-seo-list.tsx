@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -400,18 +401,21 @@ export const PageSEOList = () => {
                 </Label>
                 
                 {ogImagePreview ? (
-                  <div className="relative">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                  <div className="relative w-full h-48">
+                    <Image
                       src={ogImagePreview}
                       alt="OG Image Preview"
-                      className="w-full h-48 object-cover rounded-md border"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 600px"
+                      className="object-cover rounded-md border"
+                      priority={false}
+                      quality={85}
                     />
                     <Button
                       type="button"
                       variant="destructive"
                       size="icon"
-                      className="absolute top-2 right-2"
+                      className="absolute top-2 right-2 z-10"
                       onClick={handleRemoveImage}
                     >
                       <X className="h-4 w-4" />

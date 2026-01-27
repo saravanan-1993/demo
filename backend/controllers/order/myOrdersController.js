@@ -12,8 +12,8 @@ const convertOrderImagesToUrls = async (orders) => {
         order.items.map(async (item) => {
           if (item.productImage && !item.productImage.startsWith("http")) {
             try {
-              const presignedUrl = await getPresignedUrl(item.productImage, 3600);
-              return { ...item, productImage: presignedUrl };
+              const proxyUrl = getPresignedUrl(item.productImage, 3600);
+              return { ...item, productImage: proxyUrl };
             } catch (error) {
               console.error("Error generating presigned URL:", error);
               return item;

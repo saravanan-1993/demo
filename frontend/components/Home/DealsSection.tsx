@@ -29,15 +29,24 @@ export default function DealsSection({ categories }: DealsSectionProps) {
                 className="bg-white rounded-lg overflow-hidden hover:shadow-lg transition-all duration-200 group border border-gray-100"
               >
                 <div className="relative w-full aspect-square bg-gray-50">
-                  <Image
-                    src={
-                      category.image ||
-                      "https://images.unsplash.com/photo-1604719312566-b7cb9663483b?q=80&w=300&auto=format&fit=crop"
-                    }
-                    alt={category.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
+                  {category.image && category.image.trim() !== '' ? (
+                    <Image
+                      src={category.image}
+                      alt={category.name}
+                      fill
+                      sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      priority={false}
+                      quality={75}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-gray-400 text-xs">
+                      No Image
+                    </div>
+                  )}
                 </div>
                 <div className="p-2 sm:p-3 text-center">
                   <span className="text-[10px] sm:text-xs md:text-sm text-gray-800 font-medium line-clamp-2 group-hover:text-[#e63946] transition-colors">
