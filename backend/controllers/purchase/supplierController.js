@@ -13,7 +13,7 @@ const getAllSuppliers = async (req, res) => {
       suppliers.map(async (supplier) => ({
         ...supplier,
         attachments: supplier.attachments
-          ? await getPresignedUrl(supplier.attachments, 3600)
+          ? getPresignedUrl(supplier.attachments, 3600)
           : null,
       }))
     );
@@ -53,7 +53,7 @@ const getSupplierById = async (req, res) => {
     const supplierWithUrl = {
       ...supplier,
       attachments: supplier.attachments
-        ? await getPresignedUrl(supplier.attachments, 3600)
+        ? getPresignedUrl(supplier.attachments, 3600)
         : null,
     };
 

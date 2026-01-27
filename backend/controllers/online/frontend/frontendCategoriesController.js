@@ -38,7 +38,7 @@ const getCategories = async (req, res) => {
       categories.map(async (category) => ({
         id: category.id,
         name: category.name,
-        image: category.image ? await getPresignedUrl(category.image, 3600) : null,
+        image: category.image ? getPresignedUrl(category.image, 3600) : null,
         metaTitle: category.metaTitle,
         metaDescription: category.metaDescription,
         metaKeywords: category.metaKeywords,
@@ -46,7 +46,7 @@ const getCategories = async (req, res) => {
           category.subcategories.map(async (sub) => ({
             id: sub.id,
             name: sub.name,
-            image: sub.image ? await getPresignedUrl(sub.image, 3600) : null,
+            image: sub.image ? getPresignedUrl(sub.image, 3600) : null,
             metaTitle: sub.metaTitle,
             metaDescription: sub.metaDescription,
             metaKeywords: sub.metaKeywords,
@@ -133,7 +133,7 @@ const getCategoryByIdentifier = async (req, res) => {
     const categoryWithUrls = {
       id: category.id,
       name: category.name,
-      image: category.image ? await getPresignedUrl(category.image, 3600) : null,
+      image: category.image ? getPresignedUrl(category.image, 3600) : null,
       metaTitle: category.metaTitle,
       metaDescription: category.metaDescription,
       metaKeywords: category.metaKeywords,
@@ -141,7 +141,7 @@ const getCategoryByIdentifier = async (req, res) => {
         category.subcategories.map(async (sub) => ({
           id: sub.id,
           name: sub.name,
-          image: sub.image ? await getPresignedUrl(sub.image, 3600) : null,
+          image: sub.image ? getPresignedUrl(sub.image, 3600) : null,
           metaTitle: sub.metaTitle,
           metaDescription: sub.metaDescription,
           metaKeywords: sub.metaKeywords,

@@ -62,7 +62,7 @@ const getAllExpenses = async (req, res) => {
       expenses.map(async (expense) => ({
         ...expense,
         receiptUrl: expense.receiptUrl 
-          ? await getPresignedUrl(expense.receiptUrl)
+          ? getPresignedUrl(expense.receiptUrl)
           : null,
       }))
     );
@@ -101,9 +101,9 @@ const getExpenseById = async (req, res) => {
       });
     }
 
-    // Generate pre-signed URL for receipt
+    // Generate proxy URL for receipt
     if (expense.receiptUrl) {
-      expense.receiptUrl = await getPresignedUrl(expense.receiptUrl);
+      expense.receiptUrl = getPresignedUrl(expense.receiptUrl);
     }
 
     res.status(200).json({

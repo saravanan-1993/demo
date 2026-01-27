@@ -94,7 +94,7 @@ const getAllBills = async (req, res) => {
       bills.map(async (bill) => ({
         ...bill,
         invoiceCopyUrl: bill.invoiceCopyUrl 
-          ? await getPresignedUrl(bill.invoiceCopyUrl)
+          ? getPresignedUrl(bill.invoiceCopyUrl)
           : null,
       }))
     );
@@ -139,9 +139,9 @@ const getBillById = async (req, res) => {
       });
     }
 
-    // Generate pre-signed URL for invoice copy
+    // Generate proxy URL for invoice copy
     if (bill.invoiceCopyUrl) {
-      bill.invoiceCopyUrl = await getPresignedUrl(bill.invoiceCopyUrl);
+      bill.invoiceCopyUrl = getPresignedUrl(bill.invoiceCopyUrl);
     }
 
     res.status(200).json({

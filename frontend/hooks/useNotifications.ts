@@ -105,7 +105,10 @@ export const useNotifications = (userId?: string, userType?: 'user' | 'admin') =
           }
 
           // ✅ FILTER: Skip user-only notifications for admins (Fixes localhost shared-token issue)
-          const userOnlyNotifications = ['ORDER_UPDATE', 'ORDER_PLACED', 'WELCOME'];
+          const userOnlyNotifications = [
+            'ORDER_UPDATE', 'ORDER_PLACED', 'WELCOME',
+            'PRICE_DROP', 'BACK_IN_STOCK', 'ABANDONED_CART', 'OUT_FOR_DELIVERY'
+          ];
           if (userType === 'admin' && userOnlyNotifications.includes(type)) {
             console.log(`⚠️ Skipping user-only notification for admin: ${type}`);
             return;
@@ -113,29 +116,21 @@ export const useNotifications = (userId?: string, userType?: 'user' | 'admin') =
 
           // Show attractive toast notification
           const getToastIcon = (notifType: string) => {
-            switch (notifType) {
-              case 'LOW_STOCK': return '⚠️';
-              case 'OUT_OF_STOCK': return '⚠️';
-              case 'ORDER_UPDATE': return '📦';
-              case 'ORDER_PLACED': return '🎉';
-              case 'NEW_USER_REGISTRATION': return '👤';
-              case 'WELCOME': return '🎉';
-              default: return '🔔';
-            }
+            // Return undefined to use default toast styling without emojis
+            return undefined;
           };
 
           toast(title, {
             description: body,
-            icon: getToastIcon(type),
             duration: 5000,
             action: link ? {
-              label: '👁️ View',
+              label: 'View',
               onClick: () => {
                 window.location.href = link;
               },
             } : undefined,
             cancel: {
-              label: '✖️',
+              label: 'Dismiss',
               onClick: () => {
                 console.log('Notification dismissed');
               },

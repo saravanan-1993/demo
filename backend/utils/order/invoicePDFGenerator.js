@@ -675,8 +675,8 @@ const getLogoData = async () => {
       }
       // Try logoKey (S3 key) if logoUrl not available
       else if (webSettings.logoKey) {
-        console.log('📄 Using logoKey from web settings, generating presigned URL');
-        logoUrl = await getPresignedUrl(webSettings.logoKey, 3600);
+        console.log('📄 Using logoKey from web settings, generating proxy URL');
+        logoUrl = getPresignedUrl(webSettings.logoKey, 3600);
       }
       
       console.log('📄 Final logo URL:', logoUrl ? 'Generated' : 'Not available');

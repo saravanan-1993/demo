@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   IconBrandFacebook,
   IconBrandX,
@@ -14,6 +14,7 @@ import {
   type WebSettings,
   type CompanySettings,
 } from "@/services/online-services/webSettingsService";
+import { useAuthContext } from "@/components/providers/auth-provider";
 
 interface Footer01Props {
   initialWebSettings: WebSettings | null;
@@ -23,6 +24,13 @@ interface Footer01Props {
 export default function Footer01({ initialWebSettings, initialCompanySettings }: Footer01Props) {
   const [webSettings] = useState<WebSettings | null>(initialWebSettings);
   const [companySettings] = useState<CompanySettings | null>(initialCompanySettings);
+  const { isAuthenticated } = useAuthContext();
+  const [isClient, setIsClient] = useState(false);
+
+  // Handle client-side hydration
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Helper to check if social media link exists
   const hasSocialMedia = companySettings?.socialMedia && (
@@ -40,14 +48,19 @@ export default function Footer01({ initialWebSettings, initialCompanySettings }:
           {/* Brand */}
           <div className="col-span-2 sm:col-span-2 lg:col-span-2">
             <Link href="/" className="flex items-center mb-3 sm:mb-4">
-              {webSettings?.logoUrl ? (
+              {webSettings?.logoUrl && webSettings.logoUrl.trim() !== '' ? (
                 <Image
                   src={webSettings.logoUrl}
                   alt="Logo"
                   width={180}
                   height={64}
+                  sizes="180px"
                   className="h-12 sm:h-14 lg:h-16 w-auto object-contain"
-                  priority
+                  priority={false}
+                  quality={90}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
                 />
               ) : (
                 <span className="text-white font-bold text-2xl sm:text-3xl">
@@ -159,14 +172,16 @@ export default function Footer01({ initialWebSettings, initialCompanySettings }:
                   FAQs
                 </Link>
               </li>
-              <li>
-                <Link
-                  href="/my-orders"
-                  className="hover:text-[#e63946] transition-colors"
-                >
-                  My Orders
-                </Link>
-              </li>
+              {isClient && isAuthenticated && (
+                <li>
+                  <Link
+                    href="/my-orders"
+                    className="hover:text-[#e63946] transition-colors"
+                  >
+                    My Orders
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
 

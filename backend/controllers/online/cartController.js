@@ -7,9 +7,9 @@ const { getPresignedUrl } = require('../../utils/online/uploadS3');
 const getImageUrl = async (imageKey) => {
   if (!imageKey) return null;
   try {
-    return await getPresignedUrl(imageKey, 3600);
+    return getPresignedUrl(imageKey, 3600);
   } catch (error) {
-    console.error('Error getting presigned URL:', error);
+    console.error('Error getting proxy URL:', error);
     return null;
   }
 };

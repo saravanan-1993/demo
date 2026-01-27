@@ -245,14 +245,19 @@ export default function Header({ initialCategories, initialWebSettings, initialP
 
             {/* Logo - Centered on mobile */}
             <Link href="/" className="flex-shrink-0 lg:flex-shrink mx-auto lg:mx-0">
-              {webSettings?.logoUrl ? (
+              {webSettings?.logoUrl && webSettings.logoUrl.trim() !== '' ? (
                 <Image
                   src={webSettings.logoUrl}
                   alt="Logo"
                   width={180}
                   height={64}
+                  sizes="180px"
                   className="h-10 sm:h-12 lg:h-14 w-auto object-contain"
-                  priority
+                  priority={true}
+                  quality={90}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
                 />
               ) : (
                 <div className="h-10 sm:h-12 lg:h-14 flex items-center">
@@ -419,13 +424,19 @@ export default function Header({ initialCategories, initialWebSettings, initialP
                               className="w-full p-3 hover:bg-gray-50 transition-colors flex items-center gap-3 text-left"
                             >
                               <div className="w-16 h-16 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden">
-                                {variant?.variantImages?.[0] ? (
+                                {variant?.variantImages?.[0] && variant.variantImages[0].trim() !== '' ? (
                                   <Image
                                     src={variant.variantImages[0]}
                                     alt={product.shortDescription}
                                     width={64}
                                     height={64}
+                                    sizes="64px"
                                     className="w-full h-full object-contain"
+                                    priority={false}
+                                    quality={75}
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
@@ -499,7 +510,13 @@ export default function Header({ initialCategories, initialWebSettings, initialP
                           alt={user.name || "User"}
                           width={32}
                           height={32}
+                          sizes="32px"
                           className="w-full h-full object-cover"
+                          priority={false}
+                          quality={75}
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
                         />
                       </div>
                     ) : (
@@ -588,9 +605,6 @@ export default function Header({ initialCategories, initialWebSettings, initialP
                     <Link href="/signup" className="cursor-pointer">
                       Register
                     </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/order-tracking" className="cursor-pointer">My Orders</Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -698,13 +712,19 @@ export default function Header({ initialCategories, initialWebSettings, initialP
                               className="w-full p-2 hover:bg-gray-50 transition-colors flex items-center gap-2 text-left"
                             >
                               <div className="w-12 h-12 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden">
-                                {variant?.variantImages?.[0] ? (
+                                {variant?.variantImages?.[0] && variant.variantImages[0].trim() !== '' ? (
                                   <Image
                                     src={variant.variantImages[0]}
                                     alt={product.shortDescription}
                                     width={48}
                                     height={48}
+                                    sizes="48px"
                                     className="w-full h-full object-contain"
+                                    priority={false}
+                                    quality={75}
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center text-gray-400 text-[10px]">
@@ -792,13 +812,19 @@ export default function Header({ initialCategories, initialWebSettings, initialP
                 className="flex items-center"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                {webSettings?.logoUrl ? (
+                {webSettings?.logoUrl && webSettings.logoUrl.trim() !== '' ? (
                   <Image
                     src={webSettings.logoUrl}
                     alt="Logo"
                     width={100}
                     height={48}
+                    sizes="100px"
                     className="h-10 sm:h-12 w-auto object-contain bg-white rounded-md p-1 sm:p-1.5"
+                    priority={false}
+                    quality={90}
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
                   />
                 ) : (
                   <div className="h-10 sm:h-12 flex items-center bg-white rounded-md px-3">
@@ -829,7 +855,13 @@ export default function Header({ initialCategories, initialWebSettings, initialP
                           alt={user.name || "User"}
                           width={48}
                           height={48}
+                          sizes="48px"
                           className="w-full h-full object-cover"
+                          priority={false}
+                          quality={75}
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
                         />
                       </div>
                     ) : (
@@ -919,14 +951,6 @@ export default function Header({ initialCategories, initialWebSettings, initialP
                   >
                     <IconUser size={20} />
                     <span>Sign In / Register</span>
-                  </Link>
-                  <Link
-                    href="/my-orders"
-                    className="flex items-center gap-3 py-2.5 sm:py-3 text-gray-700 hover:bg-gray-50 rounded-lg px-2 -mx-2 text-sm sm:text-base"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <IconHome size={20} />
-                    <span>My Orders</span>
                   </Link>
                   <Link
                     href="/wishlist"

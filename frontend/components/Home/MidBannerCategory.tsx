@@ -88,8 +88,10 @@ export default function MidBannerCategory() {
                   src={banner.image}
                   alt={banner.title}
                   fill
+                  sizes="(max-width: 768px) 100vw, 40vw"
                   className="object-cover group-hover:scale-105 transition-transform duration-300"
-                  sizes="(max-width: 768px) 100vw, 33vw"
+                  loading="lazy"
+                  quality={80}
                 />
               </div>
             </Link>

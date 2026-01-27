@@ -407,33 +407,31 @@ const getAllDeliveryPartners = async (req, res) => {
       orderBy: { [sortBy]: sortOrder },
     });
 
-    const partnersWithUrls = await Promise.all(
-      deliveryPartners.map(async (partner) => ({
+    const partnersWithUrls = deliveryPartners.map((partner) => ({
         ...partner,
         password: undefined,
         profilePhotoUrl: partner.profilePhoto 
-          ? await getPresignedUrl(partner.profilePhoto, 3600) 
+          ? getPresignedUrl(partner.profilePhoto, 3600) 
           : null,
         aadharDocumentUrl: partner.aadharDocument 
-          ? await getPresignedUrl(partner.aadharDocument, 3600) 
+          ? getPresignedUrl(partner.aadharDocument, 3600) 
           : null,
         licenseDocumentUrl: partner.licenseDocument 
-          ? await getPresignedUrl(partner.licenseDocument, 3600) 
+          ? getPresignedUrl(partner.licenseDocument, 3600) 
           : null,
         vehicleRCDocumentUrl: partner.vehicleRCDocument 
-          ? await getPresignedUrl(partner.vehicleRCDocument, 3600) 
+          ? getPresignedUrl(partner.vehicleRCDocument, 3600) 
           : null,
         insuranceDocumentUrl: partner.insuranceDocument 
-          ? await getPresignedUrl(partner.insuranceDocument, 3600) 
+          ? getPresignedUrl(partner.insuranceDocument, 3600) 
           : null,
         pollutionCertDocumentUrl: partner.pollutionCertDocument 
-          ? await getPresignedUrl(partner.pollutionCertDocument, 3600) 
+          ? getPresignedUrl(partner.pollutionCertDocument, 3600) 
           : null,
         idProofDocumentUrl: partner.idProofDocument 
-          ? await getPresignedUrl(partner.idProofDocument, 3600) 
+          ? getPresignedUrl(partner.idProofDocument, 3600) 
           : null,
-      }))
-    );
+      }));
 
     res.json({
       success: true,
@@ -478,25 +476,25 @@ const getDeliveryPartnerById = async (req, res) => {
       ...deliveryPartner,
       password: undefined,
       profilePhotoUrl: deliveryPartner.profilePhoto 
-        ? await getPresignedUrl(deliveryPartner.profilePhoto, 3600) 
+        ? getPresignedUrl(deliveryPartner.profilePhoto, 3600) 
         : null,
       aadharDocumentUrl: deliveryPartner.aadharDocument 
-        ? await getPresignedUrl(deliveryPartner.aadharDocument, 3600) 
+        ? getPresignedUrl(deliveryPartner.aadharDocument, 3600) 
         : null,
       licenseDocumentUrl: deliveryPartner.licenseDocument 
-        ? await getPresignedUrl(deliveryPartner.licenseDocument, 3600) 
+        ? getPresignedUrl(deliveryPartner.licenseDocument, 3600) 
         : null,
       vehicleRCDocumentUrl: deliveryPartner.vehicleRCDocument 
-        ? await getPresignedUrl(deliveryPartner.vehicleRCDocument, 3600) 
+        ? getPresignedUrl(deliveryPartner.vehicleRCDocument, 3600) 
         : null,
       insuranceDocumentUrl: deliveryPartner.insuranceDocument 
-        ? await getPresignedUrl(deliveryPartner.insuranceDocument, 3600) 
+        ? getPresignedUrl(deliveryPartner.insuranceDocument, 3600) 
         : null,
       pollutionCertDocumentUrl: deliveryPartner.pollutionCertDocument 
-        ? await getPresignedUrl(deliveryPartner.pollutionCertDocument, 3600) 
+        ? getPresignedUrl(deliveryPartner.pollutionCertDocument, 3600) 
         : null,
       idProofDocumentUrl: deliveryPartner.idProofDocument 
-        ? await getPresignedUrl(deliveryPartner.idProofDocument, 3600) 
+        ? getPresignedUrl(deliveryPartner.idProofDocument, 3600) 
         : null,
     };
 
@@ -1055,7 +1053,7 @@ const getApprovedPartners = async (req, res) => {
       partners.map(async (partner) => ({
         ...partner,
         profilePhotoUrl: partner.profilePhoto 
-          ? await getPresignedUrl(partner.profilePhoto, 3600) 
+          ? getPresignedUrl(partner.profilePhoto, 3600) 
           : null,
       }))
     );

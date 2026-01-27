@@ -1,6 +1,6 @@
 const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
-const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const path = require("path");
+const { getProxyImageUrl } = require("../common/imageProxy");
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || "eu-north-1",
@@ -73,38 +73,14 @@ const deleteFromS3 = async (fileKeyOrUrl) => {
 };
 
 /**
- * Generate presigned URL for private file access
+ * Get proxy image URL (returns backend proxy URL instead of presigned URL)
  * @param {string} key - S3 file key or full URL
- * @param {number} expiresIn - URL expiration in seconds (default: 3600)
- * @returns {Promise<string>} - Presigned URL
+ * @param {number} expiresIn - Not used anymore (kept for backward compatibility)
+ * @returns {string} - Backend proxy URL
  */
-const getPresignedUrl = async (key, expiresIn = 3600) => {
-  if (!key) return null;
-  
-  if (key.startsWith('http://') || key.startsWith('https://')) {
-    const region = process.env.AWS_REGION || "eu-north-1";
-    const s3UrlPattern = new RegExp(`https://${S3_BUCKET_NAME}\\.s3\\.${region}\\.amazonaws\\.com/(.+)`);
-    const match = key.match(s3UrlPattern);
-    
-    if (match) {
-      key = match[1];
-    } else {
-      return key;
-    }
-  }
-  
-  try {
-    const command = new GetObjectCommand({
-      Bucket: S3_BUCKET_NAME,
-      Key: key,
-    });
-
-    const url = await getSignedUrl(s3Client, command, { expiresIn });
-    return url;
-  } catch (error) {
-    console.error("Error generating presigned URL:", error);
-    return null;
-  }
+const getPresignedUrl = (key, expiresIn = 3600) => {
+  // Use proxy URL instead of presigned URL
+  return getProxyImageUrl(key);
 };
 
 module.exports = {

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { Product } from "@/types/product";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -38,11 +39,15 @@ export const PosProductCard: React.FC<PosProductCardProps> = ({
     <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-all">
       {/* Product Image */}
       <div className="aspect-square bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden relative">
-        {product.image ? (
-          <img
+        {product.image && product.image.trim() !== '' ? (
+          <Image
             src={product.image}
             alt={product.name}
-            className="w-full h-full object-cover"
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover"
+            priority={false}
+            quality={75}
           />
         ) : (
           <svg

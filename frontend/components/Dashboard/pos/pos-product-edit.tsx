@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { PosProductFormData } from "@/types/product";
 import { Button } from "@/components/ui/button";
@@ -595,12 +596,16 @@ export const PosProductEdit: React.FC<PosProductEditProps> = ({
           {/* Main Product Image */}
           <div className="space-y-2">
             <Label htmlFor="itemImage">Main Product Image</Label>
-            {formData.itemImage && (
-              <div className="mb-2">
-                <img
-                  src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${formData.itemImage}`}
+            {formData.itemImage && typeof formData.itemImage === 'string' && formData.itemImage.trim() !== '' && (
+              <div className="mb-2 relative w-32 h-32">
+                <Image
+                  src={formData.itemImage}
                   alt="Product"
-                  className="w-32 h-32 object-cover rounded-lg border"
+                  fill
+                  sizes="128px"
+                  className="object-cover rounded-lg border"
+                  priority={false}
+                  quality={75}
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                   }}
@@ -934,13 +939,36 @@ export const PosProductEdit: React.FC<PosProductEditProps> = ({
             <div className="flex items-start gap-4">
               {/* Current Image Preview */}
               {formData.itemImage && (
-                <div className="relative w-32 h-32 border rounded-lg overflow-hidden">
-                  <img
-                    src={typeof formData.itemImage === 'string' ? formData.itemImage : URL.createObjectURL(formData.itemImage)}
-                    alt="Product"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+                typeof formData.itemImage === 'string' 
+                  ? formData.itemImage.trim() !== '' && (
+                      <div className="relative w-32 h-32 border rounded-lg overflow-hidden">
+                        <Image
+                          src={formData.itemImage}
+                          alt="Product"
+                          fill
+                          sizes="128px"
+                          className="object-cover"
+                          priority={false}
+                          quality={75}
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    )
+                  : (
+                      <div className="relative w-32 h-32 border rounded-lg overflow-hidden">
+                        <Image
+                          src={URL.createObjectURL(formData.itemImage)}
+                          alt="Product"
+                          fill
+                          sizes="128px"
+                          className="object-cover"
+                          priority={false}
+                          quality={75}
+                        />
+                      </div>
+                    )
               )}
               
               {/* File Input */}

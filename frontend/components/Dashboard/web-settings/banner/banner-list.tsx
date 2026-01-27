@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -276,15 +277,20 @@ export default function BannerList() {
               currentBanners.map((banner) => (
                 <TableRow key={banner.id}>
                   <TableCell>
-                    <img
-                      src={banner.imageUrl}
-                      alt={banner.title}
-                      className="w-24 h-16 object-cover rounded"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src =
-                          "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect fill='%23ddd' width='100' height='100'/%3E%3Ctext fill='%23999' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3ENo Image%3C/text%3E%3C/svg%3E";
-                      }}
-                    />
+                    <div className="relative w-24 h-16 rounded overflow-hidden">
+                      <Image
+                        src={banner.imageUrl}
+                        alt={banner.title}
+                        fill
+                        sizes="96px"
+                        className="object-cover"
+                        priority={false}
+                        quality={75}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    </div>
                   </TableCell>
                   <TableCell className="font-medium">{banner.title}</TableCell>
                   <TableCell className="max-w-xs truncate">

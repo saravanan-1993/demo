@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Send, Package, TrendingUp } from "lucide-react";
@@ -602,24 +603,16 @@ function ActionSearchBar({ defaultOpen = false }: { defaultOpen?: boolean }) {
                                         className="flex flex-col items-center group flex-shrink-0 min-w-[65px]"
                                       >
                                         <div className="relative w-14 h-14 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 shadow-md hover:shadow-lg transition-all duration-200">
-                                          <img
-                                            src={
-                                              category.categoryImage?.startsWith(
-                                                "http"
-                                              )
-                                                ? category.categoryImage
-                                                : `${
-                                                    process.env
-                                                      .NEXT_PUBLIC_PRODUCT_API_URL ||
-                                                    "http://localhost:4001"
-                                                  }/${category.categoryImage}`
-                                            }
+                                          <Image
+                                            src={category.categoryImage || ''}
                                             alt={category.categoryName}
-                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                            fill
+                                            sizes="56px"
+                                            className="object-cover group-hover:scale-105 transition-transform duration-200"
+                                            priority={false}
+                                            quality={75}
                                             onError={(e) => {
-                                              const target =
-                                                e.target as HTMLImageElement;
-                                              target.style.display = "none";
+                                              e.currentTarget.style.display = "none";
                                             }}
                                           />
                                         </div>
@@ -663,40 +656,19 @@ function ActionSearchBar({ defaultOpen = false }: { defaultOpen?: boolean }) {
                                                 .map((product, pIdx) => (
                                                   <div
                                                     key={pIdx}
-                                                    className="w-8 h-8 rounded-md overflow-hidden bg-white dark:bg-gray-900 border-2 border-gray-50 dark:border-gray-800 shadow-sm"
+                                                    className="relative w-8 h-8 rounded-md overflow-hidden bg-white dark:bg-gray-900 border-2 border-gray-50 dark:border-gray-800 shadow-sm"
                                                   >
                                                     {product.thumbnail && (
-                                                      <img
-                                                        src={
-                                                          product.thumbnail.startsWith(
-                                                            "http"
-                                                          )
-                                                            ? product.thumbnail
-                                                            : product.thumbnail.startsWith(
-                                                                "/"
-                                                              )
-                                                            ? `${
-                                                                process.env
-                                                                  .NEXT_PUBLIC_PRODUCT_API_URL ||
-                                                                "http://localhost:4001"
-                                                              }${
-                                                                product.thumbnail
-                                                              }`
-                                                            : `${
-                                                                process.env
-                                                                  .NEXT_PUBLIC_PRODUCT_API_URL ||
-                                                                "http://localhost:4001"
-                                                              }/${
-                                                                product.thumbnail
-                                                              }`
-                                                        }
+                                                      <Image
+                                                        src={product.thumbnail}
                                                         alt={product.name}
-                                                        className="w-full h-full object-cover"
+                                                        fill
+                                                        sizes="32px"
+                                                        className="object-cover"
+                                                        priority={false}
+                                                        quality={75}
                                                         onError={(e) => {
-                                                          const target =
-                                                            e.target as HTMLImageElement;
-                                                          target.style.display =
-                                                            "none";
+                                                          e.currentTarget.style.display = "none";
                                                         }}
                                                       />
                                                     )}
@@ -865,28 +837,17 @@ function ActionSearchBar({ defaultOpen = false }: { defaultOpen?: boolean }) {
                           >
                             {/* Product Image */}
                             {action.image && (
-                              <div className="flex-shrink-0 w-12 h-12 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-800">
-                                <img
-                                  src={
-                                    action.image.startsWith("http")
-                                      ? action.image
-                                      : action.image.startsWith("/")
-                                      ? `${
-                                          process.env
-                                            .NEXT_PUBLIC_PRODUCT_API_URL ||
-                                          "http://localhost:4001"
-                                        }${action.image}`
-                                      : `${
-                                          process.env
-                                            .NEXT_PUBLIC_PRODUCT_API_URL ||
-                                          "http://localhost:4001"
-                                        }/${action.image}`
-                                  }
+                              <div className="relative flex-shrink-0 w-12 h-12 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-800">
+                                <Image
+                                  src={action.image}
                                   alt={action.label}
-                                  className="w-full h-full object-cover"
+                                  fill
+                                  sizes="48px"
+                                  className="object-cover"
+                                  priority={false}
+                                  quality={75}
                                   onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = "none";
+                                    e.currentTarget.style.display = "none";
                                   }}
                                 />
                               </div>

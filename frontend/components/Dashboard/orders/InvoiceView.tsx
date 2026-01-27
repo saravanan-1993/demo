@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -673,11 +674,14 @@ export function InvoiceView({ order, companySettings, isOpen, onClose }: Invoice
               <div className="text-center border-b-2 border-dashed border-gray-800 pb-3 mb-3">
                 {companySettings?.logoUrl && (
                   <div className="relative w-40 h-20 flex items-center justify-center overflow-hidden mx-auto">
-                    <img 
+                    <Image 
                       src={companySettings.logoUrl} 
                       alt="Company Logo" 
-                      className="max-w-full max-h-full object-contain"
-                      style={{ width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '100%' }}
+                      fill
+                      sizes="160px"
+                      className="object-contain"
+                      priority={true}
+                      quality={90}
                     />
                   </div>
                 )}

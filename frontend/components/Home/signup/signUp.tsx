@@ -209,7 +209,10 @@ export const SignUp = () => {
               alt="LEATS" 
               width={100} 
               height={40} 
-              className="mx-auto mb-3 sm:mb-4 w-16 sm:w-[100px]" 
+              sizes="100px"
+              className="mx-auto mb-3 sm:mb-4 w-16 sm:w-[100px]"
+              priority
+              quality={90}
             />
             <h1 className="text-lg sm:text-xl font-bold text-gray-800">Create Account</h1>
             <p className="text-gray-500 text-xs sm:text-sm">Join LEATS for fresh groceries</p>

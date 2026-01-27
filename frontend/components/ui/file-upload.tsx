@@ -17,6 +17,7 @@ import React, {
     type DragEvent,
     useEffect,
 } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { UploadCloud, File as FileIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -565,21 +566,29 @@ export default function FileUpload({
                                         exit={{ opacity: 0, scale: 0.95 }}
                                         className="absolute inset-0 flex flex-col items-center justify-center p-6"
                                     >
-                                        <div className="mb-4 relative">
+                                        <div className="mb-4 relative w-24 h-24">
                                             {file ? (
-                                                <img
+                                                <Image
                                                     src={URL.createObjectURL(file)}
                                                     alt="Uploaded image"
-                                                    className="w-24 h-24 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                                                    fill
+                                                    sizes="96px"
+                                                    className="object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                                                    priority={false}
+                                                    quality={75}
                                                     onLoad={() => {
                                                         // Image loaded successfully
                                                     }}
                                                 />
                                             ) : existingImageUrl ? (
-                                                <img
-                                                    src={existingImageUrl.startsWith('http') ? existingImageUrl : `${axiosInstance.defaults.baseURL}/${existingImageUrl}`}
+                                                <Image
+                                                    src={existingImageUrl}
                                                     alt="Current image"
-                                                    className="w-24 h-24 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                                                    fill
+                                                    sizes="96px"
+                                                    className="object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                                                    priority={false}
+                                                    quality={75}
                                                     onError={(e) => {
                                                         // Hide image if it fails to load
                                                         e.currentTarget.style.display = 'none';

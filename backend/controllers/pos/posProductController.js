@@ -35,10 +35,10 @@ const getAllPOSProducts = async (req, res) => {
           if (product.itemImage.startsWith('/uploads/')) {
             imageUrl = product.itemImage;
           } else if (product.itemImage.startsWith('http')) {
-            imageUrl = await getPresignedUrl(product.itemImage, 86400);
+            imageUrl = getPresignedUrl(product.itemImage, 86400);
             if (!imageUrl) imageUrl = product.itemImage;
           } else {
-            imageUrl = await getPresignedUrl(product.itemImage, 86400);
+            imageUrl = getPresignedUrl(product.itemImage, 86400);
           }
         }
 
@@ -106,10 +106,10 @@ const getPOSProductById = async (req, res) => {
       if (product.itemImage.startsWith('/uploads/')) {
         imageUrl = product.itemImage;
       } else if (product.itemImage.startsWith('http')) {
-        imageUrl = await getPresignedUrl(product.itemImage, 86400);
+        imageUrl = getPresignedUrl(product.itemImage, 86400);
         if (!imageUrl) imageUrl = product.itemImage;
       } else {
-        imageUrl = await getPresignedUrl(product.itemImage, 86400);
+        imageUrl = getPresignedUrl(product.itemImage, 86400);
       }
     }
 

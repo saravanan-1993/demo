@@ -5,7 +5,27 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   
   images: {
-    unoptimized: true
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '3000',
+        pathname: '/**',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '5000',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
+    formats: ['image/webp'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
   eslint: {
     ignoreDuringBuilds: true,
@@ -24,6 +44,17 @@ const nextConfig: NextConfig = {
       config.stats = 'errors-only';
     }
     return config;
+  },
+  
+  // Rewrite /image/* requests to backend API
+  async rewrites() {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL;
+    return [
+      {
+        source: '/image/:path*',
+        destination: `${backendUrl}/api/image/:path*`,
+      },
+    ];
   },
 };
 

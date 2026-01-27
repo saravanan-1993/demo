@@ -112,7 +112,7 @@ const getProducts = async (req, res) => {
           ...product,
           // Explicitly serialize expiryDate to ISO string for JSON response
           expiryDate: product.expiryDate ? product.expiryDate.toISOString() : null,
-          itemImage: product.itemImage ? await getPresignedUrl(product.itemImage, 3600) : null,
+          itemImage: product.itemImage ? getPresignedUrl(product.itemImage, 3600) : null,
           itemImageKey: product.itemImage || null, // Raw S3 key for storage
           isUsedInOnlineProduct,
           syncedAt: product.createdAt, // Use createdAt as syncedAt for compatibility
@@ -155,9 +155,9 @@ const getProductById = async (req, res) => {
     }
 
     // Generate pre-signed URL for item image
-    const productWithPresignedUrl = {
+    const productWithProxyUrl = {
       ...product,
-      itemImage: product.itemImage ? await getPresignedUrl(product.itemImage, 3600) : null,
+      itemImage: product.itemImage ? getPresignedUrl(product.itemImage, 3600) : null,
       itemImageKey: product.itemImage || null, // Raw S3 key for storage
       syncedAt: product.createdAt, // Use createdAt as syncedAt for compatibility
     };

@@ -85,6 +85,15 @@ messaging.onBackgroundMessage((payload) => {
   } else if (payload.data?.poId) {
     // For PO notifications: use poId
     uniqueTag = `po-${payload.data.poId}`;
+  } else if (payload.data?.productId && payload.data?.type === 'PRICE_DROP') {
+    // For price drop notifications: use productId
+    uniqueTag = `price-drop-${payload.data.productId}`;
+  } else if (payload.data?.productId && payload.data?.type === 'BACK_IN_STOCK') {
+    // For back in stock notifications: use productId
+    uniqueTag = `back-in-stock-${payload.data.productId}`;
+  } else if (payload.data?.type === 'ABANDONED_CART') {
+    // For abandoned cart: use type + reminderType
+    uniqueTag = `abandoned-cart-${payload.data.reminderType || 'reminder'}`;
   } else {
     // Fallback: use type + timestamp (will create new notification each time)
     uniqueTag = `${payload.data?.type || 'notification'}-${Date.now()}`;

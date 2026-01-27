@@ -66,9 +66,11 @@ export default function HeroSection({ banners }: HeroSectionProps) {
                     src={banner.imageUrl}
                     alt={banner.title}
                     fill
+                    sizes="100vw"
                     className="object-cover"
                     priority={index === 0}
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1400px"
+                    quality={85}
+                    loading={index === 0 ? undefined : 'lazy'}
                   />
                 </Link>
               </div>

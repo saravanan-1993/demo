@@ -19,7 +19,7 @@ const getBanners = async (req, res) => {
       banners.map(async (banner) => {
         try {
           const imageUrl = banner.imageUrl
-            ? await getPresignedUrl(banner.imageUrl, 3600)
+            ? getPresignedUrl(banner.imageUrl, 3600)
             : null;
           return {
             ...banner,
@@ -65,9 +65,9 @@ const getBanner = async (req, res) => {
       });
     }
 
-    // Generate pre-signed URL for image
+    // Generate proxy URL for image
     const imageUrl = banner.imageUrl
-      ? await getPresignedUrl(banner.imageUrl, 3600)
+      ? getPresignedUrl(banner.imageUrl, 3600)
       : null;
 
     res.status(200).json({
@@ -134,8 +134,8 @@ const createBanner = async (req, res) => {
 
     console.log("Banner created in database:", banner.id);
 
-    // Generate pre-signed URL for response
-    const imageUrl = await getPresignedUrl(banner.imageUrl, 3600);
+    // Generate proxy URL for response
+    const imageUrl = getPresignedUrl(banner.imageUrl, 3600);
 
     res.status(201).json({
       success: true,
@@ -225,8 +225,8 @@ const updateBanner = async (req, res) => {
 
     console.log("Banner updated in database:", banner.id);
 
-    // Generate pre-signed URL for response
-    const imageUrl = await getPresignedUrl(banner.imageUrl, 3600);
+    // Generate proxy URL for response
+    const imageUrl = getPresignedUrl(banner.imageUrl, 3600);
 
     res.status(200).json({
       success: true,
