@@ -19,17 +19,20 @@ const getWebSettings = async (req, res) => {
     const host = req.get('host');
     const baseUrl = `${protocol}://${host}`;
     
+    // Add version parameter based on updatedAt to bust cache when logo changes
+    const version = settings.updatedAt ? new Date(settings.updatedAt).getTime() : Date.now();
+    
     const logoUrl = settings.logoUrl
-      ? `${baseUrl}/api/web/web-settings/logo`
+      ? `${baseUrl}/api/web/web-settings/logo?v=${version}`
       : null;
     const faviconUrl = settings.faviconUrl
-      ? `${baseUrl}/api/web/web-settings/favicon`
+      ? `${baseUrl}/api/web/web-settings/favicon?v=${version}`
       : null;
 
     const response = {
       id: settings.id,
-      logoUrl, // Proxy URL instead of presigned URL
-      faviconUrl, // Proxy URL instead of presigned URL
+      logoUrl, // Proxy URL with version parameter
+      faviconUrl, // Proxy URL with version parameter
       logoKey: settings.logoUrl, // Original S3 key
       faviconKey: settings.faviconUrl, // Original S3 key
       updatedAt: settings.updatedAt,
@@ -245,9 +248,11 @@ const proxyLogo = async (req, res) => {
     // Get the S3 object
     const s3Object = await getS3Object(settings.logoUrl);
 
-    // Set appropriate headers
+    // Set appropriate headers - NO CACHE to ensure fresh logo
     res.setHeader("Content-Type", s3Object.ContentType || "image/png");
-    res.setHeader("Cache-Control", "public, max-age=31536000"); // Cache for 1 year
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     res.setHeader("Access-Control-Allow-Origin", "*"); // Allow CORS
 
     // Stream the image
@@ -278,9 +283,11 @@ const proxyFavicon = async (req, res) => {
     // Get the S3 object
     const s3Object = await getS3Object(settings.faviconUrl);
 
-    // Set appropriate headers
+    // Set appropriate headers - NO CACHE to ensure fresh favicon
     res.setHeader("Content-Type", s3Object.ContentType || "image/x-icon");
-    res.setHeader("Cache-Control", "public, max-age=31536000"); // Cache for 1 year
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     res.setHeader("Access-Control-Allow-Origin", "*"); // Allow CORS
 
     // Stream the image
