@@ -11,14 +11,19 @@ const s3Client = new S3Client({
 });
 
 /**
- * Convert S3 key to frontend URL (proxied to backend via Next.js rewrites)
+ * Convert S3 key to image proxy URL
  * @param {string} key - S3 file key or full URL
- * @returns {string|null} - Frontend URL
+ * @returns {string|null} - Image proxy URL (/image/...)
  */
 const getProxyImageUrl = (key) => {
   if (!key) return null;
+   
+  // If already a proxy URL, return as-is
+  if (key.startsWith('/image/')) {
+    return key;
+  }
   
-  // If already a full URL, extract the key
+  // If it's a full S3 URL, extract the key
   if (key.startsWith('http://') || key.startsWith('https://')) {
     const bucketName = process.env.AWS_S3_BUCKET_NAME || "mnt-ecommerce-2025";
     const region = process.env.AWS_REGION || "eu-north-1";
@@ -33,9 +38,8 @@ const getProxyImageUrl = (key) => {
     }
   }
   
-  // Return frontend URL (Next.js will rewrite to backend)
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-  return `${frontendUrl}/image/${key}`;
+  // Return proxy URL path (ready for Next.js Image component)
+  return `/image/${key}`;
 };
 
 /**

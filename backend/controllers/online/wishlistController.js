@@ -1,10 +1,11 @@
 const { prisma } = require('../../config/database');
+const { getProxyImageUrl } = require('../../utils/common/imageProxy');
 
 /**
  * Add item to wishlist
  * POST /api/online/wishlist
  */
-const addToWishlist = async (req, res) => {
+const addToWishlist = async (req, res) => { 
   try {
     const { userId, productId, productData } = req.body;
 
@@ -225,11 +226,20 @@ const getWishlist = async (req, res) => {
           });
 
           if (!currentProduct) {
-            // Product no longer exists, return cached data
+            // Product no longer exists, return cached data with formatted images
             return {
               wishlistItemId: item.id,
               addedAt: item.addedAt,
               ...item.productData,
+              defaultProductImage: item.productData?.defaultProductImage 
+                ? getProxyImageUrl(item.productData.defaultProductImage)
+                : null,
+              variants: (item.productData?.variants || []).map(variant => ({
+                ...variant,
+                variantImages: (variant.variantImages || [])
+                  .map(img => getProxyImageUrl(img))
+                  .filter(Boolean),
+              })),
             };
           }
 
@@ -238,11 +248,20 @@ const getWishlist = async (req, res) => {
           const currentVariant = currentProduct.variants?.[variantIndex];
 
           if (!currentVariant) {
-            // Variant no longer exists, return cached data
+            // Variant no longer exists, return cached data with formatted images
             return {
               wishlistItemId: item.id,
               addedAt: item.addedAt,
               ...item.productData,
+              defaultProductImage: item.productData?.defaultProductImage 
+                ? getProxyImageUrl(item.productData.defaultProductImage)
+                : null,
+              variants: (item.productData?.variants || []).map(variant => ({
+                ...variant,
+                variantImages: (variant.variantImages || [])
+                  .map(img => getProxyImageUrl(img))
+                  .filter(Boolean),
+              })),
             };
           }
 
@@ -307,18 +326,41 @@ const getWishlist = async (req, res) => {
             },
           });
 
+          // ✅ Format images for frontend response
+          const formattedProductData = {
+            ...updatedProductData,
+            defaultProductImage: updatedProductData.defaultProductImage 
+              ? getProxyImageUrl(updatedProductData.defaultProductImage) 
+              : null,
+            variants: (updatedVariants || []).map(variant => ({
+              ...variant,
+              variantImages: (variant.variantImages || [])
+                .map(img => getProxyImageUrl(img))
+                .filter(Boolean),
+            })),
+          };
+
           return {
             wishlistItemId: item.id,
             addedAt: item.addedAt,
-            ...updatedProductData,
+            ...formattedProductData,
           };
         } catch (error) {
           console.error(`Error updating wishlist item ${item.id}:`, error);
-          // Return cached data if update fails
+          // Return cached data if update fails, but format images
           return {
             wishlistItemId: item.id,
             addedAt: item.addedAt,
             ...item.productData,
+            defaultProductImage: item.productData?.defaultProductImage 
+              ? getProxyImageUrl(item.productData.defaultProductImage)
+              : null,
+            variants: (item.productData?.variants || []).map(variant => ({
+              ...variant,
+              variantImages: (variant.variantImages || [])
+                .map(img => getProxyImageUrl(img))
+                .filter(Boolean),
+            })),
           };
         }
       })
