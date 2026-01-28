@@ -1,13 +1,14 @@
 const { prisma } = require('../../config/database');
 const { getPresignedUrl } = require('../../utils/online/uploadS3');
+const { getProxyImageUrl } = require('../../utils/common/imageProxy');
 
 /**
- * Helper function to convert image key to presigned URL
+ * Helper function to convert image key to proxy URL
  */
-const getImageUrl = async (imageKey) => {
+const getImageUrl = (imageKey) => {
   if (!imageKey) return null;
   try {
-    return getPresignedUrl(imageKey, 3600);
+    return getProxyImageUrl(imageKey); 
   } catch (error) {
     console.error('Error getting proxy URL:', error);
     return null;
@@ -77,10 +78,10 @@ const getCart = async (req, res) => {
       });
     }
 
-    // Convert image keys to presigned URLs and update stock data
+    // Convert image keys to proxy URLs and update stock data
     const cartItemsWithUrls = await Promise.all(
       customer.cartItems.map(async (item) => {
-        const imageUrl = await getImageUrl(item.variantImage);
+        const imageUrl = getImageUrl(item.variantImage);
         
         // Fetch fresh stock data from the product
         let currentMaxStock = item.maxStock; // fallback to cached value

@@ -1,5 +1,6 @@
 const { prisma } = require("../../config/database");
-const { getPresignedUrl, uploadToS3 } = require("../../utils/online/uploadS3");
+const {  uploadToS3 } = require("../../utils/online/uploadS3");
+const { getProxyImageUrl } = require("../../utils/common/imageProxy");
 
 /**
  * Helper function to extract S3 key from a presigned URL or return the key as-is
@@ -51,18 +52,18 @@ const processVariantImagesForStorage = (variants) => {
 };
 
 /**
- * Helper function to convert image keys to pre-signed URLs in variants
+ * Helper function to convert image keys to proxy URLs in variants
  */
-const convertVariantImagesToUrls = async (variants) => {
-  return Promise.all(
-    variants.map(async (variant) => {
-      if (variant.variantImages && Array.isArray(variant.variantImages)) {
-        const imageUrls = variant.variantImages.map((img) => getPresignedUrl(img, 3600));
-        return { ...variant, variantImages: imageUrls };
-      }
-      return variant;
-    })
-  );
+const convertVariantImagesToUrls = (variants) => {
+  return variants.map((variant) => {
+    if (variant.variantImages && Array.isArray(variant.variantImages)) {
+      const imageUrls = variant.variantImages
+        .map((img) => getProxyImageUrl(img))
+        .filter(Boolean); // Remove nulls
+      return { ...variant, variantImages: imageUrls };
+    }
+    return variant;
+  });
 };
 
 /**
@@ -111,13 +112,12 @@ const getAllOnlineProducts = async (req, res) => {
       prisma.onlineProduct.count({ where }),
     ]);
 
-    // Convert variant images to pre-signed URLs
-    const productsWithUrls = await Promise.all(
-      products.map(async (product) => ({
-        ...product,
-        variants: await convertVariantImagesToUrls(product.variants),
-      }))
-    );
+    // Convert variant images to proxy URLs and format default image
+    const productsWithUrls = products.map((product) => ({
+      ...product,
+      defaultProductImage: product.defaultProductImage ? getProxyImageUrl(product.defaultProductImage) : null,
+      variants: convertVariantImagesToUrls(product.variants),
+    }));
 
     const totalPages = Math.ceil(totalCount / take);
 
@@ -161,10 +161,11 @@ const getOnlineProductById = async (req, res) => {
       });
     }
 
-    // Convert variant images to pre-signed URLs
+    // Convert variant images to proxy URLs and format default image
     const productWithUrls = {
       ...product,
-      variants: await convertVariantImagesToUrls(product.variants),
+      defaultProductImage: product.defaultProductImage ? getProxyImageUrl(product.defaultProductImage) : null,
+      variants: convertVariantImagesToUrls(product.variants),
     };
 
     res.json({
@@ -373,10 +374,17 @@ const createOnlineProduct = async (req, res) => {
 
     console.log("✅ Product created successfully with ID:", product.id);
 
+    // Format response with proxy image URLs
+    const productResponse = {
+      ...product,
+      defaultProductImage: product.defaultProductImage ? getProxyImageUrl(product.defaultProductImage) : null,
+      variants: convertVariantImagesToUrls(product.variants),
+    };
+
     res.status(201).json({
       success: true,
       message: "Product created successfully",
-      data: product,
+      data: productResponse,
     });
   } catch (error) {
     console.error("❌ Error creating online product:", error);
@@ -541,10 +549,17 @@ const updateOnlineProduct = async (req, res) => {
 
     console.log("✅ Product updated successfully");
 
+    // Format response with proxy image URLs
+    const productResponse = {
+      ...product,
+      defaultProductImage: product.defaultProductImage ? getProxyImageUrl(product.defaultProductImage) : null,
+      variants: convertVariantImagesToUrls(product.variants),
+    };
+
     res.json({
       success: true,
       message: "Product updated successfully",
-      data: product,
+      data: productResponse,
     });
   } catch (error) {
     console.error("❌ Error updating online product:", error);
@@ -669,8 +684,8 @@ const getFrequentlyBoughtTogether = async (req, res) => {
         
         if (!variant) return null;
 
-        // Convert variant images to presigned URLs
-        const variantWithUrls = await convertVariantImagesToUrls([variant]);
+        // Convert variant images to proxy URLs
+        const variantWithUrls = convertVariantImagesToUrls([variant]);
 
         return {
           productId: addonProduct.id,
@@ -682,6 +697,7 @@ const getFrequentlyBoughtTogether = async (req, res) => {
             brand: addonProduct.brand,
             category: addonProduct.category,
             subCategory: addonProduct.subCategory,
+            defaultProductImage: addonProduct.defaultProductImage ? getProxyImageUrl(addonProduct.defaultProductImage) : null,
           },
           variant: variantWithUrls[0],
         };
