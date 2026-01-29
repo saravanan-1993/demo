@@ -104,25 +104,26 @@ export function FrequentlyBoughtTogetherTab({
               variantStockQuantity: number;
               variantImages?: string[];
             }>;
-          }) => ({
-            id: product.id,
-            name: product.brand 
-              ? `${product.brand} - ${product.shortDescription}` 
-              : product.shortDescription,
-            label: product.brand 
-              ? `${product.brand} - ${product.shortDescription}` 
-              : product.shortDescription,
-            value: product.id,
-            image: product.variants[0]?.variantImages?.[0],
-            variants: product.variants.map((variant, index: number) => ({
-              variantIndex: index,
-              variantName: variant.variantName,
-              displayName: variant.displayName || variant.variantName,
-              variantSellingPrice: variant.variantSellingPrice,
-              variantMRP: variant.variantMRP,
-              variantStockQuantity: variant.variantStockQuantity,
-            })),
-          }));
+          }) => {
+            const firstVariant = product.variants[0];
+            const variantDisplayName = firstVariant?.displayName || firstVariant?.variantName || product.shortDescription;
+            
+            return {
+              id: product.id,
+              name: variantDisplayName,
+              label: variantDisplayName,
+              value: product.id,
+              image: firstVariant?.variantImages?.[0],
+              variants: product.variants.map((variant, index: number) => ({
+                variantIndex: index,
+                variantName: variant.variantName,
+                displayName: variant.displayName || variant.variantName,
+                variantSellingPrice: variant.variantSellingPrice,
+                variantMRP: variant.variantMRP,
+                variantStockQuantity: variant.variantStockQuantity,
+              })),
+            };
+          });
 
         // Store all products for reference
         setAllProducts(allProductOptions);
