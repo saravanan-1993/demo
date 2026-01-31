@@ -180,7 +180,7 @@ export function OnlineOrders() {
         
         const adminData = adminResponse.data.data || {};
         
-        // Combine both settings
+        // Combine both settings - use Admin model data for all company details
         setCompanySettings({
           companyName: adminData.companyName || 'Company',
           logoUrl: webSettingsResponse.data.data?.logoUrl || '', // Logo from web settings
@@ -189,8 +189,8 @@ export function OnlineOrders() {
           state: adminData.state || '',
           zipCode: adminData.zipCode || '',
           country: adminData.country || '',
-          phone: '', // Admin settings doesn't have phone
-          email: '', // Admin settings doesn't have email
+          phone: adminData.phoneNumber || '', // Phone from Admin model
+          email: adminData.email || '', // Email from Admin model
           gstNumber: adminData.gstNumber || '',
         });
       }
@@ -242,6 +242,22 @@ export function OnlineOrders() {
 
   const handleDownloadPDF = async (order: OnlineOrder) => {
     setDownloadingPDF(order.orderNumber);
+    
+    // Debug: Log order data
+    console.log('📄 PDF Generation - Order Data:', {
+      orderNumber: order.orderNumber,
+      hasDeliveryAddress: !!order.deliveryAddress,
+      deliveryAddress: order.deliveryAddress,
+      gstType: order.gstType,
+      cgstAmount: order.cgstAmount,
+      sgstAmount: order.sgstAmount,
+      igstAmount: order.igstAmount,
+      totalGstAmount: order.totalGstAmount,
+      tax: order.tax,
+      adminState: order.adminState,
+      customerState: order.customerState
+    });
+    
     try {
       // Create a temporary hidden div with the professional invoice design
       const tempDiv = document.createElement('div');
@@ -315,8 +331,6 @@ export function OnlineOrders() {
   };
 
   const generateProfessionalInvoiceHTML = (order: OnlineOrder): string => {
-    const isInterState = (order.igstAmount || 0) > 0;
-    
     return `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: white; padding: 0; margin: 0;">
         <!-- Top Red Border -->
@@ -381,12 +395,15 @@ export function OnlineOrders() {
               <p style="font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px;">BILL TO</p>
               <div>
                 <p style="font-weight: bold; color: black; font-size: 16px; margin-bottom: 8px;">${order.customerName}</p>
+                ${order.deliveryAddress?.name && order.deliveryAddress.name !== order.customerName ? `<p style="font-size: 14px; color: #64748b; line-height: 1.5; margin-bottom: 4px;">Recipient: ${order.deliveryAddress.name}</p>` : ''}
                 ${order.deliveryAddress?.addressLine1 ? `<p style="font-size: 14px; color: #64748b; line-height: 1.5; margin-bottom: 4px;">${order.deliveryAddress.addressLine1}</p>` : ''}
                 ${order.deliveryAddress?.addressLine2 ? `<p style="font-size: 14px; color: #64748b; line-height: 1.5; margin-bottom: 4px;">${order.deliveryAddress.addressLine2}</p>` : ''}
                 ${order.deliveryAddress?.landmark ? `<p style="font-size: 14px; color: #64748b; line-height: 1.5; margin-bottom: 4px;">Near: ${order.deliveryAddress.landmark}</p>` : ''}
-                ${order.deliveryAddress?.city && order.deliveryAddress?.state && order.deliveryAddress?.pincode ? 
-                  `<p style="font-size: 14px; color: #64748b; line-height: 1.5; margin-bottom: 4px;">${order.deliveryAddress.city}, ${order.deliveryAddress.state} - ${order.deliveryAddress.pincode}</p>` : ''}
-                <p style="font-size: 14px; color: #64748b; line-height: 1.5; margin-bottom: 4px;">Phone: ${order.deliveryAddress?.phone || order.customerPhone}</p>
+                ${order.deliveryAddress?.city || order.deliveryAddress?.state || order.deliveryAddress?.pincode ? 
+                  `<p style="font-size: 14px; color: #64748b; line-height: 1.5; margin-bottom: 4px;">${[order.deliveryAddress?.city, order.deliveryAddress?.state, order.deliveryAddress?.pincode].filter(Boolean).join(', ')}</p>` : ''}
+                ${order.deliveryAddress?.country ? `<p style="font-size: 14px; color: #64748b; line-height: 1.5; margin-bottom: 4px;">${order.deliveryAddress.country}</p>` : ''}
+                ${!order.deliveryAddress?.addressLine1 && !order.deliveryAddress?.city ? `<p style="font-size: 14px; color: #dc2626; line-height: 1.5; margin-bottom: 4px; font-style: italic;">Address not available</p>` : ''}
+                <p style="font-size: 14px; color: #64748b; line-height: 1.5; margin-bottom: 4px;">Phone: ${order.deliveryAddress?.phone || order.customerPhone || 'N/A'}</p>
                 <p style="font-size: 14px; color: #64748b; line-height: 1.5;">Email: ${order.customerEmail}</p>
               </div>
             </div>
@@ -452,33 +469,57 @@ export function OnlineOrders() {
                   <span style="font-weight: 600; color: #dc2626;">-${currencySymbol}${order.couponDiscount.toFixed(2)}</span>
                 </div>
               ` : ''}
-              ${isInterState ? `
-                ${(order.igstAmount || 0) > 0 ? `
-                  <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px;">
-                    <span style="color: #64748b;">IGST</span>
-                    <span style="font-weight: 600; color: #1f2937;">${currencySymbol}${(order.igstAmount || 0).toFixed(2)}</span>
-                  </div>
-                ` : ''}
-              ` : `
-                ${(order.cgstAmount || 0) > 0 ? `
-                  <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px;">
-                    <span style="color: #64748b;">CGST</span>
-                    <span style="font-weight: 600; color: #1f2937;">${currencySymbol}${(order.cgstAmount || 0).toFixed(2)}</span>
-                  </div>
-                ` : ''}
-                ${(order.sgstAmount || 0) > 0 ? `
-                  <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px;">
-                    <span style="color: #64748b;">SGST</span>
-                    <span style="font-weight: 600; color: #1f2937;">${currencySymbol}${(order.sgstAmount || 0).toFixed(2)}</span>
-                  </div>
-                ` : ''}
-              `}
-              ${!isInterState && !(order.cgstAmount || order.sgstAmount) && order.tax > 0 ? `
-                <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px;">
-                  <span style="color: #64748b;">Tax (GST)</span>
-                  <span style="font-weight: 600; color: #1f2937;">${currencySymbol}${order.tax.toFixed(2)}</span>
-                </div>
-              ` : ''}
+              ${(() => {
+                // Determine GST type and amounts
+                const hasIGST = (order.igstAmount || 0) > 0;
+                const hasCGST = (order.cgstAmount || 0) > 0;
+                const hasSGST = (order.sgstAmount || 0) > 0;
+                const totalTax = order.totalGstAmount || order.tax || 0;
+                
+                if (hasIGST) {
+                  // Inter-state: Show IGST
+                  return `
+                    <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px;">
+                      <span style="color: #64748b;">IGST</span>
+                      <span style="font-weight: 600; color: #1f2937;">${currencySymbol}${order.igstAmount.toFixed(2)}</span>
+                    </div>
+                  `;
+                } else if (hasCGST || hasSGST) {
+                  // Intra-state: Show CGST + SGST
+                  let html = '';
+                  if (hasCGST) {
+                    html += `
+                      <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px;">
+                        <span style="color: #64748b;">CGST</span>
+                        <span style="font-weight: 600; color: #1f2937;">${currencySymbol}${order.cgstAmount.toFixed(2)}</span>
+                      </div>
+                    `;
+                  }
+                  if (hasSGST) {
+                    html += `
+                      <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px;">
+                        <span style="color: #64748b;">SGST</span>
+                        <span style="font-weight: 600; color: #1f2937;">${currencySymbol}${order.sgstAmount.toFixed(2)}</span>
+                      </div>
+                    `;
+                  }
+                  return html;
+                } else if (totalTax > 0) {
+                  // Fallback: Split tax equally between CGST and SGST
+                  const halfTax = totalTax / 2;
+                  return `
+                    <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px;">
+                      <span style="color: #64748b;">CGST</span>
+                      <span style="font-weight: 600; color: #1f2937;">${currencySymbol}${halfTax.toFixed(2)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px;">
+                      <span style="color: #64748b;">SGST</span>
+                      <span style="font-weight: 600; color: #1f2937;">${currencySymbol}${halfTax.toFixed(2)}</span>
+                    </div>
+                  `;
+                }
+                return '';
+              })()}
               ${order.shippingCharge > 0 ? `
                 <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px;">
                   <span style="color: #64748b;">Shipping</span>

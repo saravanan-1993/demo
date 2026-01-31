@@ -176,10 +176,26 @@ const downloadOrderInvoice = async (req, res) => {
       items: order.items || [],
       deliveryAddress: order.deliveryAddress || {},
       createdAt: order.createdAt,
-      invoiceNumber: order.invoiceNumber || order.orderNumber
+      invoiceNumber: order.invoiceNumber || order.orderNumber,
+      // Ensure GST fields are included
+      gstType: order.gstType,
+      cgstAmount: order.cgstAmount || 0,
+      sgstAmount: order.sgstAmount || 0,
+      igstAmount: order.igstAmount || 0,
+      totalGstAmount: order.totalGstAmount || order.tax || 0,
+      adminState: order.adminState,
+      customerState: order.customerState
     };
 
     console.log(`📄 Generating PDF for user download: ${orderNumber}`);
+    console.log(`📊 Order GST Data:`, {
+      gstType: orderData.gstType,
+      cgstAmount: orderData.cgstAmount,
+      sgstAmount: orderData.sgstAmount,
+      igstAmount: orderData.igstAmount,
+      totalGstAmount: orderData.totalGstAmount,
+      tax: orderData.tax
+    });
 
     // Generate PDF
     const pdfBuffer = await generateInvoicePDF(orderData, companyData);

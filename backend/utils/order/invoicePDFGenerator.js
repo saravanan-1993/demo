@@ -256,9 +256,44 @@ const generatePurchaseStyleAddresses = (doc, orderData, companyData, pageWidth, 
      .text(orderData.customerName || 'Customer Name', rightColumnX, rightCurrentY);
   rightCurrentY += 22;
 
-  // Delivery address
-  const deliveryAddress = orderData.deliveryAddress || {};
+  // Delivery address - handle both object and JSON string formats
+  let deliveryAddress = orderData.deliveryAddress || {};
   
+  // Debug: Log delivery address
+  console.log('📍 Delivery Address Type:', typeof deliveryAddress);
+  console.log('📍 Delivery Address Raw:', JSON.stringify(deliveryAddress, null, 2));
+  
+  // If deliveryAddress is a JSON string, parse it
+  if (typeof deliveryAddress === 'string') {
+    try {
+      deliveryAddress = JSON.parse(deliveryAddress);
+      console.log('📍 Parsed Delivery Address:', JSON.stringify(deliveryAddress, null, 2));
+    } catch (error) {
+      console.error('❌ Error parsing delivery address:', error);
+      deliveryAddress = {};
+    }
+  }
+  
+  console.log('📍 Final Delivery Address Fields:', {
+    hasName: !!deliveryAddress.name,
+    hasAddressLine1: !!deliveryAddress.addressLine1,
+    hasAddressLine2: !!deliveryAddress.addressLine2,
+    hasCity: !!deliveryAddress.city,
+    hasState: !!deliveryAddress.state,
+    hasPincode: !!deliveryAddress.pincode,
+    hasPhone: !!deliveryAddress.phone,
+    hasCountry: !!deliveryAddress.country
+  });
+  
+  // Display recipient name if available
+  if (deliveryAddress.name) {
+    doc.fontSize(11)
+       .fillColor('#64748b')
+       .text(deliveryAddress.name, rightColumnX, rightCurrentY);
+    rightCurrentY += 16;
+  }
+  
+  // Address Line 1
   if (deliveryAddress.addressLine1) {
     doc.fontSize(11)
        .fillColor('#64748b')
@@ -269,13 +304,19 @@ const generatePurchaseStyleAddresses = (doc, orderData, companyData, pageWidth, 
     rightCurrentY += 16;
   }
 
+  // Address Line 2
   if (deliveryAddress.addressLine2) {
-    doc.text(deliveryAddress.addressLine2, rightColumnX, rightCurrentY);
+    doc.text(deliveryAddress.addressLine2, rightColumnX, rightCurrentY, {
+      width: columnWidth - 20
+    });
     rightCurrentY += 16;
   }
 
+  // Landmark
   if (deliveryAddress.landmark) {
-    doc.text(`Near: ${deliveryAddress.landmark}`, rightColumnX, rightCurrentY);
+    doc.text(`Near: ${deliveryAddress.landmark}`, rightColumnX, rightCurrentY, {
+      width: columnWidth - 20
+    });
     rightCurrentY += 16;
   }
 
@@ -291,12 +332,20 @@ const generatePurchaseStyleAddresses = (doc, orderData, companyData, pageWidth, 
     rightCurrentY += 16;
   }
 
-  // Phone and Email
-  if (deliveryAddress.phone || orderData.customerPhone) {
-    doc.text(`Phone: ${deliveryAddress.phone || orderData.customerPhone}`, rightColumnX, rightCurrentY);
+  // Country
+  if (deliveryAddress.country) {
+    doc.text(deliveryAddress.country, rightColumnX, rightCurrentY);
     rightCurrentY += 16;
   }
 
+  // Phone - check multiple possible fields
+  const phoneNumber = deliveryAddress.phone || orderData.customerPhone;
+  if (phoneNumber) {
+    doc.text(`Phone: ${phoneNumber}`, rightColumnX, rightCurrentY);
+    rightCurrentY += 16;
+  }
+
+  // Email
   if (orderData.customerEmail) {
     doc.text(`Email: ${orderData.customerEmail}`, rightColumnX, rightCurrentY);
     rightCurrentY += 16;
@@ -445,30 +494,53 @@ const generatePurchaseStyleSummary = (doc, orderData, pageWidth, leftMargin, cur
   const summaryX = pageWidth - 180;
   const summaryWidth = 180;
 
+  // Debug: Log GST values
+  console.log('📊 GST Breakdown in PDF:', {
+    gstType: orderData.gstType,
+    cgstAmount: orderData.cgstAmount,
+    sgstAmount: orderData.sgstAmount,
+    igstAmount: orderData.igstAmount,
+    totalGstAmount: orderData.totalGstAmount,
+    tax: orderData.tax,
+    adminState: orderData.adminState,
+    customerState: orderData.customerState
+  });
+
   // Determine if this is an inter-state transaction (IGST)
-  const isInterState = (orderData.igstAmount || 0) > 0;
+  const isInterState = orderData.gstType === 'igst' || (orderData.igstAmount || 0) > 0;
 
   const summaryItems = [
     ['Subtotal', `${currencySymbol}${(orderData.subtotal || 0).toFixed(2)}`]
   ];
 
-  // Add GST breakdown
+  // Add GST breakdown based on gstType or amounts
   if (isInterState) {
-    if ((orderData.igstAmount || 0) > 0) {
-      summaryItems.push(['IGST', `${currencySymbol}${(orderData.igstAmount || 0).toFixed(2)}`]);
+    // Inter-state transaction - show IGST
+    const igstAmount = orderData.igstAmount || orderData.totalGstAmount || orderData.tax || 0;
+    if (igstAmount > 0) {
+      summaryItems.push(['IGST', `${currencySymbol}${igstAmount.toFixed(2)}`]);
     }
   } else {
-    if ((orderData.cgstAmount || 0) > 0) {
-      summaryItems.push(['CGST', `${currencySymbol}${(orderData.cgstAmount || 0).toFixed(2)}`]);
+    // Intra-state transaction - show CGST + SGST
+    const cgstAmount = orderData.cgstAmount || 0;
+    const sgstAmount = orderData.sgstAmount || 0;
+    
+    if (cgstAmount > 0 || sgstAmount > 0) {
+      if (cgstAmount > 0) {
+        summaryItems.push(['CGST', `${currencySymbol}${cgstAmount.toFixed(2)}`]);
+      }
+      if (sgstAmount > 0) {
+        summaryItems.push(['SGST', `${currencySymbol}${sgstAmount.toFixed(2)}`]);
+      }
+    } else if ((orderData.totalGstAmount || orderData.tax || 0) > 0) {
+      // Fallback: split tax equally between CGST and SGST if no breakdown available
+      const totalTax = orderData.totalGstAmount || orderData.tax || 0;
+      const halfTax = totalTax / 2;
+      if (halfTax > 0) {
+        summaryItems.push(['CGST', `${currencySymbol}${halfTax.toFixed(2)}`]);
+        summaryItems.push(['SGST', `${currencySymbol}${halfTax.toFixed(2)}`]);
+      }
     }
-    if ((orderData.sgstAmount || 0) > 0) {
-      summaryItems.push(['SGST', `${currencySymbol}${(orderData.sgstAmount || 0).toFixed(2)}`]);
-    }
-  }
-
-  // Fallback for orders without GST breakdown
-  if (!isInterState && !(orderData.cgstAmount || orderData.sgstAmount) && (orderData.tax || 0) > 0) {
-    summaryItems.push(['GST', `${currencySymbol}${(orderData.tax || 0).toFixed(2)}`]);
   }
 
   // Add discount if present
@@ -613,30 +685,52 @@ const getCurrencySymbol = async () => {
 };
 
 /**
- * Get company data from database or environment
+ * Get company data from Admin profile
  */
 const getCompanyData = async () => {
   try {
-    // Try to get from database first
     const { prisma } = require('../../config/database');
     
-    const companySettings = await prisma.companySettings.findFirst();
+    // Get admin data (first active admin)
+    const admin = await prisma.admin.findFirst({
+      where: {
+        isActive: true,
+      },
+      select: {
+        companyName: true,
+        address: true,
+        city: true,
+        state: true,
+        zipCode: true,
+        country: true,
+        phoneNumber: true,
+        email: true,
+        gstNumber: true,
+      }
+    });
     
-    if (companySettings) {
+    if (admin) {
+      console.log('📄 Using admin data for invoice:', {
+        companyName: admin.companyName,
+        state: admin.state,
+        city: admin.city
+      });
+      
       return {
-        companyName: companySettings.companyName,
-        address: companySettings.address,
-        city: companySettings.city,
-        state: companySettings.state,
-        zipCode: companySettings.zipCode,
-        country: companySettings.country || 'India',
-        phone: companySettings.phone,
-        email: companySettings.email,
-        website: companySettings.website
+        companyName: admin.companyName || 'Company Name',
+        address: admin.address || 'Address',
+        city: admin.city || 'City',
+        state: admin.state || 'State',
+        zipCode: admin.zipCode || 'ZIP Code',
+        country: admin.country || 'India',
+        phone: admin.phoneNumber || 'Phone',
+        email: admin.email || 'email@company.com',
+        gstNumber: admin.gstNumber || '',
+        website: ''
       };
     }
   } catch (error) {
-    console.error('Error fetching company data from database:', error);
+    console.error('Error fetching admin data from database:', error);
   }
 
   // Fallback to environment variables or defaults
@@ -649,7 +743,8 @@ const getCompanyData = async () => {
     country: process.env.COMPANY_COUNTRY || 'India',
     phone: process.env.COMPANY_PHONE || '+91 1234567890',
     email: process.env.COMPANY_EMAIL || 'contact@company.com',
-    website: process.env.COMPANY_WEBSITE || 'www.company.com'
+    website: process.env.COMPANY_WEBSITE || 'www.company.com',
+    gstNumber: ''
   };
 };
 

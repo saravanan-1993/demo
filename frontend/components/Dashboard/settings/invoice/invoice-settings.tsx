@@ -348,44 +348,7 @@ export const InvoiceSettings = () => {
         </CardContent>
       </Card>
 
-      {/* Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Status</CardTitle>
-          <CardDescription>
-            Enable or disable invoice generation
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Invoice Generation Active</Label>
-              <p className="text-sm text-muted-foreground">
-                Enable invoice generation with these settings
-              </p>
-            </div>
-            <Switch
-              checked={settings.isActive}
-              onCheckedChange={(checked) => handleChange("isActive", checked)}
-            />
-          </div>
-
-          {settings.createdAt && (
-            <div className="pt-4 border-t space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Created At:</span>
-                <span className="font-medium">{new Date(settings.createdAt).toLocaleString()}</span>
-              </div>
-              {settings.updatedAt && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Last Updated:</span>
-                  <span className="font-medium">{new Date(settings.updatedAt).toLocaleString()}</span>
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      
 
       {/* Save Button */}
       <div className="flex justify-end">

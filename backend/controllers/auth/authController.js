@@ -1677,6 +1677,8 @@ const getAdminSettings = async (req, res) => {
         state: true,
         zipCode: true,
         country: true,
+        phoneNumber: true,
+        email: true,
       },
     });
 
@@ -1709,6 +1711,8 @@ const getAdminSettings = async (req, res) => {
         state: admin.state || "",
         zipCode: admin.zipCode || "",
         country: admin.country || "",
+        phoneNumber: admin.phoneNumber || "",
+        email: admin.email || "",
         billingAddress,
       },
     });

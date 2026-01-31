@@ -115,7 +115,6 @@ const getAllOnlineProducts = async (req, res) => {
     // Convert variant images to proxy URLs and format default image
     const productsWithUrls = products.map((product) => ({
       ...product,
-      defaultProductImage: product.defaultProductImage ? getProxyImageUrl(product.defaultProductImage) : null,
       variants: convertVariantImagesToUrls(product.variants),
     }));
 
@@ -164,7 +163,6 @@ const getOnlineProductById = async (req, res) => {
     // Convert variant images to proxy URLs and format default image
     const productWithUrls = {
       ...product,
-      defaultProductImage: product.defaultProductImage ? getProxyImageUrl(product.defaultProductImage) : null,
       variants: convertVariantImagesToUrls(product.variants),
     };
 
@@ -377,7 +375,6 @@ const createOnlineProduct = async (req, res) => {
     // Format response with proxy image URLs
     const productResponse = {
       ...product,
-      defaultProductImage: product.defaultProductImage ? getProxyImageUrl(product.defaultProductImage) : null,
       variants: convertVariantImagesToUrls(product.variants),
     };
 
@@ -552,7 +549,6 @@ const updateOnlineProduct = async (req, res) => {
     // Format response with proxy image URLs
     const productResponse = {
       ...product,
-      defaultProductImage: product.defaultProductImage ? getProxyImageUrl(product.defaultProductImage) : null,
       variants: convertVariantImagesToUrls(product.variants),
     };
 
@@ -697,7 +693,6 @@ const getFrequentlyBoughtTogether = async (req, res) => {
             brand: addonProduct.brand,
             category: addonProduct.category,
             subCategory: addonProduct.subCategory,
-            defaultProductImage: addonProduct.defaultProductImage ? getProxyImageUrl(addonProduct.defaultProductImage) : null,
           },
           variant: variantWithUrls[0],
         };

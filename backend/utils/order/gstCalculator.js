@@ -113,20 +113,39 @@ const calculateGSTBreakdown = (items, gstType) => {
 };
 
 /**
- * Get admin state from company settings
+ * Get admin state from Admin profile
  * @returns {Promise<string>} Admin state
  */
 const getAdminState = async () => {
   try {
-    const companySettings = await prisma.companySettings.findFirst();
+    // Get the first active admin (assuming single admin or primary admin)
+    const admin = await prisma.admin.findFirst({
+      where: {
+        isActive: true,
+      },
+      select: {
+        state: true,
+        name: true,
+        email: true,
+      },
+    });
 
-    if (companySettings && companySettings.state) {
-      return companySettings.state;
+    console.log('🔍 getAdminState - Admin Profile:', {
+      found: !!admin,
+      state: admin?.state,
+      name: admin?.name,
+      email: admin?.email
+    });
+
+    if (admin && admin.state) {
+      console.log('✅ Admin state found:', admin.state);
+      return admin.state;
     }
 
+    console.warn('⚠️ Admin state not found in admin profile');
     return "";
   } catch (error) {
-    console.error("Error fetching admin state from company settings:", error.message);
+    console.error("❌ Error fetching admin state from admin profile:", error.message);
     return "";
   }
 };
