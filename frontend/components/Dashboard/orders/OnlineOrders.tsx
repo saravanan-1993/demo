@@ -471,17 +471,21 @@ export function OnlineOrders() {
               ` : ''}
               ${(() => {
                 // Determine GST type and amounts
-                const hasIGST = (order.igstAmount || 0) > 0;
-                const hasCGST = (order.cgstAmount || 0) > 0;
-                const hasSGST = (order.sgstAmount || 0) > 0;
+                const igstAmount = order.igstAmount || 0;
+                const cgstAmount = order.cgstAmount || 0;
+                const sgstAmount = order.sgstAmount || 0;
                 const totalTax = order.totalGstAmount || order.tax || 0;
+                
+                const hasIGST = igstAmount > 0;
+                const hasCGST = cgstAmount > 0;
+                const hasSGST = sgstAmount > 0;
                 
                 if (hasIGST) {
                   // Inter-state: Show IGST
                   return `
                     <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px;">
                       <span style="color: #64748b;">IGST</span>
-                      <span style="font-weight: 600; color: #1f2937;">${currencySymbol}${order.igstAmount.toFixed(2)}</span>
+                      <span style="font-weight: 600; color: #1f2937;">${currencySymbol}${igstAmount.toFixed(2)}</span>
                     </div>
                   `;
                 } else if (hasCGST || hasSGST) {
@@ -491,7 +495,7 @@ export function OnlineOrders() {
                     html += `
                       <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px;">
                         <span style="color: #64748b;">CGST</span>
-                        <span style="font-weight: 600; color: #1f2937;">${currencySymbol}${order.cgstAmount.toFixed(2)}</span>
+                        <span style="font-weight: 600; color: #1f2937;">${currencySymbol}${cgstAmount.toFixed(2)}</span>
                       </div>
                     `;
                   }
@@ -499,7 +503,7 @@ export function OnlineOrders() {
                     html += `
                       <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px;">
                         <span style="color: #64748b;">SGST</span>
-                        <span style="font-weight: 600; color: #1f2937;">${currencySymbol}${order.sgstAmount.toFixed(2)}</span>
+                        <span style="font-weight: 600; color: #1f2937;">${currencySymbol}${sgstAmount.toFixed(2)}</span>
                       </div>
                     `;
                   }
