@@ -1,61 +1,32 @@
 const { prisma } = require("../../config/database");
 const PDFDocument = require("pdfkit");
+const { generateInvoiceNumber } = require("../../utils/order/invoiceGenerator");
 
 // Generate POS invoice number
 const generatePOSInvoiceNumber = async (req, res) => {
   try {
-    const settings = await prisma.invoiceSettings.findFirst({
-      where: { isActive: true },
-    });
+    // Always peek (do not increment) for the standalone endpoint
+    // The actual increment happens in createPOSOrder
+    const result = await generateInvoiceNumber({ increment: false });
 
-    if (!settings) {
+    if (!result) {
       return res.status(400).json({
         success: false,
         error: "Invoice settings not configured or inactive",
       });
     }
 
-    // Determine financial year
-    let financialYear = "";
-    if (settings.autoFinancialYear) {
-      const now = new Date();
-      const fyStart = new Date(settings.financialYearStart);
-      const fyEnd = new Date(settings.financialYearEnd);
-
-      if (now >= fyStart && now <= fyEnd) {
-        financialYear = `${fyStart.getFullYear()}-${(fyStart.getFullYear() + 1).toString().slice(-2)}`;
-      } else if (now > fyEnd) {
-        const nextFyStart = new Date(fyStart);
-        nextFyStart.setFullYear(fyStart.getFullYear() + 1);
-        financialYear = `${nextFyStart.getFullYear()}-${(nextFyStart.getFullYear() + 1).toString().slice(-2)}`;
-      } else {
-        financialYear = `${fyStart.getFullYear() - 1}-${fyStart.getFullYear().toString().slice(-2)}`;
-      }
-    } else {
-      financialYear = settings.manualFinancialYear || "";
-    }
-
-    // Format sequence number with leading zeros
-    const sequence = String(settings.currentSequenceNo).padStart(
-      settings.invoiceSequenceLength,
-      "0"
-    );
-
-    // Generate invoice number using template
-    const invoiceNumber = settings.invoiceFormat
-      .replace("{PREFIX}", settings.invoicePrefix)
-      .replace("{FY}", financialYear)
-      .replace("{SEQ}", sequence);
+    const { invoiceNumber, financialYear, nextSequenceNo, settings: metaSettings } = result;
 
     res.status(200).json({
       success: true,
       invoiceNumber,
       data: {
         invoiceNumber,
-        nextSequenceNo: settings.currentSequenceNo + 1,
+        nextSequenceNo,
         settings: {
-          prefix: settings.invoicePrefix,
-          format: settings.invoiceFormat,
+          prefix: metaSettings.prefix,
+          format: metaSettings.format,
           financialYear,
         },
       },

@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { posOrderService } from "@/services/posOrderService";
 import { CustomerSelector } from "./customer-selector";
 
-interface CheckoutModalProps {
+export interface CheckoutModalProps {
   cartItems: CartItem[];
   customer: Customer | null;
   onCustomerChange: (customer: Customer | null) => void;
@@ -31,7 +31,7 @@ interface CheckoutModalProps {
   roundingOff: number;
   finalTotal: number;
   onClose: () => void;
-  onComplete: (paymentMethod: string) => void;
+  onComplete: (paymentMethod: string, order: any) => void;
   formatCurrency: (amount: number, options?: { showSymbol?: boolean; showCode?: boolean; precision?: number }) => string;
 }
 
@@ -104,10 +104,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
       const order = await posOrderService.createOrder(orderData);
       
-      console.log("Order created:", order);
+      console.log("Order created successfully:", order);
       
       setProcessing(false);
-      onComplete(paymentMethod);
+      onComplete(paymentMethod, order);
       
       toast.success("Payment completed successfully!", {
         description: `Order #${order.orderNumber}`,

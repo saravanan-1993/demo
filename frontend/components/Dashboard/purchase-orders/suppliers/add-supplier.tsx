@@ -36,16 +36,18 @@ interface SupplierData {
   shippingState: string;
   shippingPostalCode: string;
   shippingCountry: string;
-  paymentTerms: string;
-  customPaymentTerms: string;
   taxId: string;
   remarks: string;
   attachments: string;
   status: string;
 }
 
+interface SupplierWithId extends SupplierData {
+  id: string;
+}
+
 interface AddSupplierProps {
-  supplier?: SupplierData | null;
+  supplier?: SupplierWithId | null;
   onSubmit: (data: SupplierData, file?: File | null) => void;
   onCancel: () => void;
   isSubmitting?: boolean;
@@ -57,62 +59,93 @@ export default function AddSupplier({
   onCancel,
   isSubmitting = false,
 }: AddSupplierProps) {
-  const [formData, setFormData] = useState<SupplierData>({
-    name: "",
-    supplierType: "manufacturer",
-    contactPersonName: "",
-    phone: "",
-    alternatePhone: "",
-    email: "",
-    billingAddressLine1: "",
-    billingAddressLine2: "",
-    city: "",
-    state: "",
-    postalCode: "",
-    country: "", // Start empty to allow auto-fill
-    shippingAddressSameAsBilling: true,
-    shippingAddressLine1: "",
-    shippingAddressLine2: "",
-    shippingCity: "",
-    shippingState: "",
-    shippingPostalCode: "",
-    shippingCountry: "", // Start empty to allow auto-fill
-    paymentTerms: "net30",
-    customPaymentTerms: "",
-    taxId: "",
-    remarks: "",
-    attachments: "",
-    status: "active",
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [removeAttachment, setRemoveAttachment] = useState(false);
+  
+  const [formData, setFormData] = useState<SupplierData>(() => {
+    if (supplier) {
+      return {
+        name: (supplier.name || "").trim(),
+        supplierType: supplier.supplierType || "manufacturer",
+        contactPersonName: (supplier.contactPersonName || "").trim(),
+        phone: (supplier.phone || "").trim(),
+        alternatePhone: (supplier.alternatePhone || "").trim(),
+        email: (supplier.email || "").trim(),
+        billingAddressLine1: (supplier.billingAddressLine1 || "").trim(),
+        billingAddressLine2: (supplier.billingAddressLine2 || "").trim(),
+        city: (supplier.city || "").trim(),
+        state: (supplier.state || "").trim(),
+        postalCode: (supplier.postalCode || "").trim(),
+        country: (supplier.country || "").trim(),
+        shippingAddressSameAsBilling:
+          supplier.shippingAddressSameAsBilling ?? true,
+        shippingAddressLine1: (supplier.shippingAddressLine1 || "").trim(),
+        shippingAddressLine2: (supplier.shippingAddressLine2 || "").trim(),
+        shippingCity: (supplier.shippingCity || "").trim(),
+        shippingState: (supplier.shippingState || "").trim(),
+        shippingPostalCode: (supplier.shippingPostalCode || "").trim(),
+        shippingCountry: (supplier.shippingCountry || "").trim(),
+
+        taxId: (supplier.taxId || "").trim(),
+        remarks: (supplier.remarks || "").trim(),
+        attachments: supplier.attachments || "",
+        status: supplier.status || "active",
+      };
+    }
+    return {
+      name: "",
+      supplierType: "manufacturer",
+      contactPersonName: "",
+      phone: "",
+      alternatePhone: "",
+      email: "",
+      billingAddressLine1: "",
+      billingAddressLine2: "",
+      city: "",
+      state: "",
+      postalCode: "",
+      country: "",
+      shippingAddressSameAsBilling: true,
+      shippingAddressLine1: "",
+      shippingAddressLine2: "",
+      shippingCity: "",
+      shippingState: "",
+      shippingPostalCode: "",
+      shippingCountry: "",
+      taxId: "",
+      remarks: "",
+      attachments: "",
+      status: "active",
+    };
   });
 
   useEffect(() => {
     if (supplier) {
       // Set form data from supplier
       setFormData({
-        name: supplier.name || "",
+        name: (supplier.name || "").trim(),
         supplierType: supplier.supplierType || "manufacturer",
-        contactPersonName: supplier.contactPersonName || "",
-        phone: supplier.phone || "",
-        alternatePhone: supplier.alternatePhone || "",
-        email: supplier.email || "",
-        billingAddressLine1: supplier.billingAddressLine1 || "",
-        billingAddressLine2: supplier.billingAddressLine2 || "",
-        city: supplier.city || "",
-        state: supplier.state || "",
-        postalCode: supplier.postalCode || "",
-        country: supplier.country || "",
+        contactPersonName: (supplier.contactPersonName || "").trim(),
+        phone: (supplier.phone || "").trim(),
+        alternatePhone: (supplier.alternatePhone || "").trim(),
+        email: (supplier.email || "").trim(),
+        billingAddressLine1: (supplier.billingAddressLine1 || "").trim(),
+        billingAddressLine2: (supplier.billingAddressLine2 || "").trim(),
+        city: (supplier.city || "").trim(),
+        state: (supplier.state || "").trim(),
+        postalCode: (supplier.postalCode || "").trim(),
+        country: (supplier.country || "").trim(),
         shippingAddressSameAsBilling:
           supplier.shippingAddressSameAsBilling ?? true,
-        shippingAddressLine1: supplier.shippingAddressLine1 || "",
-        shippingAddressLine2: supplier.shippingAddressLine2 || "",
-        shippingCity: supplier.shippingCity || "",
-        shippingState: supplier.shippingState || "",
-        shippingPostalCode: supplier.shippingPostalCode || "",
-        shippingCountry: supplier.shippingCountry || "",
-        paymentTerms: supplier.paymentTerms || "net30",
-        customPaymentTerms: supplier.customPaymentTerms || "",
-        taxId: supplier.taxId || "",
-        remarks: supplier.remarks || "",
+        shippingAddressLine1: (supplier.shippingAddressLine1 || "").trim(),
+        shippingAddressLine2: (supplier.shippingAddressLine2 || "").trim(),
+        shippingCity: (supplier.shippingCity || "").trim(),
+        shippingState: (supplier.shippingState || "").trim(),
+        shippingPostalCode: (supplier.shippingPostalCode || "").trim(),
+        shippingCountry: (supplier.shippingCountry || "").trim(),
+
+        taxId: (supplier.taxId || "").trim(),
+        remarks: (supplier.remarks || "").trim(),
         attachments: supplier.attachments || "",
         status: supplier.status || "active",
       });
@@ -120,42 +153,8 @@ export default function AddSupplier({
       // Reset file-related states
       setSelectedFile(null);
       setRemoveAttachment(false);
-    } else {
-      // Reset to default values for new supplier
-      setFormData({
-        name: "",
-        supplierType: "manufacturer",
-        contactPersonName: "",
-        phone: "",
-        alternatePhone: "",
-        email: "",
-        billingAddressLine1: "",
-        billingAddressLine2: "",
-        city: "",
-        state: "",
-        postalCode: "",
-        country: "",
-        shippingAddressSameAsBilling: true,
-        shippingAddressLine1: "",
-        shippingAddressLine2: "",
-        shippingCity: "",
-        shippingState: "",
-        shippingPostalCode: "",
-        shippingCountry: "",
-        paymentTerms: "net30",
-        customPaymentTerms: "",
-        taxId: "",
-        remarks: "",
-        attachments: "",
-        status: "active",
-      });
-      setSelectedFile(null);
-      setRemoveAttachment(false);
     }
   }, [supplier]);
-
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [removeAttachment, setRemoveAttachment] = useState(false);
 
   const handleChange = (field: keyof SupplierData, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -176,6 +175,21 @@ export default function AddSupplier({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!formData.name || !formData.name.trim()) {
+      alert("Please enter Supplier Company Name");
+      return;
+    }
+    if (!formData.email || !formData.email.trim()) {
+      alert("Please enter Email ID");
+      return;
+    }
+    if (!formData.phone || !formData.phone.trim()) {
+      alert("Please enter Mobile Number");
+      return;
+    }
+    
     // If removeAttachment is true, pass a special flag
     if (removeAttachment) {
       onSubmit({ ...formData, attachments: "" }, null);
@@ -469,44 +483,6 @@ export default function AddSupplier({
           Business Information
         </h3>
         <div className="grid grid-cols-2 gap-2">
-          {/* Payment Terms */}
-          <div className="space-y-2">
-            <Label htmlFor="paymentTerms">
-              Payment Terms <span className="text-destructive">*</span>
-            </Label>
-            <Select
-              value={formData.paymentTerms}
-              onValueChange={(value) => handleChange("paymentTerms", value)}
-            >
-              <SelectTrigger id="paymentTerms">
-                <SelectValue placeholder="Select payment terms" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="net7">Net 7</SelectItem>
-                <SelectItem value="net15">Net 15</SelectItem>
-                <SelectItem value="net30">Net 30</SelectItem>
-                <SelectItem value="cod">COD</SelectItem>
-                <SelectItem value="custom">Custom</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {/* Custom Payment Terms */}
-          {formData.paymentTerms === "custom" && (
-            <div className="space-y-2">
-              <Label htmlFor="customPaymentTerms">
-                Custom Payment Terms <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="customPaymentTerms"
-                placeholder="Enter custom payment terms"
-                value={formData.customPaymentTerms}
-                onChange={(e) =>
-                  handleChange("customPaymentTerms", e.target.value)
-                }
-                required={formData.paymentTerms === "custom"}
-              />
-            </div>
-          )}
 
           {/* Tax ID */}
           <div className="space-y-2">

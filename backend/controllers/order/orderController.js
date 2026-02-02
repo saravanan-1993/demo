@@ -418,7 +418,9 @@ const createCODOrder = async (req, res) => {
 
       const totals = await calculateGSTTotals(orderDataForGST);
       const orderNumber = generateOrderNumber();
-      const invoiceNumber = await generateInvoiceNumber(tx);
+      const invoiceResult = await generateInvoiceNumber(tx);
+      if (!invoiceResult) throw new Error("Invoice settings not configured");
+      const { invoiceNumber } = invoiceResult;
 
       // Get financial period for the order
       const { financialYear, accountingPeriod } = await getFinancialPeriod(new Date());
@@ -784,7 +786,9 @@ const confirmOrder = async (req, res) => {
       };
 
       const totals = await calculateGSTTotals(orderDataForGST);
-      const invoiceNumber = await generateInvoiceNumber(tx);
+      const invoiceResult = await generateInvoiceNumber(tx);
+      if (!invoiceResult) throw new Error("Invoice settings not configured");
+      const { invoiceNumber } = invoiceResult;
 
       // Get financial period for the order
       const { financialYear, accountingPeriod } = await getFinancialPeriod(new Date());

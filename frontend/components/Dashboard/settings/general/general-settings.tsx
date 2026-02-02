@@ -39,6 +39,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { getCurrencyByCode, getCurrencySymbol } from "@/lib/currency";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface WorkingHours {
   day: string;
@@ -849,14 +850,13 @@ export const GeneralSettings = () => {
           <Separator />
 
           {/* Working Hours */}
-          <div className="space-y-4">
+          {/* <div className="space-y-4">
             <h3 className="text-lg font-medium flex items-center gap-2">
               <Clock className="h-5 w-5" />
               Working Hours
             </h3>
             <div className="space-y-3">
               {(() => {
-                // Define the correct order of days
                 const dayOrder = [
                   "Monday",
                   "Tuesday",
@@ -867,7 +867,6 @@ export const GeneralSettings = () => {
                   "Sunday",
                 ];
 
-                // Sort working hours according to the day order
                 const sortedWorkingHours = [...workingHours].sort((a, b) => {
                   return dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day);
                 });
@@ -938,7 +937,7 @@ export const GeneralSettings = () => {
                 ));
               })()}
             </div>
-          </div>
+          </div> */}
 
           <Separator />
         </CardContent>

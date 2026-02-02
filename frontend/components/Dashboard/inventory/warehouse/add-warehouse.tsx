@@ -40,44 +40,46 @@ export default function AddWarehouse({
   onCancel,
   isSubmitting = false,
 }: AddWarehouseProps) {
-  const [formData, setFormData] = useState({
-    name: "",
-    address: "",
-    city: "",
-    state: "",
-    postalCode: "",
-    country: "", // Start empty to allow auto-fill
-    manager: "",
-    phone: "",
-    status: "active",
+  const [formData, setFormData] = useState(() => {
+    if (warehouse) {
+      return {
+        name: (warehouse.name || "").trim(),
+        address: (warehouse.address || "").trim(),
+        city: (warehouse.city || "").trim(),
+        state: (warehouse.state || "").trim(),
+        postalCode: (warehouse.postalCode || "").trim(),
+        country: (warehouse.country || "").trim(),
+        manager: (warehouse.manager || "").trim(),
+        phone: (warehouse.phone || "").trim(),
+        status: warehouse.status || "active",
+      };
+    }
+    return {
+      name: "",
+      address: "",
+      city: "",
+      state: "",
+      postalCode: "",
+      country: "",
+      manager: "",
+      phone: "",
+      status: "active",
+    };
   });
 
-  // Load initial data when editing
+  // Update form data if warehouse prop changes (though key prop usually handles this)
   useEffect(() => {
     if (warehouse) {
       setFormData({
-        name: warehouse.name || "",
-        address: warehouse.address || "",
-        city: warehouse.city || "",
-        state: warehouse.state || "",
-        postalCode: warehouse.postalCode || "",
-        country: warehouse.country,
-        manager: warehouse.manager || "",
-        phone: warehouse.phone || "",
+        name: (warehouse.name || "").trim(),
+        address: (warehouse.address || "").trim(),
+        city: (warehouse.city || "").trim(),
+        state: (warehouse.state || "").trim(),
+        postalCode: (warehouse.postalCode || "").trim(),
+        country: (warehouse.country || "").trim(),
+        manager: (warehouse.manager || "").trim(),
+        phone: (warehouse.phone || "").trim(),
         status: warehouse.status || "active",
-      });
-    } else {
-      // Reset form when warehouse is null (adding new)
-      setFormData({
-        name: "",
-        address: "",
-        city: "",
-        state: "",
-        postalCode: "",
-        country: "", // Start empty to allow auto-fill
-        manager: "",
-        phone: "",
-        status: "active",
       });
     }
   }, [warehouse]);

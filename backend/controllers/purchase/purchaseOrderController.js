@@ -169,8 +169,7 @@ const createPurchaseOrder = async (req, res) => {
       warehouseName,
       poDate,
       expectedDeliveryDate,
-      paymentTerms,
-      customPaymentTerms,
+
       poStatus,
       poNotes,
       currency,
@@ -222,9 +221,7 @@ const createPurchaseOrder = async (req, res) => {
         warehouseName,
         poDate: new Date(poDate),
         expectedDeliveryDate: new Date(expectedDeliveryDate),
-        paymentTerms,
-        customPaymentTerms:
-          paymentTerms === "custom" ? customPaymentTerms : null,
+
         poStatus: poStatus || "draft",
         poNotes: poNotes?.trim() || null,
         subTotal,
@@ -354,8 +351,6 @@ const updatePurchaseOrder = async (req, res) => {
       warehouseName,
       poDate,
       expectedDeliveryDate,
-      paymentTerms,
-      customPaymentTerms,
       poStatus,
       poNotes,
       currency,
@@ -443,9 +438,7 @@ const updatePurchaseOrder = async (req, res) => {
         warehouseName,
         poDate: new Date(poDate),
         expectedDeliveryDate: new Date(expectedDeliveryDate),
-        paymentTerms,
-        customPaymentTerms:
-          paymentTerms === "custom" ? customPaymentTerms : null,
+
         poStatus,
         poNotes: poNotes?.trim() || null,
         subTotal,

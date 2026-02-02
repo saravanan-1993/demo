@@ -108,8 +108,6 @@ interface PurchaseOrderData {
   poId: string;
   poDate: string;
   expectedDeliveryDate: string;
-  paymentTerms: string;
-  customPaymentTerms?: string;
   poStatus: string;
   poNotes: string;
   currency: string;
@@ -174,8 +172,6 @@ export default function PurchaseForm({
     poId: "", // Will be auto-generated
     poDate: new Date().toISOString().split("T")[0],
     expectedDeliveryDate: "",
-    paymentTerms: "net30",
-    customPaymentTerms: "",
     poStatus: "draft",
     poNotes: "",
     currency: "INR",
@@ -220,8 +216,6 @@ export default function PurchaseForm({
   const [originalStatus, setOriginalStatus] = useState<string>("draft");
 
   // Track custom payment terms from selected supplier
-  const [customPaymentTermsValue, setCustomPaymentTermsValue] =
-    useState<string>("");
 
   // Track selected category for each row
   const [rowCategories, setRowCategories] = useState<Record<string, string>>(
@@ -343,11 +337,6 @@ export default function PurchaseForm({
       // Store the original status from database
       setOriginalStatus(initialData.poStatus);
 
-      // Initialize custom payment terms value from initialData
-      // This ensures the dropdown shows "Custom (NET 60)" when editing
-      if (initialData.customPaymentTerms) {
-        setCustomPaymentTermsValue(initialData.customPaymentTerms);
-      }
 
       // Set row categories from initial data
       if (propInitialRowCategories) {
@@ -359,19 +348,6 @@ export default function PurchaseForm({
   const handleSupplierChange = (supplierId: string) => {
     const supplier = suppliers.find((s) => s.id === supplierId);
     if (supplier) {
-      // Auto-fill payment terms from supplier
-      let paymentTerms = "net30"; // default
-      if (supplier.paymentTerms) {
-        paymentTerms = supplier.paymentTerms.toLowerCase();
-      }
-
-      // Store custom payment terms value
-      const customTerms =
-        paymentTerms === "custom" && supplier.customPaymentTerms
-          ? supplier.customPaymentTerms
-          : "";
-
-      setCustomPaymentTermsValue(customTerms);
 
       // Determine GST type based on states
       const supplierState = supplier.state || "";
@@ -448,8 +424,6 @@ export default function PurchaseForm({
             supplierEmail: supplier.email,
             supplierGSTIN: supplier.taxId || "",
           },
-          paymentTerms: paymentTerms,
-          customPaymentTerms: customTerms,
           items: updatedItems,
         });
       });
@@ -798,11 +772,17 @@ export default function PurchaseForm({
               <SelectValue placeholder="Select supplier" />
             </SelectTrigger>
             <SelectContent>
-              {suppliers.map((supplier) => (
-                <SelectItem key={supplier.id} value={supplier.id}>
-                  {supplier.name}
-                </SelectItem>
-              ))}
+              {suppliers
+                .filter(
+                  (s) =>
+                    s.status === "active" ||
+                    s.id === formData.supplierInfo.supplierId
+                )
+                .map((supplier) => (
+                  <SelectItem key={supplier.id} value={supplier.id}>
+                    {supplier.name}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>
@@ -903,42 +883,7 @@ export default function PurchaseForm({
           </Popover>
         </div>
 
-        {/* Payment Terms */}
-        <div className="space-y-1.5">
-          <Label htmlFor="paymentTerms" className="text-xs">
-            Payment Terms <span className="text-destructive">*</span>
-          </Label>
-          <Select
-            value={formData.paymentTerms}
-            onValueChange={(value) => {
-              handleChange("paymentTerms", value);
-              // Sync customPaymentTerms to formData
-              if (value === "custom") {
-                setFormData((prev) => ({
-                  ...prev,
-                  customPaymentTerms: customPaymentTermsValue,
-                }));
-              } else {
-                setFormData((prev) => ({ ...prev, customPaymentTerms: "" }));
-              }
-            }}
-          >
-            <SelectTrigger id="paymentTerms" className="h-9">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="net7">Net 7</SelectItem>
-              <SelectItem value="net15">Net 15</SelectItem>
-              <SelectItem value="net30">Net 30</SelectItem>
-              <SelectItem value="cod">COD</SelectItem>
-              <SelectItem value="custom">
-                {customPaymentTermsValue || formData.customPaymentTerms
-                  ? ` ${customPaymentTermsValue || formData.customPaymentTerms}`
-                  : "Custom"}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+
 
         {/* Status */}
         <div className="space-y-1.5">
@@ -1452,6 +1397,16 @@ export default function PurchaseForm({
                   className="h-8 w-24 text-xs"
                   placeholder="0.00"
                 />
+                {formData.discountType === "percentage" &&
+                  formData.discount > 0 && (
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      (- {formData.currencySymbol}
+                      {((formData.subTotal * formData.discount) / 100).toFixed(
+                        2
+                      )}
+                      )
+                    </span>
+                  )}
               </div>
             </div>
 

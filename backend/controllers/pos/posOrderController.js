@@ -2,6 +2,7 @@ const { prisma } = require("../../config/database");
 const { updateStockAfterOrder } = require("../../utils/inventory/stockUpdateService");
 const { getFinancialPeriod } = require("../../utils/finance/financialPeriod");
 const { createPOSTransaction } = require("../../utils/finance/transactionService");
+const { generateInvoiceNumber } = require("../../utils/order/invoiceGenerator");
 
 /**
  * Update customer analytics (total orders, total spent, last order date)
@@ -33,60 +34,6 @@ const updateCustomerAnalytics = async (customerId, orderTotal, orderDate) => {
   } catch (error) {
     console.error("❌ Error updating customer analytics:", error);
     throw error;
-  }
-};
-
-// Generate invoice number based on invoice settings
-const generateInvoiceNumber = async () => {
-  try {
-    const settings = await prisma.invoiceSettings.findFirst({
-      where: { isActive: true },
-    });
-
-    if (!settings) {
-      console.warn("⚠️ No active invoice settings found, skipping invoice number generation");
-      return null;
-    }
-
-    // Determine financial year
-    let financialYear = "";
-    if (settings.autoFinancialYear) {
-      const now = new Date();
-      const fyStart = new Date(settings.financialYearStart);
-
-      if (now >= fyStart) {
-        financialYear = `${fyStart.getFullYear()}-${(fyStart.getFullYear() + 1).toString().slice(-2)}`;
-      } else {
-        financialYear = `${fyStart.getFullYear() - 1}-${fyStart.getFullYear().toString().slice(-2)}`;
-      }
-    } else {
-      financialYear = settings.manualFinancialYear || "";
-    }
-
-    // Format sequence number with leading zeros
-    const sequence = String(settings.currentSequenceNo).padStart(
-      settings.invoiceSequenceLength,
-      "0"
-    );
-
-    // Generate invoice number using template
-    const invoiceNumber = settings.invoiceFormat
-      .replace("{PREFIX}", settings.invoicePrefix)
-      .replace("{FY}", financialYear)
-      .replace("{SEQ}", sequence);
-
-    // Increment sequence number for next invoice
-    await prisma.invoiceSettings.update({
-      where: { id: settings.id },
-      data: {
-        currentSequenceNo: settings.currentSequenceNo + 1,
-      },
-    });
-
-    return invoiceNumber;
-  } catch (error) {
-    console.error("❌ Error generating invoice number:", error);
-    return null;
   }
 };
 
@@ -134,7 +81,8 @@ const createPOSOrder = async (req, res) => {
 
     // Generate order number and invoice number
     const orderNumber = generateOrderNumber();
-    const invoiceNumber = await generateInvoiceNumber();
+    const invoiceResult = await generateInvoiceNumber();
+    const invoiceNumber = invoiceResult?.invoiceNumber || null;
 
     // Get financial period for the order
     const { financialYear, accountingPeriod } = await getFinancialPeriod(new Date());

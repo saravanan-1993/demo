@@ -24,8 +24,7 @@ interface Supplier {
   shippingState: string;
   shippingPostalCode: string;
   shippingCountry: string;
-  paymentTerms: string;
-  customPaymentTerms: string;
+
   taxId: string;
   remarks: string;
   attachments: string;
@@ -155,18 +154,7 @@ export default function SupplierViewDetail({
         <div className="space-y-3">
           <h3 className="font-medium text-base mb-3">Business Information</h3>
 
-          <div className="flex items-start gap-2">
-            <CreditCard className="size-4 text-muted-foreground mt-0.5" />
-            <div>
-              <p className="text-xs text-muted-foreground">Payment Terms</p>
-              <p className="font-medium">
-                {supplier.paymentTerms === "custom" &&
-                supplier.customPaymentTerms
-                  ? supplier.customPaymentTerms
-                  : supplier.paymentTerms.toUpperCase()}
-              </p>
-            </div>
-          </div>
+
 
           {supplier.taxId && (
             <div className="flex items-start gap-2">

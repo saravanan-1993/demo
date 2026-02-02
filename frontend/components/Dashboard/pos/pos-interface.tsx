@@ -145,7 +145,7 @@ export const POSInterface = () => {
   }, []);
 
   // Format currency helper
-  const formatCurrency = (amount: number): string => {
+  const formatCurrency = (amount: number, options?: any): string => {
     return `${currencySymbol}${amount.toFixed(2)}`;
   };
 
@@ -324,19 +324,10 @@ export const POSInterface = () => {
 
   const { subtotal, total, totalDiscount, roundingOff, finalTotal } = calculateTotals();
 
-  const handleCheckoutComplete = async (paymentMethod: string) => {
+  const handleCheckoutComplete = async (paymentMethod: string, order: any) => {
     try {
-      // Generate invoice number from backend
-      const response = await axiosInstance.post(
-        "/api/pos/invoices/generate-invoice-number"
-      );
-
-      if (!response.data.success) {
-        throw new Error(response.data.error || "Failed to generate invoice number");
-      }
-
-      const invoiceNumber = response.data.data.invoiceNumber;
-      const orderDate = new Date().toLocaleDateString();
+      const invoiceNumber = order.invoiceNumber || "";
+      const orderDate = new Date(order.createdAt).toLocaleDateString();
 
       // Store completed order data
       setLastInvoiceNumber(invoiceNumber);
@@ -361,10 +352,8 @@ export const POSInterface = () => {
       // Refresh product catalog smoothly in background (multiple attempts for Kafka sync)
       refreshProductsWithRetry();
     } catch (error) {
-      console.error("Error generating invoice:", error);
-      toast.error("Failed to generate invoice number", {
-        description: error instanceof Error ? error.message : "Please check invoice settings",
-      });
+      console.error("Error setting completed order status:", error);
+      toast.error("Error displaying success details");
     }
   };
 

@@ -53,33 +53,8 @@ export const CountryStateCitySelect = React.forwardRef<
     ref
   ) => {
     const { user } = useAuthContext();
-    
-    // Local state for countries, states, and cities
-    const [countries, setCountries] = React.useState<
-      Array<{ isoCode: string; name: string; flag: string }>
-    >([]);
-    const [states, setStates] = React.useState<
-      Array<{ isoCode: string; name: string }>
-    >([]);
-    const [cities, setCities] = React.useState<Array<{ name: string }>>([]);
-
-    // Track selected codes
-    const [selectedCountryCode, setSelectedCountryCode] =
-      React.useState<string>("");
-    const [selectedStateCode, setSelectedStateCode] = React.useState<string>("");
-    
-    // Track if initial auto-fill has been done
-    const hasAutoFilledRef = React.useRef(false);
     const [systemDefaultCountry, setSystemDefaultCountry] = React.useState<string>('');
-
-    // Load countries on mount
-    React.useEffect(() => {
-      const allCountries = Country.getAllCountries();
-      setCountries(allCountries);
-      console.log('Countries loaded:', allCountries.length); // Debug log
-      console.log('User data:', user); // Debug log
-    }, [user]);
-
+    
     // Fetch system default country (admin's country)
     React.useEffect(() => {
       const fetchSystemSettings = async () => {
@@ -87,7 +62,6 @@ export const CountryStateCitySelect = React.forwardRef<
           const { getSystemSettings } = await import('@/services/systemSettingsService');
           const settings = await getSystemSettings();
           setSystemDefaultCountry(settings.defaultCountry);
-          console.log('System default country:', settings.defaultCountry); // Debug log
         } catch (error) {
           console.error('Error fetching system settings:', error);
         }
@@ -95,92 +69,80 @@ export const CountryStateCitySelect = React.forwardRef<
 
       fetchSystemSettings();
     }, []);
+    
+    // Memoize countries - immediate load
+    const countries = React.useMemo(() => Country.getAllCountries(), []);
 
-    // Auto-fill country on first load if no country is provided
-    React.useEffect(() => {
-      // Only auto-fill if:
-      // 1. Haven't auto-filled yet
-      // 2. No country is currently selected
-      // 3. Either user has a country OR system has a default country
-      // 4. Countries list is loaded
-      if (
-        !hasAutoFilledRef.current &&
-        (!value.country || value.country.trim() === '') &&
-        countries.length > 0
-      ) {
-        // Priority: user's country > system default country (admin's country)
-        const countryToUse = user?.country || systemDefaultCountry;
-        
-        if (countryToUse) {
-          const foundCountry = countries.find(
-            (c) => c.name.toLowerCase() === countryToUse.toLowerCase()
-          );
-          
-          if (foundCountry) {
-            console.log('Auto-filling country:', foundCountry.name); // Debug log
-            hasAutoFilledRef.current = true;
-            onChange({
-              country: foundCountry.name,
-              state: "",
-              city: "",
-            });
-          } else {
-            console.log('Country not found in list:', countryToUse); // Debug log
-          }
+    // Derived state for country code - calculated from props if possible, otherwise internal state
+    const [internalCountryCode, setInternalCountryCode] = React.useState<string>("");
+    
+    // Calculate the effective country code (from props or internal state)
+    // We prioritize the prop 'value.country' if it exists
+    const selectedCountryCode = React.useMemo(() => {
+        if (value.country) {
+             const found = countries.find(c => c.name.trim().toLowerCase() === value.country.trim().toLowerCase());
+             if (found) return found.isoCode;
         }
-      }
-    }, [user?.country, systemDefaultCountry, countries, value.country, onChange]);
+        return internalCountryCode;
+    }, [value.country, countries, internalCountryCode]);
 
-    // Initialize country code from value
-    React.useEffect(() => {
-      if (value.country && countries.length > 0) {
-        const foundCountry = countries.find(
-          (c) => c.name.toLowerCase() === value.country.toLowerCase()
-        );
-        if (foundCountry) {
-          setSelectedCountryCode(foundCountry.isoCode);
-        }
-      }
-    }, [value.country, countries]);
-
-    // Load states when country code changes
-    React.useEffect(() => {
-      if (selectedCountryCode) {
-        const countryStates = State.getStatesOfCountry(selectedCountryCode);
-        setStates(countryStates);
-      } else {
-        setStates([]);
-      }
+    // Memoize states based on selected country
+    const states = React.useMemo(() => {
+        if (!selectedCountryCode) return [];
+        return State.getStatesOfCountry(selectedCountryCode);
     }, [selectedCountryCode]);
 
-    // Initialize state code from value
-    React.useEffect(() => {
-      if (value.state && selectedCountryCode && states.length > 0) {
-        const foundState = states.find(
-          (s) => s.name.toLowerCase() === value.state.toLowerCase()
-        );
-        if (foundState) {
-          setSelectedStateCode(foundState.isoCode);
-        }
-      }
-    }, [value.state, selectedCountryCode, states]);
+    // Derived state for state code
+    const [internalStateCode, setInternalStateCode] = React.useState<string>("");
 
-    // Load cities when state code changes
-    React.useEffect(() => {
-      if (selectedCountryCode && selectedStateCode) {
-        const stateCities = City.getCitiesOfState(
-          selectedCountryCode,
-          selectedStateCode
-        );
-        setCities(stateCities);
-      } else {
-        setCities([]);
-      }
+    // Calculate effective state code
+    const selectedStateCode = React.useMemo(() => {
+        if (value.state) {
+            const found = states.find(s => s.name.trim().toLowerCase() === value.state.trim().toLowerCase());
+            if (found) return found.isoCode;
+        }
+        return internalStateCode;
+    }, [value.state, states, internalStateCode]);
+
+    // Memoize cities based on selected state
+    const cities = React.useMemo(() => {
+        if (!selectedCountryCode || !selectedStateCode) return [];
+        return City.getCitiesOfState(selectedCountryCode, selectedStateCode);
     }, [selectedCountryCode, selectedStateCode]);
 
+    // Auto-fill logic (simpler now)
+    const hasAutoFilledRef = React.useRef(false);
+    
+    React.useEffect(() => {
+        if (
+            !hasAutoFilledRef.current &&
+            !value.country &&
+            countries.length > 0 &&
+            (user?.country || systemDefaultCountry)
+        ) {
+            const countryToUse = user?.country || systemDefaultCountry;
+            const foundCountry = countries.find(
+                (c) => c.name.trim().toLowerCase() === countryToUse.trim().toLowerCase()
+            );
+            
+            if (foundCountry) {
+                console.log('Auto-filling country:', foundCountry.name);
+                hasAutoFilledRef.current = true;
+                // We don't set internal state here, we rely on parent onChange
+                onChange({
+                    country: foundCountry.name,
+                    state: "",
+                    city: "",
+                });
+            }
+        }
+    }, [user?.country, systemDefaultCountry, countries, value.country, onChange]);
+
+    // Handlers
     const handleCountryChange = (countryCode: string) => {
-      setSelectedCountryCode(countryCode);
-      setSelectedStateCode("");
+      setInternalCountryCode(countryCode); // Optimistic update
+      setInternalStateCode(""); 
+      
       const country = countries.find((c) => c.isoCode === countryCode);
       onChange({
         country: country?.name || "",
@@ -190,7 +152,7 @@ export const CountryStateCitySelect = React.forwardRef<
     };
 
     const handleStateChange = (stateCode: string) => {
-      setSelectedStateCode(stateCode);
+      setInternalStateCode(stateCode); // Optimistic update
       const state = states.find((s) => s.isoCode === stateCode);
       onChange({
         ...value,

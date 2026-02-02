@@ -85,7 +85,6 @@ export interface BillFormData {
   supplierId: string;
   supplierName: string;
   poId?: string;
-  paymentTerms: string;
   billDueDate: string;
 
   // Addresses
@@ -180,7 +179,6 @@ export default function BillForm({
     grnDate: new Date().toISOString().split("T")[0],
     supplierId: "",
     supplierName: "",
-    paymentTerms: "net30",
     billDueDate: "",
     billingAddress: "",
     shippingAddress: "",
@@ -526,7 +524,6 @@ export default function BillForm({
           supplierEmail: supplier.email,
           supplierGSTIN: supplier.taxId || "",
           supplierAddress,
-          paymentTerms: po.paymentTerms,
           warehouseId: po.warehouseId,
           warehouseName: po.warehouseName,
           shippingAddress: po.shippingAddress,
@@ -819,11 +816,16 @@ export default function BillForm({
               <SelectValue placeholder="Select PO" />
             </SelectTrigger>
             <SelectContent>
-              {purchaseOrders.map((po) => (
-                <SelectItem key={po.id} value={po.id}>
-                  {po.poId}
-                </SelectItem>
-              ))}
+              {purchaseOrders
+                .filter(
+                  (po) =>
+                    !formData.supplierId || po.supplierId === formData.supplierId
+                )
+                .map((po) => (
+                  <SelectItem key={po.id} value={po.id}>
+                    {po.poId}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>
@@ -902,16 +904,21 @@ export default function BillForm({
           <Select
             value={formData.supplierId}
             onValueChange={handleSupplierSelect}
+            disabled={!!formData.poId || !!initialData}
           >
             <SelectTrigger id="supplierId" className="h-9">
               <SelectValue placeholder="Select" />
             </SelectTrigger>
             <SelectContent>
-              {suppliers.map((supplier) => (
-                <SelectItem key={supplier.id} value={supplier.id}>
-                  {supplier.name}
-                </SelectItem>
-              ))}
+              {suppliers
+                .filter(
+                  (s) => !formData.poId || s.id === formData.supplierId
+                )
+                .map((supplier) => (
+                  <SelectItem key={supplier.id} value={supplier.id}>
+                    {supplier.name}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>
@@ -938,26 +945,7 @@ export default function BillForm({
           </Select>
         </div>
 
-        {/* Payment Terms */}
-        <div className="space-y-1.5">
-          <Label htmlFor="paymentTerms" className="text-xs">
-            Payment <span className="text-destructive">*</span>
-          </Label>
-          <Select
-            value={formData.paymentTerms}
-            onValueChange={(value) => handleChange("paymentTerms", value)}
-          >
-            <SelectTrigger id="paymentTerms" className="h-9">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="net7">Net 7</SelectItem>
-              <SelectItem value="net15">Net 15</SelectItem>
-              <SelectItem value="net30">Net 30</SelectItem>
-              <SelectItem value="cod">COD</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+
       </div>
 
       {/* Addresses */}
@@ -1633,6 +1621,16 @@ export default function BillForm({
                   className="h-8 w-24 text-xs"
                   placeholder="0.00"
                 />
+                {formData.discountType === "percentage" &&
+                  formData.discount > 0 && (
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      (- {currencySymbol}
+                      {((formData.subTotal * formData.discount) / 100).toFixed(
+                        2
+                      )}
+                      )
+                    </span>
+                  )}
               </div>
             </div>
 

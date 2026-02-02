@@ -22,8 +22,6 @@ export interface Supplier {
   shippingState?: string;
   shippingPostalCode?: string;
   shippingCountry?: string;
-  paymentTerms?: string;
-  customPaymentTerms?: string;
   taxId?: string;
   remarks?: string;
   attachments?: string;

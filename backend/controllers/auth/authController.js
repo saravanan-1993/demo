@@ -75,6 +75,24 @@ const register = async (req, res) => {
       });
     }
 
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid email format",
+      });
+    }
+
+    // Phone number format validation (basic check for 10-15 digits)
+    const phoneRegex = /^\+?[\d\s-]{10,15}$/;
+    if (!phoneRegex.test(phoneNumber)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid phone number format",
+      });
+    }
+
     console.log("✅ Validation passed");
 
     // Determine if this should be an admin or user
@@ -150,28 +168,55 @@ const register = async (req, res) => {
         });
     console.log("✅ User created:", user.id);
 
-    // Create Customer record for non-admin users (monolith approach)
+    // Create or Link Customer record for non-admin users
     let customerId = null;
     if (!isAdmin) {
       try {
-        console.log("📝 Creating customer record for user:", user.id);
-        const customer = await prisma.customer.create({
-          data: {
-            userId: user.id,
-            email: user.email,
-            name: user.name,
-            phoneNumber: user.phoneNumber,
-            isVerified: false,
-            provider: 'local',
-          },
+        console.log("📝 Checking for existing customer record for user:", user.id);
+        
+        // Check if customer exists with the same email OR phone number
+        const existingCustomer = await prisma.customer.findFirst({
+          where: {
+            OR: [
+              { email: user.email },
+              { phoneNumber: user.phoneNumber }
+            ]
+          }
         });
-        customerId = customer.id;
-        console.log("✅ Customer record created:", customer.id);
+
+        if (existingCustomer) {
+          console.log("🔗 Customer already exists, linking user to existing customer:", existingCustomer.id);
+          const updatedCustomer = await prisma.customer.update({
+            where: { id: existingCustomer.id },
+            data: {
+              userId: user.id, // Link the user
+              // Update other fields if necessary, but be careful not to overwrite existing distinct data indiscriminately
+              // For now, we assume matching email implies same person
+              isVerified: existingCustomer.isVerified || false, // Keep verified if already verified
+            }
+          });
+          customerId = updatedCustomer.id;
+          console.log("✅ User linked to existing customer:", customerId);
+        } else {
+          console.log("📝 Creating new customer record for user:", user.id);
+          const customer = await prisma.customer.create({
+            data: {
+              userId: user.id,
+              email: user.email,
+              name: user.name,
+              phoneNumber: user.phoneNumber,
+              isVerified: false,
+              provider: 'local',
+            },
+          });
+          customerId = customer.id;
+          console.log("✅ Customer record created:", customer.id);
+        }
       } catch (customerError) {
-        console.error("❌ Failed to create customer record:");
+        console.error("❌ Failed to handle customer record:");
         console.error("Error details:", customerError);
         console.error("User data:", { userId: user.id, email: user.email, name: user.name });
-        // Don't fail registration if customer creation fails
+        // Don't fail registration if customer creation/linking fails
       }
     }
 
@@ -500,25 +545,46 @@ const googleCallback = async (req, res) => {
         : await prisma.user.create({ data: createData });
       console.log("✅ Google user auto-registered:", user.id);
 
-      // Create Customer record for non-admin users (monolith approach)
+      // Create or Link Customer record for non-admin users
       let customerId = null;
       if (!isAdmin) {
         try {
-          console.log("📝 Creating customer record for Google user:", user.id);
-          const customer = await prisma.customer.create({
-            data: {
-              userId: user.id,
-              email: user.email,
-              name: user.name,
-              image: user.image,
-              isVerified: true,
-              provider: 'google',
-            },
+          console.log("📝 Checking for existing customer record for Google user:", user.id);
+          
+          const existingCustomer = await prisma.customer.findUnique({
+             where: { email: user.email }
           });
-          customerId = customer.id;
-          console.log("✅ Customer record created for Google user:", customer.id);
+
+          if (existingCustomer) {
+             console.log("🔗 Customer already exists, linking Google user to existing customer:", existingCustomer.id);
+             const updatedCustomer = await prisma.customer.update({
+                where: { id: existingCustomer.id },
+                data: {
+                   userId: user.id,
+                   image: user.image || existingCustomer.image, // Update image if available
+                   isVerified: true, // Google users are verified
+                   provider: existingCustomer.provider === 'local' ? 'google' : existingCustomer.provider // Update provider if upgrading
+                }
+             });
+             customerId = updatedCustomer.id;
+             console.log("✅ Google user linked to existing customer:", customerId);
+          } else {
+             console.log("📝 Creating customer record for Google user:", user.id);
+             const customer = await prisma.customer.create({
+              data: {
+                userId: user.id,
+                email: user.email,
+                name: user.name,
+                image: user.image,
+                isVerified: true,
+                provider: 'google',
+              },
+            });
+            customerId = customer.id;
+            console.log("✅ Customer record created for Google user:", customer.id);
+          }
         } catch (customerError) {
-          console.error("❌ Failed to create customer record for Google user:");
+          console.error("❌ Failed to handle customer record for Google user:");
           console.error("Error details:", customerError);
           console.error("User data:", { userId: user.id, email: user.email, name: user.name });
           // Don't fail authentication if customer creation fails

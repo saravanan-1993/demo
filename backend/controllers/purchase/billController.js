@@ -187,7 +187,7 @@ const createBill = async (req, res) => {
       supplierId,
       supplierName,
       poId,
-      paymentTerms,
+
       billDueDate,
       billingAddress,
       shippingAddress,
@@ -278,7 +278,7 @@ const createBill = async (req, res) => {
         vehicleNumber: deliveryChallanNumber,
         lrNumber: deliveryChallanNumber,
         eWayBillNumber,
-        paymentTerms,
+
         paymentStatus: paymentStatus || "unpaid",
         paymentDate: paymentDate ? new Date(paymentDate) : null,
         paidAmount: paymentStatus === "paid" ? parseFloat(grandTotal) : 0,
@@ -368,8 +368,8 @@ const updateBill = async (req, res) => {
       supplierId,
       supplierName,
       poId,
-      paymentTerms,
       billDueDate,
+
       billingAddress,
       shippingAddress,
       warehouseId,
@@ -471,8 +471,8 @@ const updateBill = async (req, res) => {
         vehicleNumber: deliveryChallanNumber,
         lrNumber: deliveryChallanNumber,
         eWayBillNumber,
-        paymentTerms,
         paymentStatus: paymentStatus || existingBill.paymentStatus,
+
         paymentDate: paymentDate ? new Date(paymentDate) : null,
         paidAmount: paymentStatus === "paid" ? parseFloat(grandTotal) : existingBill.paidAmount,
         subTotal: parseFloat(subTotal),

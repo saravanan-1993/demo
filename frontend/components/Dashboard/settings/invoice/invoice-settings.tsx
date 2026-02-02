@@ -92,38 +92,18 @@ export const InvoiceSettings = () => {
     
     let fy = "";
     if (settings.autoFinancialYear) {
-      if (settings.financialYearStart && settings.financialYearEnd) {
-        try {
-          const fyStart = new Date(settings.financialYearStart);
-          const fyEnd = new Date(settings.financialYearEnd);
-          
-          if (!isNaN(fyStart.getTime()) && !isNaN(fyEnd.getTime())) {
-            // Use the year from the start date directly
-            const startYear = fyStart.getFullYear();
-            const endYear = fyEnd.getFullYear();
-            
-            // Financial year is based on the start and end years set
-            fy = `${startYear}-${endYear.toString().slice(-2)}`;
-          } else {
-            const now = new Date();
-            fy = `${now.getFullYear()}-${(now.getFullYear() + 1).toString().slice(-2)}`;
-          }
-        } catch {
-          const now = new Date();
-          fy = `${now.getFullYear()}-${(now.getFullYear() + 1).toString().slice(-2)}`;
-        }
-      } else {
-        const now = new Date();
-        fy = `${now.getFullYear()}-${(now.getFullYear() + 1).toString().slice(-2)}`;
-      }
+      const fyStartDate = new Date(settings.financialYearStart);
+      const startYear = fyStartDate.getFullYear();
+      const endYear = startYear + 1;
+      fy = `${startYear}-${endYear.toString().slice(-2)}`;
     } else {
       fy = settings.manualFinancialYear || "2024-25";
     }
 
     return settings.invoiceFormat
-      .replace("{PREFIX}", prefix)
-      .replace("{FY}", fy)
-      .replace("{SEQ}", seq);
+      .replace(/\{PREFIX\}|\[PREFIX\]/gi, prefix)
+      .replace(/\{FY\}|\[FY\]/gi, fy)
+      .replace(/\{SEQ\}|\[SEQ\]/gi, seq);
   }, [settings.invoicePrefix, settings.invoiceSequenceLength, settings.currentSequenceNo, settings.financialYearStart, settings.financialYearEnd, settings.autoFinancialYear, settings.manualFinancialYear, settings.invoiceFormat]);
 
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
@@ -325,9 +305,10 @@ export const InvoiceSettings = () => {
           <div className="space-y-2">
             <Label>Format Template</Label>
             <Input
+              id="invoiceFormat"
               value={settings.invoiceFormat}
-              disabled
-              className="bg-muted"
+              onChange={(e) => handleChange("invoiceFormat", e.target.value)}
+              placeholder="{PREFIX}-{FY}-{SEQ}"
             />
             <p className="text-xs text-muted-foreground">
               Variables: {"{PREFIX}"} = Invoice Prefix, {"{FY}"} = Financial Year, {"{SEQ}"} = Sequence Number

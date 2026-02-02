@@ -27,7 +27,7 @@ const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
       
       const allCountries = Country.getAllCountries();
       return allCountries.find(
-        (c) => c.name.toLowerCase() === country.toLowerCase()
+        (c) => c.name.trim().toLowerCase() === country.trim().toLowerCase()
       );
     }, [country]);
     

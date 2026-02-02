@@ -74,14 +74,14 @@ export default function Warehouse() {
   // Check URL params - only when dialog is not already open and not intentionally closing
   useEffect(() => {
     const warehouseId = searchParams.get("id");
-    if (warehouseId && !isAddDialogOpen && !isClosingRef.current && warehouses.length > 0) {
+    if (warehouseId && !isClosingRef.current && warehouses.length > 0) {
       const warehouse = warehouses.find((w) => w.id === warehouseId);
-      if (warehouse) {
+      if (warehouse && (!editingWarehouse || editingWarehouse.id !== warehouse.id)) {
         setEditingWarehouse(warehouse);
         setIsAddDialogOpen(true);
       }
     }
-  }, [searchParams, warehouses, isAddDialogOpen]);
+  }, [searchParams, warehouses]);
 
   const fetchWarehouses = async () => {
     try {

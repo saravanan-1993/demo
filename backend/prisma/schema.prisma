@@ -1010,13 +1010,22 @@ model InvoiceSettings {
   financialYearEnd       DateTime // Full date with year
   autoFinancialYear      Boolean  @default(true)
   manualFinancialYear    String?
-  currentSequenceNo      Int      @default(1)
   invoiceFormat          String   @default("{PREFIX}-{FY}-{SEQ}")
   isActive               Boolean  @default(true)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
   @@map("invoice_settings")
+}
+
+model InvoiceSequence {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  financialYear     String   @unique
+  currentSequenceNo Int      @default(1)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("invoice_sequences")
 }
 
 model GSTRate {
@@ -1068,8 +1077,6 @@ model Supplier {
   shippingState                   String?
   shippingPostalCode              String?
   shippingCountry                 String?
-  paymentTerms                    String?
-  customPaymentTerms              String?
   taxId                           String?
   remarks                         String?
   attachments                     String?
@@ -1108,8 +1115,6 @@ model PurchaseOrder {
   // Purchase Order Details
   poDate                DateTime
   expectedDeliveryDate  DateTime
-  paymentTerms          String              // net7, net15, net30, cod, custom
-  customPaymentTerms    String?             // Custom payment terms (e.g., "NET 60", "NET 50")
   poStatus              String              @default("draft") // draft, completed
   poNotes               String?
   
@@ -1228,7 +1233,6 @@ model Bill {
   eWayBillNumber        String?
   
   // Payment Information
-  paymentTerms          String        // net7, net15, net30, cod, advance
   paymentStatus         String        @default("unpaid") // unpaid, partial, paid
   paymentDate           DateTime?     // Date when payment was made
   paidAmount            Float         @default(0)

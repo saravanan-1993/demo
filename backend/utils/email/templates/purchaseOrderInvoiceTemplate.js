@@ -58,7 +58,6 @@ const getPurchaseOrderInvoiceHTML = (
     billingAddress,
     shippingAddress,
     warehouseName,
-    paymentTerms,
     currency,
     currencySymbol,
     items = [],
@@ -77,28 +76,6 @@ const getPurchaseOrderInvoiceHTML = (
 
   // Use currency symbol from data, fallback to 
   const symbol = currencySymbol || "";
-
-  // Format payment terms
-  const paymentTermsMap = {
-    net7: "Net 7 Days",
-    net15: "Net 15 Days",
-    net30: "Net 30 Days",
-    net45: "Net 45 Days",
-    net60: "Net 60 Days",
-    cod: "Cash on Delivery",
-    custom: "Custom Terms", // Default label for custom
-  };
-
-  // For custom payment terms, try to extract from notes or use default
-  let formattedPaymentTerms = paymentTermsMap[paymentTerms] || paymentTerms;
-
-  // If custom, try to extract actual value from notes
-  if (paymentTerms === "custom" && poNotes) {
-    const match = poNotes.match(/Payment Terms:\s*([^\n]+)/);
-    if (match && match[1]) {
-      formattedPaymentTerms = match[1].trim();
-    }
-  }
 
   // Calculate discount amount
   let discountAmount = discount || 0;
@@ -388,7 +365,6 @@ const getPurchaseOrderInvoiceHTML = (
             month: "short",
             year: "numeric",
           })}</p>
-          <p><strong>Payment Terms:</strong> ${formattedPaymentTerms}</p>
         </div>
         <div class="info-box">
           <h3>🏢 Supplier Details</h3>

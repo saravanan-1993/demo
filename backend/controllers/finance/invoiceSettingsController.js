@@ -1,4 +1,5 @@
 const { prisma } = require("../../config/database");
+const { generateInvoiceNumber: generateInvoiceNumberUtil } = require("../../utils/order/invoiceGenerator");
 
 // Get invoice settings
 const getInvoiceSettings = async (req, res) => {
@@ -19,16 +20,21 @@ const getInvoiceSettings = async (req, res) => {
           financialYearStart: fyStart,
           financialYearEnd: fyEnd,
           autoFinancialYear: true,
-          currentSequenceNo: 1,
           invoiceFormat: "{PREFIX}-{FY}-{SEQ}",
           isActive: true,
         },
       });
     }
 
+    // Get current sequence for the active financial year to show in UI
+    const invoicePreview = await generateInvoiceNumberUtil({ increment: false });
+
     res.status(200).json({
       success: true,
-      data: settings,
+      data: {
+        ...settings,
+        currentSequenceNo: invoicePreview?.currentSequenceNo || 1
+      },
     });
   } catch (error) {
     console.error("Error fetching invoice settings:", error);
@@ -50,7 +56,6 @@ const updateInvoiceSettings = async (req, res) => {
       financialYearEnd,
       autoFinancialYear,
       manualFinancialYear,
-      currentSequenceNo,
       invoiceFormat,
       isActive,
     } = req.body;
@@ -98,15 +103,9 @@ const updateInvoiceSettings = async (req, res) => {
       financialYearEnd: new Date(financialYearEnd),
       autoFinancialYear: autoFinancialYear === true || autoFinancialYear === "true",
       manualFinancialYear: manualFinancialYear || null,
-      // currentSequenceNo is excluded - it should only be updated by invoice generation
       invoiceFormat: invoiceFormat || "{PREFIX}-{FY}-{SEQ}",
       isActive: isActive === true || isActive === "true",
     };
-
-    // Only set currentSequenceNo on initial creation, not on updates
-    if (!settings) {
-      settingsData.currentSequenceNo = 1;
-    }
 
     if (settings) {
       // Update existing settings
@@ -121,10 +120,16 @@ const updateInvoiceSettings = async (req, res) => {
       });
     }
 
+    // Get current sequence for the active financial year to show in UI
+    const invoicePreview = await generateInvoiceNumberUtil({ increment: false });
+
     res.status(200).json({
       success: true,
       message: "Invoice settings updated successfully",
-      data: settings,
+      data: {
+        ...settings,
+        currentSequenceNo: invoicePreview?.currentSequenceNo || 1
+      },
     });
   } catch (error) {
     console.error("Error updating invoice settings:", error);
@@ -139,55 +144,21 @@ const updateInvoiceSettings = async (req, res) => {
 // Generate next invoice number
 const generateInvoiceNumber = async (req, res) => {
   try {
-    const settings = await prisma.invoiceSettings.findFirst();
+    // For settings display/preview, we should NEVER increment the sequence
+    const result = await generateInvoiceNumberUtil({ increment: false });
 
-    if (!settings || !settings.isActive) {
+    if (!result) {
       return res.status(400).json({
         success: false,
         error: "Invoice settings not configured or inactive",
       });
     }
 
-    // Determine financial year
-    let financialYear = "";
-    if (settings.autoFinancialYear) {
-      const now = new Date();
-      const fyStart = new Date(settings.financialYearStart);
-
-      if (now >= fyStart) {
-        financialYear = `${fyStart.getFullYear()}-${(fyStart.getFullYear() + 1).toString().slice(-2)}`;
-      } else {
-        financialYear = `${fyStart.getFullYear() - 1}-${fyStart.getFullYear().toString().slice(-2)}`;
-      }
-    } else {
-      financialYear = settings.manualFinancialYear || "";
-    }
-
-    // Format sequence number with leading zeros
-    const sequence = String(settings.currentSequenceNo).padStart(
-      settings.invoiceSequenceLength,
-      "0"
-    );
-
-    // Generate invoice number using template
-    let invoiceNumber = settings.invoiceFormat
-      .replace("{PREFIX}", settings.invoicePrefix)
-      .replace("{FY}", financialYear)
-      .replace("{SEQ}", sequence);
-
-    // Increment sequence number for next invoice
-    await prisma.invoiceSettings.update({
-      where: { id: settings.id },
-      data: {
-        currentSequenceNo: settings.currentSequenceNo + 1,
-      },
-    });
-
     res.status(200).json({
       success: true,
       data: {
-        invoiceNumber,
-        nextSequenceNo: settings.currentSequenceNo + 1,
+        invoiceNumber: result.invoiceNumber,
+        nextSequenceNo: result.nextSequenceNo,
       },
     });
   } catch (error) {

@@ -56,8 +56,7 @@ type Supplier = {
   shippingState: string;
   shippingPostalCode: string;
   shippingCountry: string;
-  paymentTerms: string;
-  customPaymentTerms: string;
+
   taxId: string;
   remarks: string;
   attachments: string;
@@ -89,22 +88,21 @@ export default function SuppliersList() {
     fetchSuppliers();
   }, []);
 
-  // Check URL params
+  // Check URL params and open edit modal if supplier ID is present
   useEffect(() => {
     const supplierId = searchParams.get("id");
     if (
       supplierId &&
-      !isAddDialogOpen &&
       !isClosingRef.current &&
       suppliers.length > 0
     ) {
       const supplier = suppliers.find((s) => s.id === supplierId);
-      if (supplier) {
+      if (supplier && (!editingSupplier || editingSupplier.id !== supplier.id)) {
         setEditingSupplier(supplier);
         setIsAddDialogOpen(true);
       }
     }
-  }, [searchParams, suppliers, isAddDialogOpen]);
+  }, [searchParams, suppliers]);
 
   const fetchSuppliers = async () => {
     try {

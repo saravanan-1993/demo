@@ -99,7 +99,7 @@ const ZipCodeInput = React.forwardRef<HTMLInputElement, ZipCodeInputProps>(
       
       const allCountries = Country.getAllCountries();
       const foundCountry = allCountries.find(
-        (c) => c.name.toLowerCase() === country.toLowerCase()
+        (c) => c.name.trim().toLowerCase() === country.trim().toLowerCase()
       );
       
       const isoCode = foundCountry?.isoCode || "IN";
@@ -576,7 +576,16 @@ const ZipCodeInput = React.forwardRef<HTMLInputElement, ZipCodeInputProps>(
               }}
             >
               <Command>
-                <CommandList>
+                <CommandList 
+                  className="max-h-[300px] overflow-y-scroll [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-red-500 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-red-600"
+                  style={{ scrollBehavior: 'smooth' }}
+                  onWheel={(e) => {
+                    e.preventDefault();
+                    const element = e.currentTarget;
+                    const scrollAmount = (e as any).deltaY * 1.5; // 1.5x faster scrolling
+                    element.scrollTop += scrollAmount;
+                  }}
+                >
                   <CommandEmpty>No postal codes found.</CommandEmpty>
                   <CommandGroup>
                     {/* Indian suggestions */}
