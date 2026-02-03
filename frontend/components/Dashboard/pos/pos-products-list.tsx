@@ -40,6 +40,12 @@ import {
 import { useRouter } from "next/navigation";
 import axiosInstance from "@/lib/axios";
 import { authService } from "@/services/authService";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Product {
   id: string;
@@ -441,9 +447,18 @@ export const PosProductsList = () => {
                         )}
                       </div>
                       {product.description && (
-                        <div className="text-xs text-muted-foreground line-clamp-1">
-                          {product.description}
-                        </div>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="text-xs text-muted-foreground line-clamp-1 cursor-help">
+                                {product.description}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-md">
+                              <p>{product.description}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       )}
                     </div>
                   </TableCell>
