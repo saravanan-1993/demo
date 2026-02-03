@@ -47,6 +47,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
+import Barcode from "react-barcode";
 import axiosInstance from "@/lib/axios";
 import { InvoiceView } from "./InvoiceView";
 
@@ -64,6 +71,7 @@ interface OrderItem {
   sku?: string;
   itemCode?: string;
   hsnCode?: string;
+  barcodes?: string[]; // Array of barcodes for variants
 }
 
 interface OnlineOrder {
@@ -833,6 +841,7 @@ export function OnlineOrders() {
               <TableHead>Order Number</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Items</TableHead>
+              {/* <TableHead>Barcodes</TableHead> */}
               <TableHead>Total</TableHead>
               <TableHead>Payment</TableHead>
               <TableHead>Status</TableHead>
@@ -870,6 +879,79 @@ export function OnlineOrders() {
                     </div>
                   </TableCell>
                   <TableCell>{order.items.length} items</TableCell>
+                  {/* <TableCell>
+                    {order.items && order.items.length > 0 ? (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-8">
+                            View Barcodes
+                            <ChevronDown className="ml-2 h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-80">
+                          {order.items.map((item: OrderItem, index: number) => (
+                            <div key={index} className="p-2 border-b last:border-b-0">
+                              <div className="font-medium text-sm mb-1">
+                                {item.displayName || item.variantName || item.productName}
+                              </div>
+                              {item.barcodes && item.barcodes.length > 0 ? (
+                                <div className="space-y-2">
+                                  {item.barcodes.map((barcode: string, bIndex: number) => (
+                                    <div key={bIndex} className="flex items-center justify-between gap-2">
+                                      <div className="flex-1 bg-white p-2 rounded border">
+                                        <Barcode value={barcode} width={1} height={30} fontSize={10} />
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          const tempDiv = document.createElement('div');
+                                          tempDiv.style.position = 'fixed';
+                                          tempDiv.style.left = '-9999px';
+                                          document.body.appendChild(tempDiv);
+                                          
+                                          import('react-dom/client').then(({ createRoot }) => {
+                                            const root = createRoot(tempDiv);
+                                            root.render(<Barcode value={barcode} />);
+                                            
+                                            setTimeout(() => {
+                                              const svg = tempDiv.querySelector('svg');
+                                              if (svg) {
+                                                const svgData = new XMLSerializer().serializeToString(svg);
+                                                const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                                                const url = URL.createObjectURL(svgBlob);
+                                                const link = document.createElement('a');
+                                                link.href = url;
+                                                link.download = `barcode-${barcode}.svg`;
+                                                document.body.appendChild(link);
+                                                link.click();
+                                                document.body.removeChild(link);
+                                                URL.revokeObjectURL(url);
+                                                toast.success('Barcode downloaded');
+                                              }
+                                              root.unmount();
+                                              document.body.removeChild(tempDiv);
+                                            }, 100);
+                                          });
+                                        }}
+                                        title="Download barcode"
+                                      >
+                                        <IconDownload size={16} />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">No barcode</p>
+                              )}
+                            </div>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">-</span>
+                    )}
+                  </TableCell> */}
                   <TableCell className="font-semibold">
                     {currencySymbol}
                     {(order.total || 0).toFixed(2)}

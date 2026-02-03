@@ -30,12 +30,15 @@ import { CalendarIcon, Loader2, Plus, X, Edit2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import axiosInstance from "@/lib/axios";
+import { toast } from "sonner";
 
 interface AddItemModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (itemData: ItemFormData) => Promise<void>;
   isSubmitting?: boolean;
+  editMode?: boolean;
+  initialData?: Partial<ItemFormData> & { id?: string; originalSKU?: string };
 }
 
 export interface ItemFormData {
@@ -53,7 +56,7 @@ export interface ItemFormData {
   status: string;
   expiryDate: Date | undefined;
   description: string;
-  itemImage: File | null;
+  itemImage: File | string | null; // Can be File (new upload) or string (existing URL)
 }
 
 const UOM_OPTIONS = [
@@ -79,6 +82,8 @@ export default function AddItemModal({
   onOpenChange,
   onSubmit,
   isSubmitting = false,
+  editMode = false,
+  initialData,
 }: AddItemModalProps) {
   const [formData, setFormData] = useState<ItemFormData>({
     itemName: "",
@@ -170,7 +175,7 @@ export default function AddItemModal({
     fetchData();
   }, [open]);
 
-  // Reset form when modal closes
+  // Reset form when modal closes or load initial data in edit mode
   useEffect(() => {
     if (!open) {
       setFormData({
@@ -197,8 +202,27 @@ export default function AddItemModal({
         clearTimeout(skuValidationTimer);
         setSkuValidationTimer(null);
       }
+    } else if (editMode && initialData) {
+      // Load initial data in edit mode
+      setFormData({
+        itemName: initialData.itemName || "",
+        category: initialData.category || "",
+        itemCode: initialData.itemCode || "",
+        uom: initialData.uom || "",
+        purchasePrice: initialData.purchasePrice || "",
+        gstRateId: initialData.gstRateId || "",
+        gstPercentage: initialData.gstPercentage || "",
+        hsnCode: initialData.hsnCode || "",
+        warehouse: initialData.warehouse || "",
+        openingStock: initialData.openingStock || "",
+        lowStockAlertLevel: initialData.lowStockAlertLevel || "",
+        status: initialData.status || "in_stock",
+        expiryDate: initialData.expiryDate,
+        description: initialData.description || "",
+        itemImage: initialData.itemImage || null,
+      });
     }
-  }, [open, skuValidationTimer]);
+  }, [open, editMode, initialData, skuValidationTimer]);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof ItemFormData, string>> = {};
@@ -211,6 +235,9 @@ export default function AddItemModal({
     }
     if (!formData.category) {
       newErrors.category = "Category is required";
+    }
+    if (!formData.itemCode.trim()) {
+      newErrors.itemCode = "SKU/Item Code is required";
     }
     if (!formData.uom) {
       newErrors.uom = "Unit of measurement is required";
@@ -256,8 +283,8 @@ export default function AddItemModal({
       });
     }
 
-    // Validate SKU/itemCode in real-time with debouncing
-    if (field === "itemCode" && typeof value === "string") {
+    // Validate SKU/itemCode in real-time with debouncing (only in add mode)
+    if (field === "itemCode" && typeof value === "string" && !editMode) {
       // Clear previous timer
       if (skuValidationTimer) {
         clearTimeout(skuValidationTimer);
@@ -278,6 +305,9 @@ export default function AddItemModal({
   const validateSKU = async (sku: string) => {
     if (!sku || sku.trim() === "") return;
 
+    // Skip validation in edit mode since SKU is disabled
+    if (editMode) return;
+
     try {
       setIsValidatingSKU(true);
       
@@ -287,20 +317,37 @@ export default function AddItemModal({
       if (response.data.success) {
         const items = response.data.data;
         const duplicateItem = items.find(
-          (item: { itemCode: string }) => 
-            item.itemCode && item.itemCode.toLowerCase() === sku.toLowerCase()
+          (item: { itemCode: string; id: string }) => 
+            item.itemCode && 
+            item.itemCode.toLowerCase() === sku.toLowerCase()
         );
 
         if (duplicateItem) {
+          const errorMsg = `SKU "${sku}" already exists. Please use a unique SKU.`;
           setErrors((prev) => ({
             ...prev,
-            itemCode: `SKU "${sku}" already exists. Please use a unique SKU.`,
+            itemCode: errorMsg,
           }));
+          toast.error("Duplicate SKU", {
+            description: errorMsg,
+          });
+        } else {
+          // Clear error if SKU is valid
+          setErrors((prev) => {
+            const newErrors = { ...prev };
+            delete newErrors.itemCode;
+            return newErrors;
+          });
+          toast.success("SKU Available", {
+            description: `SKU "${sku}" is available for use.`,
+          });
         }
       }
     } catch (error) {
       console.error("Error validating SKU:", error);
-      // Don't show error to user for validation failures
+      toast.error("Validation Error", {
+        description: "Failed to validate SKU. Please try again.",
+      });
     } finally {
       setIsValidatingSKU(false);
     }
@@ -322,11 +369,17 @@ export default function AddItemModal({
         setShowAddCategory(false);
         setCategoryDropdownOpen(false);
         setExplicitlyClosing(true);
+        toast.success("Category Added", {
+          description: `Category "${newCategory.name}" has been added successfully.`,
+        });
       }
     } catch (error) {
       console.error("Error adding category:", error);
       const err = error as { response?: { data?: { error?: string } } };
-      alert(err.response?.data?.error || "Failed to add category");
+      const errorMsg = err.response?.data?.error || "Failed to add category";
+      toast.error("Error", {
+        description: errorMsg,
+      });
     }
   };
 
@@ -354,11 +407,17 @@ export default function AddItemModal({
         setEditCategoryName("");
         setCategoryDropdownOpen(false);
         setExplicitlyClosing(true);
+        toast.success("Category Updated", {
+          description: `Category has been updated to "${updatedCategory.name}".`,
+        });
       }
     } catch (error) {
       console.error("Error updating category:", error);
       const err = error as { response?: { data?: { error?: string } } };
-      alert(err.response?.data?.error || "Failed to update category");
+      const errorMsg = err.response?.data?.error || "Failed to update category";
+      toast.error("Error", {
+        description: errorMsg,
+      });
     }
   };
 
@@ -373,7 +432,7 @@ export default function AddItemModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="min-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Item</DialogTitle>
+          <DialogTitle>{editMode ? "Edit Item" : "Add New Item"}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -387,7 +446,8 @@ export default function AddItemModal({
               maxFileSize={5 * 1024 * 1024}
               onUploadSuccess={(file) => handleInputChange("itemImage", file)}
               onFileRemove={() => handleInputChange("itemImage", null)}
-              currentFile={formData.itemImage}
+              currentFile={formData.itemImage instanceof File ? formData.itemImage : undefined}
+              existingImageUrl={typeof formData.itemImage === "string" ? formData.itemImage : undefined}
             />
             {errors.itemImage && (
               <p className="text-xs text-destructive">{errors.itemImage}</p>
@@ -613,7 +673,9 @@ export default function AddItemModal({
           {/* Row 2: Item Code & UOM */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="itemCode">Item Code / SKU (optional)</Label>
+              <Label htmlFor="itemCode">
+                Item Code / SKU <span className="text-destructive">*</span> {editMode && <span className="text-xs text-muted-foreground">(Cannot be changed)</span>}
+              </Label>
               <div className="relative">
                 <Input
                   id="itemCode"
@@ -621,8 +683,10 @@ export default function AddItemModal({
                   onChange={(e) => handleInputChange("itemCode", e.target.value)}
                   placeholder="Enter item code or SKU"
                   className={errors.itemCode ? "border-destructive pr-10" : ""}
+                  disabled={editMode} // Disable SKU editing in edit mode
+                  readOnly={editMode}
                 />
-                {isValidatingSKU && (
+                {isValidatingSKU && !editMode && (
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
                     <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                   </div>
@@ -631,9 +695,16 @@ export default function AddItemModal({
               {errors.itemCode && (
                 <p className="text-xs text-destructive">{errors.itemCode}</p>
               )}
-              <p className="text-xs text-muted-foreground">
-                Enter a unique SKU/Item Code for inventory tracking
-              </p>
+              {!editMode && (
+                <p className="text-xs text-muted-foreground">
+                  Enter a unique SKU/Item Code for inventory tracking (required)
+                </p>
+              )}
+              {editMode && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  ⚠️ SKU cannot be changed after creation to maintain data integrity
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -882,10 +953,10 @@ export default function AddItemModal({
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Adding...
+                  {editMode ? "Updating..." : "Adding..."}
                 </>
               ) : (
-                "Add Item"
+                editMode ? "Update Item" : "Add Item"
               )}
             </Button>
           </DialogFooter>

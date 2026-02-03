@@ -808,6 +808,7 @@ model POSOrderItem {
   productId       String
   productName     String
   productSku      String?
+  barcodes        String[]  @default([]) // Array of barcodes for the product
   
   // Pricing
   unitPrice       Float

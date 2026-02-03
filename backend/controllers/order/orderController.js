@@ -183,6 +183,7 @@ const prepareOnlinePaymentOrder = async (req, res) => {
           mrp: item.variantMRP,
           quantity: item.quantity,
           gstPercentage: item.gstPercentage || 0,
+          barcodes: item.variant.variantBarcode ? [item.variant.variantBarcode] : [],
         })),
         deliveryAddress: {
           name: address.name,
@@ -397,6 +398,7 @@ const createCODOrder = async (req, res) => {
           mrp: item.variantMRP,
           quantity: item.quantity,
           gstPercentage: item.gstPercentage || 0,
+          barcodes: item.variant.variantBarcode ? [item.variant.variantBarcode] : [],
         })),
         deliveryAddress: {
           name: address.name,
@@ -766,6 +768,7 @@ const confirmOrder = async (req, res) => {
           mrp: item.variantMRP,
           quantity: item.quantity,
           gstPercentage: item.gstPercentage || 0,
+          barcodes: item.variant.variantBarcode ? [item.variant.variantBarcode] : [],
         })),
         deliveryAddress: {
           name: address.name,

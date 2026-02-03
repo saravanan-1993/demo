@@ -1029,8 +1029,13 @@ export function VariantsTab({
                         )
                       }
                       placeholder="SKU-001"
-                      className="mt-2"
+                      className="mt-2 bg-muted cursor-not-allowed"
+                      disabled
+                      readOnly
                     />
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                      ⚠️ SKU is synced from inventory and cannot be edited
+                    </p>
                   </div>
                   <div>
                     <Label>Variant HSN</Label>

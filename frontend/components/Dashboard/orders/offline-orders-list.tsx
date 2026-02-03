@@ -29,12 +29,34 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Eye, Search, Download } from "lucide-react";
+import { Eye, Search, Download, ChevronDown } from "lucide-react";
 import { posOrderService, POSOrder } from "@/services/posOrderService";
 import { toast } from "sonner";
 import { useCurrency } from "@/hooks/useCurrency";
+import Barcode from "react-barcode";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { POSInvoiceView } from "./POSInvoiceView";
 import axiosInstance from "@/lib/axios";
+
+interface POSOrderItemWithBarcodes {
+  productId: string;
+  productName: string;
+  productSku?: string;
+  barcodes?: string[];
+  unitPrice: number;
+  quantity: number;
+  discount: number;
+  subtotal: number;
+  total: number;
+  gstPercentage: number;
+  gstAmount: number;
+  priceBeforeGst: number;
+}
 
 export function OfflineOrdersList() {
   const [orders, setOrders] = useState<POSOrder[]>([]);
@@ -599,6 +621,7 @@ export function OfflineOrdersList() {
                   <TableHead>Customer</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Items</TableHead>
+                  {/* <TableHead>Barcodes</TableHead> */}
                   <TableHead>Total</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Payment</TableHead>
@@ -617,6 +640,81 @@ export function OfflineOrdersList() {
                     </TableCell>
                     <TableCell>{order.customerPhone || "-"}</TableCell>
                     <TableCell>{order.items?.length || 0} items</TableCell>
+                    {/* <TableCell>
+                      {order.items && order.items.length > 0 ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-8">
+                              View Barcodes
+                              <ChevronDown className="ml-2 h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="w-80">
+                            {order.items.map((item: POSOrderItemWithBarcodes, index: number) => (
+                              <div key={index} className="p-2 border-b last:border-b-0">
+                                <div className="font-medium text-sm mb-1">{item.productName}</div>
+                                {item.barcodes && item.barcodes.length > 0 ? (
+                                  <div className="space-y-2">
+                                    {item.barcodes.map((barcode: string, bIndex: number) => (
+                                      <div key={bIndex} className="flex items-center justify-between gap-2">
+                                        <div className="flex-1 bg-white p-2 rounded border">
+                                          <Barcode value={barcode} width={1} height={30} fontSize={10} />
+                                        </div>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => {
+                                            const canvas = document.createElement('canvas');
+                                            const ctx = canvas.getContext('2d');
+                                            if (!ctx) return;
+                                            
+                                            const tempDiv = document.createElement('div');
+                                            tempDiv.style.position = 'fixed';
+                                            tempDiv.style.left = '-9999px';
+                                            document.body.appendChild(tempDiv);
+                                            
+                                            import('react-dom/client').then(({ createRoot }) => {
+                                              const root = createRoot(tempDiv);
+                                              root.render(<Barcode value={barcode} />);
+                                              
+                                              setTimeout(() => {
+                                                const svg = tempDiv.querySelector('svg');
+                                                if (svg) {
+                                                  const svgData = new XMLSerializer().serializeToString(svg);
+                                                  const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                                                  const url = URL.createObjectURL(svgBlob);
+                                                  const link = document.createElement('a');
+                                                  link.href = url;
+                                                  link.download = `barcode-${barcode}.svg`;
+                                                  document.body.appendChild(link);
+                                                  link.click();
+                                                  document.body.removeChild(link);
+                                                  URL.revokeObjectURL(url);
+                                                  toast.success('Barcode downloaded');
+                                                }
+                                                root.unmount();
+                                                document.body.removeChild(tempDiv);
+                                              }, 100);
+                                            });
+                                          }}
+                                          title="Download barcode"
+                                        >
+                                          <Download className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-xs text-muted-foreground">No barcode</p>
+                                )}
+                              </div>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </TableCell> */}
                     <TableCell className="font-semibold">
                       {currencySymbol}
                       {(order.total || 0).toFixed(2)}
@@ -651,7 +749,7 @@ export function OfflineOrdersList() {
                                 // Ensure tax field exists
                                 if (!orderData.tax && orderData.items) {
                                   // Calculate total tax from items if not present
-                                  orderData.tax = orderData.items.reduce((sum: number, item: any) => {
+                                  orderData.tax = orderData.items.reduce((sum: number, item: POSOrderItemWithBarcodes) => {
                                     return sum + (item.gstAmount || 0);
                                   }, 0);
                                 }

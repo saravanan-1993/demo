@@ -14,6 +14,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -24,7 +31,12 @@ import {
 } from "@/components/ui/pagination";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Search, Edit, Loader2 } from "lucide-react";
+import {
+  Search,
+  Edit,
+  Loader2,
+  Trash2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import axiosInstance from "@/lib/axios";
 import { authService } from "@/services/authService";
@@ -40,6 +52,8 @@ interface Product {
   lowStockAlertLevel: number;
   display: string;
   itemImage?: string;
+  _source?: 'inventory' | 'pos'; // Track data source
+  _inventoryItemId?: string; // Reference to inventory item
 }
 
 export const PosProductsList = () => {
@@ -52,6 +66,11 @@ export const PosProductsList = () => {
   const [currencySymbol, setCurrencySymbol] = useState<string>("₹");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  
+  // Delete state
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -78,12 +97,49 @@ export const PosProductsList = () => {
         params.category = selectedCategory;
       }
 
-      const response = await axiosInstance.get("/api/pos/products", {
+      // Fetch inventory items (master data)
+      const inventoryResponse = await axiosInstance.get("/api/inventory/items", {
         params,
       });
 
-      if (response.data.success) {
-        setProducts(response.data.data);
+      if (inventoryResponse.data.success) {
+        const inventoryItems = inventoryResponse.data.data;
+        
+        // Fetch POS products (edited items)
+        const posResponse = await axiosInstance.get("/api/pos/products", {
+          params,
+        });
+
+        const posProducts = posResponse.data.success ? posResponse.data.data : [];
+        
+        // Create a map of POS products by itemId for quick lookup
+        const posProductMap = new Map(
+          posProducts.map((p: Product & { itemId?: string }) => [p.itemId, p])
+        );
+
+        // Merge: Use POS product if exists, otherwise use inventory item
+        const mergedProducts = inventoryItems.map((item: Product & { id: string }) => {
+          const posProduct = posProductMap.get(item.id);
+          
+          if (posProduct) {
+            // Item has been edited in POS - use POS data
+            return {
+              ...posProduct,
+              _source: 'pos', // Track source for edit handling
+              _inventoryItemId: item.id, // Keep reference to inventory item
+            };
+          } else {
+            // Item not yet edited in POS - use inventory data
+            return {
+              ...item,
+              display: 'inactive', // Default display status
+              _source: 'inventory', // Track source
+              _inventoryItemId: item.id,
+            };
+          }
+        });
+
+        setProducts(mergedProducts);
       }
     } catch (error) {
       toast.error("Failed to load products");
@@ -121,26 +177,110 @@ export const PosProductsList = () => {
     return `${currencySymbol}${amount.toFixed(2)}`;
   };
 
-  const handleEdit = (productId: string) => {
-    router.push(`/dashboard/pos/products/edit/${productId}`);
+  const handleEdit = async (product: Product) => {
+    try {
+      // If product is from inventory (not yet in POS), create POS product first
+      if (product._source === 'inventory' && product._inventoryItemId) {
+        toast.loading("Preparing product for editing...");
+        
+        const response = await axiosInstance.post("/api/pos/products", {
+          itemId: product._inventoryItemId,
+        });
+
+        if (response.data.success) {
+          const posProductId = response.data.data.id;
+          toast.dismiss();
+          toast.success("Product ready for editing");
+          router.push(`/dashboard/pos/products/edit/${posProductId}`);
+        }
+      } else {
+        // Product already exists in POS, edit directly
+        router.push(`/dashboard/pos/products/edit/${product.id}`);
+      }
+    } catch (error) {
+      toast.dismiss();
+      const err = error as { response?: { data?: { error?: string } } };
+      const errorMessage = err.response?.data?.error || "Failed to prepare product for editing";
+      toast.error(errorMessage);
+      console.error(error);
+    }
   };
 
-  const handleToggleDisplay = async (id: string, currentDisplay: string) => {
+  const handleDelete = (product: Product) => {
+    // Only allow delete if product exists in POS collection
+    if (product._source === 'pos') {
+      setDeletingProduct(product);
+      setIsDeleteDialogOpen(true);
+    } else {
+      toast.error("Cannot delete inventory items from POS. This item hasn't been customized yet.");
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingProduct) return;
+
+    setIsDeleting(true);
+    try {
+      // Delete from POS products collection only
+      await axiosInstance.delete(`/api/pos/products/${deletingProduct.id}`);
+
+      toast.success("POS product deleted successfully. Item will now show as inactive from inventory.");
+      setIsDeleteDialogOpen(false);
+      setDeletingProduct(null);
+      
+      // Refresh the list - deleted item will now show from inventory with display='inactive'
+      fetchProducts();
+    } catch (error) {
+      const err = error as { response?: { data?: { error?: string } } };
+      toast.error(err.response?.data?.error || "Failed to delete POS product");
+      console.error(error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleToggleDisplay = async (product: Product, currentDisplay: string) => {
     try {
       const newDisplay = currentDisplay === "active" ? "inactive" : "active";
 
-      await axiosInstance.patch(`/api/pos/products/${id}/display`, {
-        display: newDisplay,
-      });
+      // If product is from inventory (not yet in POS), create POS product first
+      if (product._source === 'inventory' && product._inventoryItemId) {
+        toast.loading("Creating POS product...");
+        
+        const createResponse = await axiosInstance.post("/api/pos/products", {
+          itemId: product._inventoryItemId,
+        });
 
-      toast.success(
-        `Product ${
-          newDisplay === "active" ? "activated" : "deactivated"
-        } successfully`
-      );
-      fetchProducts();
+        if (createResponse.data.success) {
+          const posProductId = createResponse.data.data.id;
+          
+          // Now update the display status
+          await axiosInstance.put(`/api/pos/products/${posProductId}`, {
+            ...createResponse.data.data,
+            display: newDisplay,
+          });
+
+          toast.dismiss();
+          toast.success(
+            `Product ${newDisplay === "active" ? "activated" : "deactivated"} successfully`
+          );
+          fetchProducts();
+        }
+      } else {
+        // Product already exists in POS, update directly
+        await axiosInstance.put(`/api/pos/products/${product.id}`, {
+          display: newDisplay,
+        });
+
+        toast.success(
+          `Product ${newDisplay === "active" ? "activated" : "deactivated"} successfully`
+        );
+        fetchProducts();
+      }
     } catch (error) {
-      toast.error("Failed to update product display status");
+      toast.dismiss();
+      const err = error as { response?: { data?: { error?: string } } };
+      toast.error(err.response?.data?.error || "Failed to update product display status");
       console.error(error);
     }
   };
@@ -287,7 +427,19 @@ export const PosProductsList = () => {
                   </TableCell>
                   <TableCell className="font-medium">
                     <div>
-                      <div className="font-semibold">{product.itemName}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">{product.itemName}</span>
+                        {product._source === 'inventory' && (
+                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                            From Inventory
+                          </Badge>
+                        )}
+                        {product._source === 'pos' && (
+                          <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                            Customized
+                          </Badge>
+                        )}
+                      </div>
                       {product.description && (
                         <div className="text-xs text-muted-foreground line-clamp-1">
                           {product.description}
@@ -320,7 +472,7 @@ export const PosProductsList = () => {
                       <Switch
                         checked={product.display === "active"}
                         onCheckedChange={() =>
-                          handleToggleDisplay(product.id, product.display)
+                          handleToggleDisplay(product, product.display)
                         }
                       />
                       <span className="text-sm text-muted-foreground">
@@ -333,11 +485,22 @@ export const PosProductsList = () => {
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        onClick={() => handleEdit(product.id)}
+                        onClick={() => handleEdit(product)}
                         title="Edit product"
                       >
                         <Edit className="size-4" />
                       </Button>
+                      {product._source === 'pos' && (
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => handleDelete(product)}
+                          title="Delete POS customization"
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -399,6 +562,54 @@ export const PosProductsList = () => {
           </Pagination>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete POS Product Customization</DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to delete the POS customization for{" "}
+              <strong className="text-foreground">{deletingProduct?.itemName}</strong>?
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              This will remove the POS-specific settings (pricing, barcode, etc.) but the item will remain in inventory.
+            </p>
+            <p className="text-sm font-medium text-amber-600 dark:text-amber-400 mt-3">
+              ⚠️ After deletion, this item will show as <strong>inactive</strong> from inventory data.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete POS Customization"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

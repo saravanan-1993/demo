@@ -5,6 +5,7 @@ export interface POSOrderItem {
   productId: string;
   productName: string;
   productSku?: string;
+  barcode?: string;
   unitPrice: number;
   quantity: number;
   discount?: number;
@@ -160,6 +161,7 @@ class POSOrderService {
       productId: item.id,
       productName: item.name,
       productSku: item.sku,
+      barcode: item.barcode,
       unitPrice: item.price,
       quantity: item.quantity,
       discount: item.discount || 0,
