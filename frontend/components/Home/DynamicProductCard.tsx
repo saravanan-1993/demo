@@ -273,7 +273,7 @@ export default function DynamicProductCard({
             }`}
           >
             <span className="truncate pr-2 sm:pr-2">
-              {currentVariant?.displayName || currentVariant?.variantName || "Select Variant"}
+              {currentVariant?.dropdownName || currentVariant?.displayName || currentVariant?.variantName || "Select Variant"}
             </span>
             {activeVariants.length > 1 && (
               <IconChevronDown
@@ -312,7 +312,7 @@ export default function DynamicProductCard({
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm sm:text-sm text-gray-700 truncate">
-                        {variant.displayName || variant.variantName}
+                        {variant.dropdownName || variant.displayName || variant.variantName}
                       </p>
                       <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                         {variantDiscount > 0 && (

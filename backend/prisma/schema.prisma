@@ -520,8 +520,13 @@ model OnlineProduct {
   shortDescription String
 
   // Variants (contains all stock info per variant)
+  // Each variant JSON contains: variantName, displayName, dropdownName, variantSKU, inventoryProductId, 
+  // variantHSN, variantBarcode, variantColour, variantSize, variantMaterial, customAttributes,
+  // variantGST, discountType, variantDiscount, variantMRP, variantSellingPrice, variantPurchasePrice,
+  // variantStockQuantity, variantLowStockAlert, variantStockStatus, variantWeight, variantLength,
+  // variantWidth, variantHeight, detailedDescription, variantStatus, variantImages, isDefault
   enableVariants Boolean
-  variants       Json[] // Array of variant objects with inventoryProductId, variantStockQuantity, variantStockStatus
+  variants       Json[] // Array of variant objects
 
   // Cutting Styles (for meat/fish products)
   cuttingStyles String[] // Array of cutting style IDs

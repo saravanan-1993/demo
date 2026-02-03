@@ -125,6 +125,7 @@ export function VariantsTab({
       id: `variant-${Date.now()}`,
       variantName: "",
       displayName: "", // NEW
+      dropdownName: "", // NEW: Short name for dropdown
       variantSKU: "",
       inventoryProductId: null, // Reference to inventory product
       variantHSN: "",
@@ -969,8 +970,8 @@ export function VariantsTab({
                   </div>
                 </div>
 
-                {/* Variant Name & Display Name */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+                {/* Variant Name, Display Name & Dropdown Name */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
                   <div>
                     <Label className="text-sm sm:text-base">
                       Variant Name <span className="text-red-500">*</span>
@@ -1009,6 +1010,26 @@ export function VariantsTab({
                     />
                     <p className="text-xs text-muted-foreground mt-1">
                       Shown on website
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm sm:text-base">
+                      Dropdown Name <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      value={variant.dropdownName || ""}
+                      onChange={(e) =>
+                        handleUpdateVariant(
+                          variant.id,
+                          "dropdownName",
+                          e.target.value
+                        )
+                      }
+                      placeholder="e.g., 250Gms, 500Gms, 1Kg"
+                      className="mt-2 text-sm sm:text-base"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Shown in dropdown selector
                     </p>
                   </div>
                 </div>

@@ -161,7 +161,6 @@ export default function AddItemModal({
           setGstRates(gstResponse.data.data);
         }
       } catch (error) {
-        console.error("Error fetching data:", error);
         setWarehouses([]);
         setCategories([]);
         setGstRates([]);
@@ -344,7 +343,6 @@ export default function AddItemModal({
         }
       }
     } catch (error) {
-      console.error("Error validating SKU:", error);
       toast.error("Validation Error", {
         description: "Failed to validate SKU. Please try again.",
       });
@@ -374,7 +372,6 @@ export default function AddItemModal({
         });
       }
     } catch (error) {
-      console.error("Error adding category:", error);
       const err = error as { response?: { data?: { error?: string } } };
       const errorMsg = err.response?.data?.error || "Failed to add category";
       toast.error("Error", {
@@ -412,7 +409,6 @@ export default function AddItemModal({
         });
       }
     } catch (error) {
-      console.error("Error updating category:", error);
       const err = error as { response?: { data?: { error?: string } } };
       const errorMsg = err.response?.data?.error || "Failed to update category";
       toast.error("Error", {

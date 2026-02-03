@@ -10,6 +10,7 @@
 export interface ProductVariantData {
   variantName: string;
   displayName: string; // NEW: Display name for frontend
+  dropdownName: string; // NEW: Short name for dropdown (e.g., "250Gms", "500Gms", "1Kg")
   variantSKU: string;
   inventoryProductId: string | null; // Reference to inventory product ID
   variantHSN: string;

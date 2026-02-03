@@ -163,6 +163,12 @@ export function ProductForm({ id }: ProductFormProps) {
           tabErrorCount.variants++;
         }
 
+        // Required: Dropdown Name
+        if (!variant.dropdownName || variant.dropdownName.trim() === "") {
+          errors.push({ field: `variant_${index}_dropdownName`, message: `${variantLabel}: Dropdown name is required`, tab: "variants" });
+          tabErrorCount.variants++;
+        }
+
         // Required: SKU
         if (!variant.variantSKU || variant.variantSKU.trim() === "") {
           errors.push({ field: `variant_${index}_sku`, message: `${variantLabel}: SKU is required (select from inventory)`, tab: "variants" });

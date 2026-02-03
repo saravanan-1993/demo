@@ -65,9 +65,13 @@ export default function AddItemButton({
         }
       }
     } catch (error) {
-      console.error("Error adding item:", error);
-      const err = error as { response?: { data?: { error?: string } } };
-      toast.error(err.response?.data?.error || "Failed to add item");
+      const err = error as { response?: { data?: { error?: string; message?: string } } };
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || "Failed to add item";
+      
+      toast.error("Error Adding Item", {
+        description: errorMessage,
+        duration: 6000,
+      });
     } finally {
       setIsSubmitting(false);
     }

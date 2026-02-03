@@ -138,7 +138,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             }`}
           >
             <span className="truncate pr-1 sm:pr-2">
-              {currentVariant.weight}
+              {currentVariant.dropdownName || currentVariant.weight}
             </span>
             {activeVariants.length > 1 && (
               <IconChevronDown
@@ -168,7 +168,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                 >
                   <div className="flex-shrink-0 min-w-0 mr-3">
                     <p className="text-sm font-medium text-gray-700 truncate">
-                      {variant.weight}
+                      {variant.dropdownName || variant.weight}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0 ml-auto">

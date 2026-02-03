@@ -660,7 +660,7 @@ export default function ProductDetailClient({
                               : "border-gray-200 hover:border-gray-300"
                           }`}
                         >
-                          <span className="block">{variant.displayName || variant.variantName}</span>
+                          <span className="block">{variant.dropdownName || variant.displayName || variant.variantName}</span>
                           <span className="block text-[10px] sm:text-xs mt-0.5">
                             {variantInactive ? (
                               <span className="text-gray-500">Unavailable</span>
