@@ -16,6 +16,7 @@ interface Warehouse {
   city: string;
   district: string;
   state: string;
+  postalCode: string;
   country: string;
   status: string;
   manager: string;

@@ -490,7 +490,13 @@ export const PosProductEdit: React.FC<PosProductEditProps> = ({
                 value={formData.itemCode}
                 onChange={(e) => handleChange("itemCode", e.target.value)}
                 placeholder="Enter SKU"
+                disabled
+                readOnly
+                className="bg-muted cursor-not-allowed"
               />
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                ⚠️ SKU cannot be changed. Managed by inventory system.
+              </p>
             </div>
 
             <div className="space-y-2">

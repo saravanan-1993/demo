@@ -100,10 +100,19 @@ const createPOSOrder = async (req, res) => {
       const priceBeforeGst = itemTotal / (1 + gstPercentage / 100);
       const gstAmount = itemTotal - priceBeforeGst;
 
+      // Extract barcodes - handle both single barcode and array
+      let barcodes = [];
+      if (item.barcode) {
+        barcodes = Array.isArray(item.barcode) ? item.barcode : [item.barcode];
+      } else if (item.barcodes && Array.isArray(item.barcodes)) {
+        barcodes = item.barcodes;
+      }
+
       return {
         productId: item.productId,
         productName: item.productName,
         productSku: item.productSku || null,
+        barcodes: barcodes, // Save barcodes array
         unitPrice: item.unitPrice,
         quantity: item.quantity,
         discount: item.discount || 0,

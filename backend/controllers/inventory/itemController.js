@@ -201,45 +201,8 @@ const createItem = async (req, res) => {
       }
     }
 
-    // Auto-create POS product (display = inactive by default)
-    try {
-      await prisma.pOSProduct.create({
-        data: {
-          itemId: item.id,
-          itemName: item.itemName,
-          category: item.category,
-          itemCode: item.itemCode,
-          barcode: item.barcode,
-          brand: item.brand,
-          uom: item.uom,
-          purchasePrice: item.purchasePrice,
-          sellingPrice: item.sellingPrice,
-          mrp: item.mrp,
-          gstRateId: item.gstRateId,
-          gstPercentage: item.gstPercentage,
-          hsnCode: item.hsnCode,
-          discountType: item.discountType,
-          discountValue: item.discountValue,
-          warehouse: item.warehouse.name,
-          quantity: item.quantity,
-          openingStock: item.openingStock,
-          lowStockAlertLevel: item.lowStockAlertLevel,
-          status: item.status,
-          display: 'inactive', // Inactive by default - admin can activate later
-          expiryDate: item.expiryDate,
-          mfgDate: item.mfgDate,
-          batchNo: item.batchNo,
-          safetyInformation: item.safetyInformation,
-          description: item.description,
-          itemImage: item.itemImage,
-          lastSyncedFromItem: new Date(),
-        },
-      });
-      console.log(`✅ Auto-created POS product for item: ${item.itemName}`);
-    } catch (posError) {
-      console.error('⚠️ Failed to auto-create POS product:', posError);
-      // Don't fail the item creation if POS product creation fails
-    }
+    // ❌ REMOVED: Auto-creation of POS products
+    // POS products will only be created when user explicitly edits them in POS Products page
 
     res.status(201).json({
       success: true,
@@ -359,7 +322,8 @@ const updateItem = async (req, res) => {
       }
     }
 
-    // Auto-sync POS product if exists (update stock and status only)
+    // ✅ KEEP: Auto-sync POS product if exists (update stock and status only)
+    // This ensures POS products stay in sync with inventory after they're created
     try {
       const posProduct = await prisma.pOSProduct.findFirst({
         where: { itemId: item.id },

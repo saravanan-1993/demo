@@ -44,7 +44,8 @@ export default function AddItemButton({
         formData.append("expiryDate", itemData.expiryDate.toISOString());
       }
       
-      if (itemData.itemImage) {
+      // Only append image if it's a File object (new upload)
+      if (itemData.itemImage && itemData.itemImage instanceof File) {
         formData.append("itemImage", itemData.itemImage);
       }
 

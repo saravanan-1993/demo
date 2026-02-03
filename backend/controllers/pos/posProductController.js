@@ -298,23 +298,25 @@ const updatePOSProduct = async (req, res) => {
       }
     }
 
-    // Build update data
-    const updateData = {
-      itemName,
-      category,
-      itemCode: itemCode || null,
-      uom,
-      purchasePrice: parseFloat(purchasePrice) || 0,
-      gstPercentage: parseFloat(gstPercentage) || 0,
-      hsnCode: hsnCode || null,
-      lowStockAlertLevel: parseInt(lowStockAlertLevel) || 0,
-      status,
-      description: description || null,
-    };
+    // Build update data - only update fields that are provided
+    const updateData = {};
 
-    // Add optional fields
+    // Required fields (if provided)
+    if (itemName !== undefined) updateData.itemName = itemName;
+    if (category !== undefined) updateData.category = category;
+    if (uom !== undefined) updateData.uom = uom;
+    if (purchasePrice !== undefined) updateData.purchasePrice = parseFloat(purchasePrice) || 0;
+    if (gstPercentage !== undefined) updateData.gstPercentage = parseFloat(gstPercentage) || 0;
+    if (lowStockAlertLevel !== undefined) updateData.lowStockAlertLevel = parseInt(lowStockAlertLevel) || 0;
+    if (status !== undefined) updateData.status = status;
+    if (display !== undefined) updateData.display = display;
+
+    // Optional fields
+    if (itemCode !== undefined) updateData.itemCode = itemCode || null;
     if (barcode !== undefined) updateData.barcode = barcode || null;
     if (brand !== undefined) updateData.brand = brand || null;
+    if (hsnCode !== undefined) updateData.hsnCode = hsnCode || null;
+    if (description !== undefined) updateData.description = description || null;
     if (sellingPrice !== undefined && sellingPrice !== '')
       updateData.sellingPrice = parseFloat(sellingPrice) || null;
     if (mrp !== undefined && mrp !== '') updateData.mrp = parseFloat(mrp) || null;
@@ -322,7 +324,6 @@ const updatePOSProduct = async (req, res) => {
       updateData.discountType = discountType === 'none' ? null : discountType;
     if (discountValue !== undefined && discountValue !== '')
       updateData.discountValue = parseFloat(discountValue) || null;
-    if (display !== undefined) updateData.display = display;
     if (expiryDate !== undefined)
       updateData.expiryDate = expiryDate ? new Date(expiryDate) : null;
     if (mfgDate !== undefined) updateData.mfgDate = mfgDate ? new Date(mfgDate) : null;
