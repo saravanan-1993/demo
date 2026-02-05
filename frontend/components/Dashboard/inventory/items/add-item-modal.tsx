@@ -244,7 +244,7 @@ export default function AddItemModal({
     if (!formData.purchasePrice || parseFloat(formData.purchasePrice) < 0) {
       newErrors.purchasePrice = "Valid purchase price is required";
     }
-    if (!formData.gstPercentage || parseFloat(formData.gstPercentage) < 0 || parseFloat(formData.gstPercentage) > 100) {
+    if (formData.gstPercentage !== "" && (parseFloat(formData.gstPercentage) < 0 || parseFloat(formData.gstPercentage) > 100)) {
       newErrors.gstPercentage = "GST % must be between 0 and 100";
     }
     if (!formData.warehouse) {
@@ -754,8 +754,13 @@ export default function AddItemModal({
                 GST % <span className="text-destructive">*</span>
               </Label>
               <Select
-                value={formData.gstRateId}
+                value={formData.gstRateId || (formData.gstPercentage === "0" ? "nil" : "")}
                 onValueChange={(value) => {
+                  if (value === "nil") {
+                    handleInputChange("gstRateId", "nil");
+                    handleInputChange("gstPercentage", "0");
+                    return;
+                  }
                   const selectedRate = gstRates.find(r => r.id === value);
                   if (selectedRate) {
                     handleInputChange("gstRateId", value);
@@ -773,11 +778,16 @@ export default function AddItemModal({
                       No GST rates available
                     </div>
                   ) : (
-                    gstRates.map((rate) => (
-                      <SelectItem key={rate.id} value={rate.id}>
-                        {rate.name} 
-                      </SelectItem>
-                    ))
+                    <>
+                      <SelectItem value="nil">NIL (0%)</SelectItem>
+                      {gstRates
+                        .filter((rate) => rate.gstPercentage !== 0)
+                        .map((rate) => (
+                          <SelectItem key={rate.id} value={rate.id}>
+                            {rate.name}
+                          </SelectItem>
+                        ))}
+                    </>
                   )}
                 </SelectContent>
               </Select>

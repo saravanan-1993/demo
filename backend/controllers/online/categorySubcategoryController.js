@@ -66,22 +66,40 @@ const getAllCategories = async (req, res) => {
       console.log(`Processing category: ${category.name}, subcategories: ${category.subcategories.length}`);
       
       if (category.subcategories.length === 0) {
-        // Skip categories without subcategories
-        return;
+        // Include categories without subcategories
+        transformedData.push({
+          id: category.id,
+          categoryName: category.name,
+          subcategoryName: "",
+          sortOrder: category.sortOrder,
+          categoryImage: category.image,
+          subcategoryImage: null,
+          categoryMetaTitle: category.metaTitle,
+          categoryMetaDescription: category.metaDescription,
+          categoryMetaKeywords: category.metaKeywords,
+          subcategoryMetaTitle: "",
+          subcategoryMetaDescription: "",
+          subcategoryMetaKeywords: "",
+          categoryIsActive: category.isActive,
+          subcategoryIsActive: false,
+          createdAt: category.createdAt,
+          updatedAt: category.updatedAt,
+        });
       } else {
-        // Category with subcategories - ONLY show category-subcategory pairs
+        // Category with subcategories - show category-subcategory pairs
         const filteredSubcategories = subcategoryStatus === "all" 
           ? category.subcategories 
           : category.subcategories.filter(sub => 
               subcategoryStatus === "active" ? sub.isActive : !sub.isActive
             );
 
-        // Only add category-subcategory pairs
+        // Add category-subcategory pairs
         filteredSubcategories.forEach((subcategory) => {
           transformedData.push({
             id: `${category.id}-${subcategory.id}`,
             categoryName: category.name,
             subcategoryName: subcategory.name,
+            sortOrder: category.sortOrder,
             categoryImage: category.image,
             subcategoryImage: subcategory.image,
             categoryMetaTitle: category.metaTitle,
@@ -228,6 +246,7 @@ const getCategoryById = async (req, res) => {
         id: `${category.id}-${subcategory.id}`,
         categoryName: category.name,
         subcategoryName: subcategory.name,
+        sortOrder: category.sortOrder,
         categoryImage: category.image ? getPresignedUrl(category.image, 3600) : null,
         subcategoryImage: subcategory.image ? getPresignedUrl(subcategory.image, 3600) : null,
         categoryMetaTitle: category.metaTitle,
@@ -265,6 +284,7 @@ const getCategoryById = async (req, res) => {
           id: category.id,
           categoryName: category.name,
           subcategoryName: "",
+          sortOrder: category.sortOrder,
           categoryImage: category.image ? getPresignedUrl(category.image, 3600) : null,
           subcategoryImage: null,
           categoryMetaTitle: category.metaTitle,
@@ -346,7 +366,6 @@ const createCategoryOnly = async (req, res) => {
   }
 };
 
-// Create new category with subcategory
 const createCategory = async (req, res) => {
   try {
     const {
@@ -362,10 +381,10 @@ const createCategory = async (req, res) => {
       subcategoryIsActive = "true",
     } = req.body;
 
-    if (!categoryName || !subcategoryName) {
+    if (!categoryName) {
       return res.status(400).json({
         success: false,
-        message: "Category name and subcategory name are required",
+        message: "Category name is required",
       });
     }
 
@@ -411,6 +430,21 @@ const createCategory = async (req, res) => {
     });
 
     if (!category) {
+      // Check if sortOrder is already in use by another category
+      const sortOrderValue = req.body.sortOrder ? parseInt(req.body.sortOrder) : 0;
+      const existingCategoryWithSameOrder = await prisma.category.findFirst({
+        where: {
+          sortOrder: sortOrderValue,
+        },
+      });
+
+      if (existingCategoryWithSameOrder) {
+        return res.status(400).json({
+          success: false,
+          message: `Sort order ${sortOrderValue} is already used by category "${existingCategoryWithSameOrder.name}". Please choose a different sort order.`,
+        });
+      }
+
       category = await prisma.category.create({
         data: {
           name: categoryName,
@@ -419,6 +453,7 @@ const createCategory = async (req, res) => {
           metaDescription: categoryMetaDescription,
           metaKeywords: categoryMetaKeywords,
           isActive: categoryIsActive === "true" || categoryIsActive === true,
+          sortOrder: sortOrderValue,
         },
       });
     } else {
@@ -434,6 +469,33 @@ const createCategory = async (req, res) => {
           metaDescription: categoryMetaDescription || category.metaDescription,
           metaKeywords: categoryMetaKeywords || category.metaKeywords,
           isActive: categoryIsActive === "true" || categoryIsActive === true,
+          sortOrder: req.body.sortOrder !== undefined ? parseInt(req.body.sortOrder) : category.sortOrder,
+        },
+      });
+    }
+
+    // If subcategoryName is not provided or is empty, return category-only response
+    if (!subcategoryName || subcategoryName.trim() === "") {
+      return res.status(201).json({
+        success: true,
+        message: "Category created successfully",
+        data: {
+          id: category.id,
+          categoryName: category.name,
+          subcategoryName: "",
+          categoryImage: category.image,
+          subcategoryImage: null,
+          categoryMetaTitle: category.metaTitle,
+          categoryMetaDescription: category.metaDescription,
+          categoryMetaKeywords: category.metaKeywords,
+          subcategoryMetaTitle: "",
+          subcategoryMetaDescription: "",
+          subcategoryMetaKeywords: "",
+          categoryIsActive: category.isActive,
+          subcategoryIsActive: false,
+          sortOrder: category.sortOrder,
+          createdAt: category.createdAt,
+          updatedAt: category.updatedAt,
         },
       });
     }
@@ -480,6 +542,7 @@ const createCategory = async (req, res) => {
       subcategoryMetaKeywords: subcategory.metaKeywords,
       categoryIsActive: category.isActive,
       subcategoryIsActive: subcategory.isActive,
+      sortOrder: category.sortOrder,
       createdAt: category.createdAt,
       updatedAt: category.updatedAt,
     };
@@ -586,6 +649,24 @@ const updateCategory = async (req, res) => {
       }
     }
 
+    // Check for duplicate sortOrder
+    if (updateData.sortOrder !== undefined) {
+      const sortOrderValue = parseInt(updateData.sortOrder);
+      const existingCategoryWithSameOrder = await prisma.category.findFirst({
+        where: {
+          id: { not: categoryId },
+          sortOrder: sortOrderValue,
+        },
+      });
+
+      if (existingCategoryWithSameOrder) {
+        return res.status(400).json({
+          success: false,
+          message: `Sort order ${sortOrderValue} is already used by category "${existingCategoryWithSameOrder.name}". Please choose a different sort order.`,
+        });
+      }
+    }
+
     if (updateData.subcategoryName && subcategoryId && existingSubcategory) {
       const duplicate = await prisma.subcategory.findFirst({
         where: {
@@ -611,6 +692,7 @@ const updateCategory = async (req, res) => {
 
     // Separate category and subcategory fields
     if (updateData.categoryName) categoryUpdateData.name = updateData.categoryName;
+    if (updateData.sortOrder !== undefined) categoryUpdateData.sortOrder = parseInt(updateData.sortOrder);
     if (updateData.categoryMetaTitle) categoryUpdateData.metaTitle = updateData.categoryMetaTitle;
     if (updateData.categoryMetaDescription) categoryUpdateData.metaDescription = updateData.categoryMetaDescription;
     if (updateData.categoryMetaKeywords) categoryUpdateData.metaKeywords = updateData.categoryMetaKeywords;
@@ -1136,7 +1218,7 @@ const getUniqueCategories = async (req, res) => {
         name: true,
         image: true,
       },
-      orderBy: { updatedAt: "desc" },
+      orderBy: { sortOrder: "asc" },
     });
 
     res.json({

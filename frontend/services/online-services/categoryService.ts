@@ -4,6 +4,7 @@ export interface CategoryData {
   id: string;
   categoryName: string;
   subcategoryName: string;
+  sortOrder?: number;
   categoryImage?: string;
   subcategoryImage?: string;
   categoryMetaTitle?: string;
@@ -21,6 +22,7 @@ export interface CategoryData {
 export interface CategoryFormData {
   categoryName: string;
   subcategoryName: string;
+  sortOrder?: number;
   categoryMetaTitle?: string;
   categoryMetaDescription?: string;
   categoryMetaKeywords?: string;

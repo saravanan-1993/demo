@@ -232,7 +232,7 @@ export default function Footer01({ initialWebSettings, initialCompanySettings }:
               Contact Us
             </h4>
             <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
-              {companySettings?.address && (
+              {/* {companySettings?.address && (
                 <li className="flex items-start gap-2">
                   <span>📍</span>
                   <span>
@@ -242,7 +242,7 @@ export default function Footer01({ initialWebSettings, initialCompanySettings }:
                     {companySettings.zipCode && ` ${companySettings.zipCode}`}
                   </span>
                 </li>
-              )}
+              )} */}
               {companySettings?.phone && (
                 <li className="flex items-center gap-2">
                   <span>📞</span>

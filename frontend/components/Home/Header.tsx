@@ -202,9 +202,9 @@ export default function Header({ initialCategories, initialWebSettings, initialP
           <div className="flex items-center justify-center py-1.5 sm:py-2 text-white text-[10px] sm:text-xs md:text-sm relative">
             {/* Left Links - Hidden on mobile */}
             <div className="hidden sm:flex items-center gap-4 sm:gap-6 absolute left-3 sm:left-4">
-              <Link href="/about" className="hover:underline hidden md:block">
+              {/* <Link href="/about" className="hover:underline hidden md:block">
                 About Us
-              </Link>
+              </Link> */}
               <Link
                 href="/contact"
                 className="hover:underline flex items-center gap-1"

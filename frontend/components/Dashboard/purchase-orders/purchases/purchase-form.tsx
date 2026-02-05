@@ -1207,11 +1207,7 @@ export default function PurchaseForm({
                       {/* 8. GST */}
                       <TableCell className="p-2">
                         <Select
-                          value={
-                            item.gstPercentage > 0
-                              ? item.gstPercentage.toString()
-                              : ""
-                          }
+                          value={item.gstPercentage.toString()}
                           onValueChange={(value) => {
                             const rate = parseFloat(value);
                             const gstType = currentGSTType || "cgst_sgst";
@@ -1271,20 +1267,17 @@ export default function PurchaseForm({
                             <SelectValue placeholder="Select GST" />
                           </SelectTrigger>
                           <SelectContent>
-                            {uniqueGstRates.length > 0 ? (
-                              uniqueGstRates.map((gstRate) => (
+                            <SelectItem value="0">NIL (0%)</SelectItem>
+                            {uniqueGstRates
+                              .filter((rate) => rate.gstPercentage !== 0)
+                              .map((gstRate) => (
                                 <SelectItem
                                   key={gstRate.gstPercentage.toString()}
                                   value={gstRate.gstPercentage.toString()}
                                 >
                                   {gstRate.name}
                                 </SelectItem>
-                              ))
-                            ) : (
-                              <SelectItem value="" disabled>
-                                No GST rates available
-                              </SelectItem>
-                            )}
+                              ))}
                           </SelectContent>
                         </Select>
                       </TableCell>

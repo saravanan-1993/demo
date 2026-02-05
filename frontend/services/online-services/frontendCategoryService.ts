@@ -4,6 +4,7 @@ export interface Subcategory {
   id: string;
   name: string;
   image: string | null;
+  sortOrder?: number;
   metaTitle?: string;
   metaDescription?: string;
   metaKeywords?: string;
@@ -13,6 +14,7 @@ export interface Category {
   id: string;
   name: string;
   image: string | null;
+  sortOrder?: number;
   metaTitle?: string;
   metaDescription?: string;
   metaKeywords?: string;

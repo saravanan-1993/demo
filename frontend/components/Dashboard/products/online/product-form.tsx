@@ -129,10 +129,10 @@ export function ProductForm({ id }: ProductFormProps) {
       tabErrorCount.basic++;
     }
 
-    if (!data.subCategory || data.subCategory.trim() === "") {
+    /* if (!data.subCategory || data.subCategory.trim() === "") {
       errors.push({ field: "subCategory", message: "Sub-category is required", tab: "basic" });
       tabErrorCount.basic++;
-    }
+    } */
 
     if (!data.shortDescription || data.shortDescription.trim() === "") {
       errors.push({ field: "shortDescription", message: "Short description is required", tab: "basic" });

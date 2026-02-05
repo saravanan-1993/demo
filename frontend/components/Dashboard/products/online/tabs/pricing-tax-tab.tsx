@@ -96,20 +96,17 @@ export function PricingTaxTab({ formData, onChange }: PricingTaxTabProps) {
               />
             </SelectTrigger>
             <SelectContent>
-              {gstRates.length === 0 ? (
-                <div className="p-2 text-sm text-muted-foreground text-center">
-                  {isLoadingGST ? "Loading..." : "No GST rates available"}
-                </div>
-              ) : (
-                gstRates.map((rate) => (
+              <SelectItem value="0">NIL (0%)</SelectItem>
+              {gstRates
+                .filter((rate) => rate.gstPercentage !== 0)
+                .map((rate) => (
                   <SelectItem
                     key={rate.id}
                     value={rate.gstPercentage.toString()}
                   >
                     {rate.name} - {rate.gstPercentage}%
                   </SelectItem>
-                ))
-              )}
+                ))}
             </SelectContent>
           </Select>
           <p className="text-sm text-muted-foreground mt-1">

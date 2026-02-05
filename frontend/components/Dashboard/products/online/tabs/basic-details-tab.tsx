@@ -274,10 +274,10 @@ export function BasicDetailsTab({ formData, onChange }: BasicDetailsTabProps) {
         {/* Sub-Category */}
         <div>
           <Label htmlFor="subCategory">
-            Sub-Category <span className="text-red-500">*</span>
+            Sub-Category
           </Label>
           <Select
-            value={formData.subCategory}
+            value={formData.subCategory || ""}
             onValueChange={(value) => onChange("subCategory", value)}
             disabled={!formData.category || isLoadingSubCategories}
           >

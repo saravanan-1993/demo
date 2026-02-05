@@ -37,3 +37,6 @@ backend/public/uploads/
 
 *.md
 *.zip
+
+# Mobile (Setup Stage - Not ready for production)
+mobile/

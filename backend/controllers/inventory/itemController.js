@@ -106,11 +106,11 @@ const createItem = async (req, res) => {
       hsnCode, warehouse, openingStock, lowStockAlertLevel, status, expiryDate, description,
     } = req.body;
 
-    if (!itemName || !category || !uom || !purchasePrice || !gstPercentage || !warehouse || !openingStock || !lowStockAlertLevel) {
+    if (!itemName || !category || !uom || !purchasePrice || !warehouse || !openingStock || !lowStockAlertLevel) {
       return res.status(400).json({
         success: false,
         error: "Missing required fields",
-        required: ["itemName", "category", "uom", "purchasePrice", "gstPercentage", "warehouse", "openingStock", "lowStockAlertLevel"],
+        required: ["itemName", "category", "uom", "purchasePrice", "warehouse", "openingStock", "lowStockAlertLevel"],
       });
     }
 
@@ -177,7 +177,7 @@ const createItem = async (req, res) => {
         uom,
         purchasePrice: parseFloat(purchasePrice),
         gstRateId: gstRateId || null,
-        gstPercentage: parseFloat(gstPercentage),
+        gstPercentage: gstPercentage ? parseFloat(gstPercentage) : 0,
         hsnCode: hsnCode || null,
         warehouseId: warehouse,
         openingStock: quantity,
@@ -295,7 +295,7 @@ const updateItem = async (req, res) => {
         uom,
         purchasePrice: parseFloat(purchasePrice),
         gstRateId: gstRateId || null,
-        gstPercentage: parseFloat(gstPercentage),
+        gstPercentage: gstPercentage !== undefined ? parseFloat(gstPercentage) : existingItem.gstPercentage,
         hsnCode,
         warehouse,
         openingStock: parseInt(openingStock),
