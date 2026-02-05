@@ -39,7 +39,7 @@ export interface CuttingStyle {
 export interface Product {
   id: string;
   category: string;
-  subCategory: string;
+  subCategory?: string | null;
   brand: string;
   shortDescription: string;
   enableVariants: boolean;
@@ -92,7 +92,7 @@ export interface FrequentlyBoughtTogetherAddon {
     shortDescription: string;
     brand: string;
     category: string;
-    subCategory: string;
+    subCategory?: string | null;
     stockStatus: string;
   };
   variant: ProductVariant;

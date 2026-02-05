@@ -52,7 +52,7 @@ export interface SpecificationData {
 export interface ProductFormData {
   // Tab 1: Basic Product Details
   category: string;
-  subCategory: string;
+  subCategory?: string | null;
   brand: string;
   shortDescription: string;
   cuttingStyles: string[]; // Array of cutting style IDs

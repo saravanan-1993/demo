@@ -27,7 +27,7 @@ const getCategories = async (req, res) => {
         },
       },
       orderBy: {
-        name: "asc",
+        sortOrder: "asc",
       },
     });
 

@@ -203,11 +203,11 @@ const createOnlineProduct = async (req, res) => {
     }
 
     // Validation
-    if (!productData.category || !productData.subCategory) {
-      console.log("❌ Validation failed: Missing category or subcategory");
+    if (!productData.category) {
+      console.log("❌ Validation failed: Missing category");
       return res.status(400).json({
         success: false,
-        message: "Category and subcategory are required",
+        message: "Category is required",
       });
     }
 
@@ -312,7 +312,7 @@ const createOnlineProduct = async (req, res) => {
     const preparedData = {
       // Basic Details
       category: productData.category,
-      subCategory: productData.subCategory,
+      subCategory: productData.subCategory || "",
       brand: productData.brand || "",
       shortDescription: productData.shortDescription || "",
 
@@ -535,6 +535,10 @@ const updateOnlineProduct = async (req, res) => {
     // Ensure countryOfOrigin has a default value if empty
     if (updateData.countryOfOrigin === "") {
       updateData.countryOfOrigin = "India";
+    }
+
+    if (updateData.gstPercentage !== undefined) {
+      updateData.gstPercentage = updateData.gstPercentage === "" ? 0 : (parseFloat(updateData.gstPercentage) || 0);
     }
 
     console.log("✅ Updating product in database...");

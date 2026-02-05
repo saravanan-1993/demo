@@ -37,6 +37,9 @@ const {
   removeFCMToken,
 } = require('../../controllers/auth/fcmTokenController');
 
+// Import mobile auth routes
+const mobileAuthRoutes = require('./mobileAuthRoutes');
+
 const { authenticateToken } = require('../../middleware/auth');
 
 const router = express.Router();
@@ -44,6 +47,9 @@ const router = express.Router();
 // ============================================
 // USER & ADMIN ROUTES
 // ============================================
+
+// Mobile App Routes (OTP-based verification)
+router.use('/mobile', mobileAuthRoutes);
 
 // Public routes
 router.post('/register', register);
@@ -58,10 +64,17 @@ router.get('/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
 );
 
+
+
 router.get('/google/callback',
   passport.authenticate('google', { failureRedirect: '/api/auth/google/failure' }),
   googleAuthSuccess
 );
+
+
+router.get('/google/mobile-failure', (req, res) => {
+  res.redirect('ecommerce://auth/google/callback?error=auth_cancelled');
+});
 
 router.get('/google/failure', googleAuthFailure);
 

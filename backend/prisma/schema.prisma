@@ -29,6 +29,9 @@ model Admin {
   resetTokenExpiry DateTime?
   verificationToken String?
   
+  // Email OTP Verification (for mobile apps)
+  emailOTPs     Json[]    @default([]) // Array of { otp, expiresAt, createdAt }
+  
   // FCM Push Notification Tokens (Multi-device support)
   fcmTokens     Json[]    @default([]) // Array of { token, device, lastUsed }
   
@@ -84,11 +87,15 @@ model User {
   isActive      Boolean   @default(true)
   isVerified    Boolean   @default(false)
   googleId      String?   @unique
-  provider      String    @default("local") // "local" or "google"
+  firebaseUid   String?   // Firebase UID for phone authentication
+  provider      String    @default("local") // "local", "google", or "phone"
   lastLogin     DateTime?
   resetToken    String?
   resetTokenExpiry DateTime?
   verificationToken String?
+  
+  // Email OTP Verification (for mobile apps)
+  emailOTPs     Json[]    @default([]) // Array of { otp, expiresAt, createdAt }
   
   // FCM Push Notification Tokens (Multi-device support)
   fcmTokens     Json[]    @default([]) // Array of { token, device, lastUsed }
@@ -337,7 +344,7 @@ model Item {
   sellingPrice        Float?
   mrp                 Float?
   gstRateId           String?    @db.ObjectId // Reference to GST Rate
-  gstPercentage       Float
+  gstPercentage       Float      @default(0.0)
   hsnCode             String?
   discountType        String?   // percentage, fixed, none
   discountValue       Float?
@@ -437,7 +444,8 @@ model Category {
   metaKeywords    String?
 
   // Status
-  isActive Boolean @default(true)
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
 
   // Relations
   subcategories Subcategory[]
@@ -515,7 +523,7 @@ model OnlineProduct {
 
   // Basic Details
   category         String
-  subCategory      String
+  subCategory      String?
   brand            String
   shortDescription String
 
@@ -533,7 +541,7 @@ model OnlineProduct {
 
   // Pricing & Tax
   hsnCode              String
-  gstPercentage        Float
+  gstPercentage        Float   @default(0.0)
   defaultMRP           Float
   defaultSellingPrice  Float
   defaultPurchasePrice Float
@@ -715,7 +723,7 @@ model POSProduct {
   
   // GST Information
   gstRateId           String?   @db.ObjectId
-  gstPercentage       Float
+  gstPercentage       Float     @default(0.0)
   hsnCode             String?
   
   // Discount (can be edited for POS)
@@ -1175,7 +1183,7 @@ model PurchaseOrderItem {
   
   // GST Information
   gstRateId           String?       @db.ObjectId // Reference to GST Rate from finance service
-  gstPercentage       Float
+  gstPercentage       Float         @default(0.0)
   gstType             String        // cgst_sgst, igst
   cgstPercentage      Float         @default(0)
   sgstPercentage      Float         @default(0)
@@ -1305,7 +1313,7 @@ model BillItem {
   
   // GST Information (matching purchase form structure)
   gstRateId           String?  @db.ObjectId // Reference to GST Rate from finance service
-  gstPercentage       Float
+  gstPercentage       Float    @default(0.0)
   gstType             String   // cgst_sgst, igst
   cgstPercentage      Float    @default(0)
   sgstPercentage      Float    @default(0)

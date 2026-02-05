@@ -5,6 +5,7 @@ const { prisma } = require("../../config/database");
 const sessionManager = require("../../utils/auth/sessionManager");
 const { sendEmail: sendSMTPEmail, sendEmailWithEnv } = require("../../config/connectSMTP");
 const { sendNewUserRegistrationAlert, sendWelcomeNotification } = require("../../utils/notification/sendNotification");
+const { getWelcomeEmailTemplate } = require("../../utils/email/templates/welcomeEmailTemplate");
 
 // Email helper - uses SMTP configuration
 const sendEmail = async (emailData) => {
@@ -100,37 +101,42 @@ const register = async (req, res) => {
     const isAdmin = adminEmails.includes(email.toLowerCase());
     console.log("👤 User type:", isAdmin ? "admin" : "user");
 
+    // Build search criteria for existing users
+    const searchCriteria = [
+      { email },
+    ];
+    
+    // Add phone number to search if provided
+    if (phoneNumber) {
+      searchCriteria.push({ phoneNumber });
+    }
+    
+    // Add firebaseUid to search if provided (from mobile registration flow)
+    if (req.body.firebaseUid) {
+      searchCriteria.push({ firebaseUid: req.body.firebaseUid });
+    }
+
     // Check if user/admin already exists in respective collection
     console.log("🔍 Checking for existing user...");
     const existingUser = isAdmin
-      ? await prisma.admin.findUnique({ where: { email } })
-      : await prisma.user.findUnique({ where: { email } });
+      ? await prisma.admin.findFirst({ 
+          where: { OR: searchCriteria }
+        })
+      : await prisma.user.findFirst({ 
+          where: { OR: searchCriteria }
+        });
 
     // Also check the other collection to prevent duplicate emails
     const existingInOtherCollection = isAdmin
-      ? await prisma.user.findUnique({ where: { email } })
-      : await prisma.admin.findUnique({ where: { email } });
+      ? await prisma.user.findFirst({ 
+          where: { OR: searchCriteria }
+        })
+      : await prisma.admin.findFirst({ 
+          where: { OR: searchCriteria }
+        });
 
     if (existingUser || existingInOtherCollection) {
-      console.log("❌ User already exists with email");
-      return res.status(400).json({
-        success: false,
-        error: "Account already exists. Please sign in with your email or phone number and password.",
-      });
-    }
-
-    // Check if phone number already exists
-    console.log("🔍 Checking for existing phone number...");
-    const existingPhone = isAdmin
-      ? await prisma.admin.findFirst({ where: { phoneNumber } })
-      : await prisma.user.findFirst({ where: { phoneNumber } });
-
-    const existingPhoneInOtherCollection = isAdmin
-      ? await prisma.user.findFirst({ where: { phoneNumber } })
-      : await prisma.admin.findFirst({ where: { phoneNumber } });
-
-    if (existingPhone || existingPhoneInOtherCollection) {
-      console.log("❌ Phone number already exists");
+      console.log("❌ User already exists");
       return res.status(400).json({
         success: false,
         error: "Account already exists. Please sign in with your email or phone number and password.",
@@ -159,14 +165,48 @@ const register = async (req, res) => {
 
     // Create user in appropriate collection
     console.log("💾 Creating user in database...");
-    const user = isAdmin
-      ? await prisma.admin.create({
-          data: userData,
-        })
-      : await prisma.user.create({
-          data: userData,
-        });
-    console.log("✅ User created:", user.id);
+    let user;
+    try {
+      user = isAdmin
+        ? await prisma.admin.create({
+            data: userData,
+          })
+        : await prisma.user.create({
+            data: userData,
+          });
+      console.log("✅ User created:", user.id);
+    } catch (createError) {
+      // Handle unique constraint violations
+      if (createError.code === 'P2002') {
+        const field = createError.meta?.target || 'field';
+        console.log(`❌ Unique constraint violation on: ${field}`);
+        
+        // Return user-friendly message based on which field caused the conflict
+        if (field.includes('email')) {
+          return res.status(400).json({
+            success: false,
+            error: "An account with this email already exists. Please sign in instead.",
+          });
+        } else if (field.includes('phoneNumber')) {
+          return res.status(400).json({
+            success: false,
+            error: "An account with this phone number already exists. Please sign in instead.",
+          });
+        } else if (field.includes('firebaseUid')) {
+          return res.status(400).json({
+            success: false,
+            error: "An account already exists. Please sign in with your existing account.",
+          });
+        } else {
+          return res.status(400).json({
+            success: false,
+            error: "An account with these credentials already exists. Please sign in instead.",
+          });
+        }
+      }
+      // Re-throw if not a unique constraint error
+      throw createError;
+    }
 
     // Create or Link Customer record for non-admin users
     let customerId = null;
@@ -605,6 +645,19 @@ const googleCallback = async (req, res) => {
           try {
             await sendWelcomeNotification(user.id, user.name);
             console.log(`🎉 Welcome notification sent to Google user: ${user.name}`);
+
+            // Send welcome email (non-blocking)
+            const emailData = await getWelcomeEmailTemplate({
+              email: user.email,
+              name: user.name
+            });
+            
+            await sendEmail({
+              to: user.email,
+              subject: emailData.subject,
+              html: emailData.html
+            });
+            console.log(`📧 Welcome email sent to Google user: ${user.email}`);
           } catch (notifError) {
             console.error('⚠️ Failed to send welcome notification:', notifError.message);
           }
@@ -738,6 +791,25 @@ const verifyEmail = async (req, res) => {
     }
 
     console.log(`✅ Email verified successfully for: ${verifiedUser.email}`);
+
+    // Send welcome email (non-blocking)
+    setImmediate(async () => {
+      try {
+        const emailData = await getWelcomeEmailTemplate({
+          email: verifiedUser.email,
+          name: verifiedUser.name
+        });
+        
+        await sendEmail({
+          to: verifiedUser.email,
+          subject: emailData.subject,
+          html: emailData.html
+        });
+        console.log("✅ Welcome email sent");
+      } catch (emailError) {
+        console.error("⚠️ Failed to send welcome email:", emailError.message);
+      }
+    });
 
     res.json({
       success: true,

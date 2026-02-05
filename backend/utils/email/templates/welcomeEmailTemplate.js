@@ -1,5 +1,5 @@
-const { prisma } = require("../../config/database");
-const { getPresignedUrl } = require("../web/uploadsS3");
+const { prisma } = require("../../../config/database");
+const { getPresignedUrl } = require("../../web/uploadsS3");
 
 /**
  * Fetch company logo from web settings

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 import { CategorySubcategory } from "./category/category-subcategory";
+import { SubcategoryList } from "./category/subcategory-list";
 import Online from "./online/online";
 
 
@@ -45,6 +46,7 @@ export const ProductsList = () => {
             <TabsTrigger value="online">Online</TabsTrigger>
            
             <TabsTrigger value="category-list">Category</TabsTrigger>
+            <TabsTrigger value="subcategory-list">Sub Category</TabsTrigger>
           </TabsList>
 
         {/*   <Button
@@ -64,6 +66,10 @@ export const ProductsList = () => {
        
         <TabsContent value="category-list" className="mt-0 w-full">
           <CategorySubcategory />
+        </TabsContent>
+
+        <TabsContent value="subcategory-list" className="mt-0 w-full">
+          <SubcategoryList />
         </TabsContent>
       </Tabs>
     </div>
