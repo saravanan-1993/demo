@@ -3,15 +3,13 @@
 import { useState } from "react";
 
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { LogOut, X } from "lucide-react";
 
 
@@ -70,22 +68,25 @@ export function LogoutAlert({
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
             <LogOut className="h-5 w-5 text-red-600" />
             Confirm Logout
-          </AlertDialogTitle>
-          <AlertDialogDescription>
+          </DialogTitle>
+        </DialogHeader>
+        <div className="py-4">
+          <p className="text-sm text-muted-foreground">
             {userName 
               ? `Are you sure you want to log out, ${userName}? You will need to sign in again to access your account.`
               : "Are you sure you want to log out? You will need to sign in again to access your account."
             }
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel 
+          </p>
+        </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
             className="cursor-pointer" 
             disabled={isLoggingOut || isCancelling}
             onClick={(e) => {
@@ -105,8 +106,8 @@ export function LogoutAlert({
                 Cancel
               </>
             )}
-          </AlertDialogCancel>
-          <AlertDialogAction 
+          </Button>
+          <Button
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -126,9 +127,9 @@ export function LogoutAlert({
                 Log out
               </>
             )}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

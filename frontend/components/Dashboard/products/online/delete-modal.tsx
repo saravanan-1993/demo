@@ -1,15 +1,13 @@
 "use client";
 
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
 
 interface DeleteModalProps {
@@ -28,25 +26,29 @@ export default function DeleteModal({
   isDeleting = false,
 }: DeleteModalProps) {
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-full bg-destructive/10">
               <AlertTriangle className="size-5 text-destructive" />
             </div>
-            <AlertDialogTitle>Delete Product</AlertDialogTitle>
+            <DialogTitle>Delete Product</DialogTitle>
           </div>
-          <AlertDialogDescription className="text-left">
+        </DialogHeader>
+        <div className="py-4">
+          <p className="text-sm text-muted-foreground text-left">
             Are you sure you want to delete{" "}
             <span className="font-semibold text-foreground">{productName}</span>?
             This action cannot be undone and will permanently remove the product
             from your inventory.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-          <AlertDialogAction
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" disabled={isDeleting} onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
             onClick={(e) => {
               e.preventDefault();
               onConfirm();
@@ -55,9 +57,9 @@ export default function DeleteModal({
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
             {isDeleting ? "Deleting..." : "Delete Product"}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

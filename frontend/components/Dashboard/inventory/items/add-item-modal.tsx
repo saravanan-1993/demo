@@ -31,6 +31,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import axiosInstance from "@/lib/axios";
 import { toast } from "sonner";
+import { COMMON_UOMS, UOM_CATEGORIES, getUOMsByCategory } from "@/lib/uom-constants";
 
 interface AddItemModalProps {
   open: boolean;
@@ -56,19 +57,10 @@ export interface ItemFormData {
   status: string;
   expiryDate: Date | undefined;
   description: string;
-  itemImage: File | string | null; // Can be File (new upload) or string (existing URL)
+  itemImage: File | string | null;
+  itemType: "regular" | "processing";
+  requiresProcessing: boolean;
 }
-
-const UOM_OPTIONS = [
-  "Piece",
-  "Box",
-  "Kg",
-  "Litre",
-  "Meter",
-  "Dozen",
-  "Pack",
-  "Unit",
-];
 
 interface GSTRate {
   id: string;
@@ -101,6 +93,9 @@ export default function AddItemModal({
     expiryDate: undefined,
     description: "",
     itemImage: null,
+    // 🆕 NEW FIELDS
+    itemType: "regular",
+    requiresProcessing: false,
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof ItemFormData, string>>>({});
@@ -193,6 +188,8 @@ export default function AddItemModal({
         expiryDate: undefined,
         description: "",
         itemImage: null,
+        itemType: "regular",
+        requiresProcessing: false,
       });
       setErrors({});
       
@@ -219,6 +216,8 @@ export default function AddItemModal({
         expiryDate: initialData.expiryDate,
         description: initialData.description || "",
         itemImage: initialData.itemImage || null,
+        itemType: "regular",
+        requiresProcessing: false,
       });
     }
   }, [open, editMode, initialData, skuValidationTimer]);
@@ -250,11 +249,17 @@ export default function AddItemModal({
     if (!formData.warehouse) {
       newErrors.warehouse = "Warehouse is required";
     }
+    
+    // 🆕 Opening stock is required for both regular and processing items
     if (!formData.openingStock || parseInt(formData.openingStock) < 0) {
       newErrors.openingStock = "Valid opening stock is required";
     }
-    if (!formData.lowStockAlertLevel || parseInt(formData.lowStockAlertLevel) < 0) {
-      newErrors.lowStockAlertLevel = "Valid low stock alert level is required";
+    
+    // 🆕 Low stock alert only for regular items
+    if (formData.itemType === "regular") {
+      if (!formData.lowStockAlertLevel || parseInt(formData.lowStockAlertLevel) < 0) {
+        newErrors.lowStockAlertLevel = "Valid low stock alert level is required";
+      }
     }
 
     setErrors(newErrors);
@@ -432,6 +437,70 @@ export default function AddItemModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* 🆕 Item Type Selection (First Field!) */}
+          <div className="space-y-2">
+            <Label htmlFor="itemType">
+              Item Type <span className="text-destructive">*</span>
+            </Label>
+            <Select
+              value={formData.itemType}
+              onValueChange={(value: "regular" | "processing") => {
+                setFormData((prev) => ({
+                  ...prev,
+                  itemType: value,
+                  requiresProcessing: value === "processing",
+                  // Reset low stock alert for processing items (not needed)
+                  ...(value === "processing" && {
+                    lowStockAlertLevel: "0",
+                    status: "in_stock",
+                  }),
+                }));
+              }}
+              disabled={editMode} // Cannot change type in edit mode
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select item type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="regular">
+                  <div className="flex flex-col">
+                    <span className="font-medium">Regular Item (Direct Sales)</span>
+                    <span className="text-xs text-muted-foreground">
+                      Can be sold directly without processing
+                    </span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="processing">
+                  <div className="flex flex-col">
+                    <span className="font-medium">Processing Item (Needs Processing)</span>
+                    <span className="text-xs text-muted-foreground">
+                      Requires processing before sales
+                    </span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {/* Info Box based on selection */}
+            {formData.itemType === "regular" ? (
+              <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  ℹ️ <strong>Regular Item:</strong> This item will be added directly to inventory and can be sold immediately.
+                  <br />
+                  <span className="text-xs">Examples: Water Bottles, Biscuits, Snacks, Packaged Goods</span>
+                </p>
+              </div>
+            ) : (
+              <div className="p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md">
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  🔄 <strong>Processing Item:</strong> This item will be added to Processing Pool when purchased. You&apos;ll need to process it to create finished products.
+                  <br />
+                  <span className="text-xs">Examples: Whole Chicken, Bulk Rice, Oil Drums, Whole Fish, Bulk Masala</span>
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Item Image */}
           <div className="space-y-2">
             <Label>
@@ -715,9 +784,33 @@ export default function AddItemModal({
                   <SelectValue placeholder="Select UOM" />
                 </SelectTrigger>
                 <SelectContent>
-                  {UOM_OPTIONS.map((uom) => (
-                    <SelectItem key={uom} value={uom}>
-                      {uom}
+                  {/* Weight */}
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                    {UOM_CATEGORIES.WEIGHT}
+                  </div>
+                  {getUOMsByCategory(UOM_CATEGORIES.WEIGHT).map((uom) => (
+                    <SelectItem key={uom.value} value={uom.value}>
+                      {uom.label} ({uom.symbol})
+                    </SelectItem>
+                  ))}
+                  
+                  {/* Volume */}
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2">
+                    {UOM_CATEGORIES.VOLUME}
+                  </div>
+                  {getUOMsByCategory(UOM_CATEGORIES.VOLUME).map((uom) => (
+                    <SelectItem key={uom.value} value={uom.value}>
+                      {uom.label} ({uom.symbol})
+                    </SelectItem>
+                  ))}
+                  
+                  {/* Quantity */}
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2">
+                    {UOM_CATEGORIES.QUANTITY}
+                  </div>
+                  {getUOMsByCategory(UOM_CATEGORIES.QUANTITY).map((uom) => (
+                    <SelectItem key={uom.value} value={uom.value}>
+                      {uom.label} ({uom.symbol})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -849,6 +942,11 @@ export default function AddItemModal({
             <div className="space-y-2">
               <Label htmlFor="openingStock">
                 Opening Stock <span className="text-destructive">*</span>
+                {formData.itemType === "processing" && (
+                  <span className="text-xs text-muted-foreground ml-2">
+                    (Will be added to Processing Pool)
+                  </span>
+                )}
               </Label>
               <Input
                 id="openingStock"
@@ -862,49 +960,74 @@ export default function AddItemModal({
               {errors.openingStock && (
                 <p className="text-xs text-destructive">{errors.openingStock}</p>
               )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="lowStockAlertLevel">
-                Low Stock Alert Level <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="lowStockAlertLevel"
-                type="number"
-                min="0"
-                value={formData.lowStockAlertLevel}
-                onChange={(e) => handleInputChange("lowStockAlertLevel", e.target.value)}
-                placeholder="0"
-                className={errors.lowStockAlertLevel ? "border-destructive" : ""}
-              />
-              {errors.lowStockAlertLevel && (
-                <p className="text-xs text-destructive">{errors.lowStockAlertLevel}</p>
+              {formData.itemType === "processing" && (
+                <p className="text-xs text-blue-600 dark:text-blue-400">
+                  💡 This stock will be available in Processing Pool for immediate processing
+                </p>
               )}
             </div>
+
+            {/* Low Stock Alert only for Regular Items */}
+            {formData.itemType === "regular" && (
+              <div className="space-y-2">
+                <Label htmlFor="lowStockAlertLevel">
+                  Low Stock Alert Level <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="lowStockAlertLevel"
+                  type="number"
+                  min="0"
+                  value={formData.lowStockAlertLevel}
+                  onChange={(e) => handleInputChange("lowStockAlertLevel", e.target.value)}
+                  placeholder="0"
+                  className={errors.lowStockAlertLevel ? "border-destructive" : ""}
+                />
+                {errors.lowStockAlertLevel && (
+                  <p className="text-xs text-destructive">{errors.lowStockAlertLevel}</p>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Row 6: Status & Expiry Date */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="status">
-                Status <span className="text-destructive">*</span>
-              </Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) => handleInputChange("status", value)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="in_stock">In Stock</SelectItem>
-                  <SelectItem value="low_stock">Low Stock</SelectItem>
-                  <SelectItem value="out_of_stock">Out of Stock</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* Processing Item Info (Shown only for processing items) */}
+          {formData.itemType === "processing" && (
+            <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 border border-purple-200 dark:border-purple-800 rounded-lg">
+              <h4 className="font-semibold text-purple-900 dark:text-purple-100 mb-2">
+                📦 Processing Item Configuration
+              </h4>
+              <ul className="text-sm text-purple-800 dark:text-purple-200 space-y-1">
+                <li>✓ Opening stock of <strong>{formData.openingStock || 0} {formData.uom || 'units'}</strong> will be added to <strong>Processing Pool</strong></li>
+                <li>✓ You can process this stock immediately after creation</li>
+                <li>✓ Future purchases will also be added to Processing Pool</li>
+                <li>✓ Go to <strong>Processing</strong> page to convert this item into finished products</li>
+              </ul>
             </div>
+          )}
 
-            <div className="space-y-2">
+          {/* Row 6: Status & Expiry Date (Status hidden for Processing Items) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {formData.itemType === "regular" && (
+              <div className="space-y-2">
+                <Label htmlFor="status">
+                  Status <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) => handleInputChange("status", value)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="in_stock">In Stock</SelectItem>
+                    <SelectItem value="low_stock">Low Stock</SelectItem>
+                    <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className={cn("space-y-2", formData.itemType === "processing" && "md:col-span-2")}>
               <Label>Expiry Date (optional)</Label>
               <Popover>
                 <PopoverTrigger asChild>

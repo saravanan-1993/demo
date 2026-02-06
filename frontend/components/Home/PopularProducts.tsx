@@ -20,17 +20,31 @@ export default function PopularProducts({ initialProducts, categories }: Popular
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [loading, setLoading] = useState(false);
 
+  console.log('[PopularProducts] Initial render:', {
+    initialProductsCount: initialProducts.length,
+    categoriesCount: categories.length,
+    categories: categories.map(c => c.name),
+  });
+
   // Fetch products when category changes (using client-side service)
   const handleCategoryChange = async (categoryName: string) => {
     setActiveCategory(categoryName);
     setLoading(true);
     
     try {
+      console.log('[PopularProducts] Fetching products with:', {
+        badge: 'Bestseller',
+        category: categoryName || 'all',
+        limit: 10,
+      });
+      
       const response = await getHomepageProducts({
         badge: 'Bestseller',
         category: categoryName || undefined,
         limit: 10,
       });
+      
+      console.log('[PopularProducts] Response:', response);
       
       if (response.success) {
         setProducts(response.data);
@@ -71,7 +85,7 @@ export default function PopularProducts({ initialProducts, categories }: Popular
           >
             All
           </button>
-          {categories.slice(0, 6).map((category) => (
+          {categories.map((category) => (
             <button
               key={category.id}
               onClick={() => handleCategoryChange(category.name)}
@@ -107,18 +121,20 @@ export default function PopularProducts({ initialProducts, categories }: Popular
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
               </svg>
             </div>
-            <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2">No Products Available</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2">No Bestseller Products Available</h3>
             <p className="text-sm sm:text-base text-gray-500 mb-4">
               {activeCategory 
-                ? `No bestseller products found in "${activeCategory}" category.`
-                : 'No bestseller products available at the moment.'}
+                ? `No bestseller products found in "${activeCategory}" category. Try selecting a different category.`
+                : 'No bestseller products available at the moment. Products need to be marked as "Bestseller" in the dashboard.'}
             </p>
-            <button
-              onClick={() => handleCategoryChange('')}
-              className="inline-flex items-center px-4 py-2 bg-[#e63946] text-white rounded-lg hover:bg-[#d62839] transition-colors text-sm sm:text-base"
-            >
-              View All Categories
-            </button>
+            {activeCategory && (
+              <button
+                onClick={() => handleCategoryChange('')}
+                className="inline-flex items-center px-4 py-2 bg-[#e63946] text-white rounded-lg hover:bg-[#d62839] transition-colors text-sm sm:text-base"
+              >
+                View All Categories
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">

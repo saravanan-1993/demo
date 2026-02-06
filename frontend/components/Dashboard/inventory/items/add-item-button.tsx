@@ -40,6 +40,10 @@ export default function AddItemButton({
       formData.append("status", itemData.status);
       formData.append("description", itemData.description || "");
       
+      // 🆕 Add processing fields (as strings, backend will parse)
+      formData.append("itemType", itemData.itemType);
+      formData.append("requiresProcessing", itemData.requiresProcessing ? "true" : "false");
+      
       if (itemData.expiryDate) {
         formData.append("expiryDate", itemData.expiryDate.toISOString());
       }

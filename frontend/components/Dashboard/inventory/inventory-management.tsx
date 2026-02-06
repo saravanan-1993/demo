@@ -7,6 +7,7 @@ import Warehouse from "./warehouse/warehouse-list";
 import StockAdjustment from "./stock-adjustment/stock-adjustment";
 import InventoryReports from "./reports/inventory-reports";
 import AddItemButton from "./items/add-item-button";
+import Processing from "./processing/processing-page";
 
 export const InventoryManagement = () => {
   const router = useRouter();
@@ -42,6 +43,7 @@ export const InventoryManagement = () => {
         <div className="mb-6 flex items-center gap-5">
           <TabsList className="w-auto">
             <TabsTrigger value="warehouse">Warehouse</TabsTrigger>
+            <TabsTrigger value="processing">Processing</TabsTrigger>
             <TabsTrigger value="stock-adjustment">Stock Adjustment</TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
           </TabsList>
@@ -52,6 +54,10 @@ export const InventoryManagement = () => {
         {/* Tab Contents */}
         <TabsContent value="warehouse" className="mt-0 w-full">
           <Warehouse />
+        </TabsContent>
+
+        <TabsContent value="processing" className="mt-0 w-full">
+          <Processing />
         </TabsContent>
 
         <TabsContent value="stock-adjustment" className="mt-0 w-full">

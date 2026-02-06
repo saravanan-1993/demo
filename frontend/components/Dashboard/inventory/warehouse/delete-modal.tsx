@@ -1,16 +1,14 @@
 "use client";
 
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { AlertTriangle, Power } from "lucide-react";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Power } from "lucide-react";
 
 interface DeleteModalProps {
   open: boolean;
@@ -34,26 +32,30 @@ export default function DeleteModal({
   const actionTitle = isActive ? "Deactivate" : "Activate";
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
           <div className="flex items-center gap-3">
             <div className={`flex size-10 items-center justify-center rounded-full ${isActive ? 'bg-destructive/10' : 'bg-green-500/10'}`}>
               <Power className={`size-5 ${isActive ? 'text-destructive' : 'text-green-600'}`} />
             </div>
-            <AlertDialogTitle>{actionTitle} Warehouse</AlertDialogTitle>
+            <DialogTitle>{actionTitle} Warehouse</DialogTitle>
           </div>
-          <AlertDialogDescription className="text-left">
+        </DialogHeader>
+        <div className="py-4">
+          <p className="text-sm text-muted-foreground text-left">
             Are you sure you want to {action} <span className="font-semibold text-foreground">{warehouseName}</span>? 
             {isActive 
               ? " This will mark the warehouse as inactive and it won't be available for operations."
               : " This will mark the warehouse as active and make it available for operations."
             }
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-          <AlertDialogAction
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" disabled={isDeleting} onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
             onClick={(e) => {
               e.preventDefault();
               onConfirm();
@@ -65,9 +67,9 @@ export default function DeleteModal({
             }
           >
             {isDeleting ? `${actionTitle.slice(0, -1)}ing...` : `${actionTitle} Warehouse`}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

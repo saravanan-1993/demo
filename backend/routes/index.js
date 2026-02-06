@@ -42,6 +42,7 @@ const itemRoutes = require('./inventory/itemRoutes');
 const warehouseRoutes = require('./inventory/warehouseRoutes');
 const stockAdjustmentRoutes = require('./inventory/stockAdjustmentRoutes');
 const inventoryReportRoutes = require('./inventory/reportRoutes');
+const processingRoutes = require('./inventory/processingRoutes');
 
 // Online service routes
 const categorySubcategoryRoutes = require('./online/categorySubcategoryRoutes');
@@ -167,6 +168,7 @@ router.use('/inventory/items', itemRoutes);
 router.use('/inventory/warehouses', warehouseRoutes);
 router.use('/inventory/stock-adjustments', stockAdjustmentRoutes);
 router.use('/inventory/reports', inventoryReportRoutes);
+router.use('/inventory', processingRoutes);
 
 // Online service routes
 router.use('/online/category-subcategory', categorySubcategoryRoutes);

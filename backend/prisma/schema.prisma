@@ -361,6 +361,11 @@ model Item {
   safetyInformation   String?
   description         String?
   itemImage           String?
+  
+  // 🆕 Processing Item Fields
+  itemType            String     @default("regular") // regular, processing
+  requiresProcessing  Boolean    @default(false)
+  
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
 
@@ -1568,3 +1573,136 @@ model EmailConfiguration {
 }
 
 
+
+// ============================================
+// PROCESSING SYSTEM
+// ============================================
+
+// Processing Pool - Stores raw materials that need processing
+model ProcessingPool {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Item Reference
+  itemId            String   @db.ObjectId // Reference to Item (processing type)
+  itemName          String   // Denormalized for quick access
+  category          String
+  itemCode          String?
+  
+  // Warehouse Reference
+  warehouseId       String   @db.ObjectId
+  warehouseName     String   // Denormalized
+  
+  // Stock Information
+  currentStock      Float    @default(0) // Current available stock in pool
+  uom               String   // Unit of measurement
+  
+  // Financial Tracking
+  avgPurchasePrice  Float    @default(0) // Weighted average purchase price
+  totalValue        Float    @default(0) // currentStock × avgPurchasePrice
+  
+  // Processing Statistics
+  totalPurchased    Float    @default(0) // Total quantity purchased
+  totalProcessed    Float    @default(0) // Total quantity processed
+  totalWastage      Float    @default(0) // Total wastage
+  
+  // Status
+  status            String   @default("active") // active, inactive
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  transactions      ProcessingTransaction[]
+  recipes           ProcessingRecipe[]
+
+  @@unique([itemId, warehouseId]) // One pool per item per warehouse
+  @@index([itemId])
+  @@index([warehouseId])
+  @@index([status])
+  @@map("processing_pool")
+}
+
+// Processing Transaction - Records each processing operation
+model ProcessingTransaction {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  transactionNumber String   @unique // PT-2024-001
+  
+  // Pool Reference
+  poolId            String   @db.ObjectId
+  pool              ProcessingPool @relation(fields: [poolId], references: [id])
+  
+  // Input (Raw Material)
+  inputItemId       String   @db.ObjectId
+  inputItemName     String
+  inputQuantity     Float    // Quantity consumed from pool
+  inputUom          String
+  inputUnitCost     Float    // Cost per unit at time of processing
+  inputTotalCost    Float    // inputQuantity × inputUnitCost
+  
+  // Warehouse
+  warehouseId       String   @db.ObjectId
+  warehouseName     String
+  
+  // Outputs (Finished Products) - Stored as JSON array
+  // Each output: { itemId, itemName, quantity, uom }
+  outputs           Json[]
+  
+  // Processing Details
+  wastagePercent    Float    @default(0)
+  wastageQuantity   Float    @default(0) // Calculated: inputQuantity × wastagePercent / 100
+  processingCost    Float    @default(0) // Additional processing cost (labor, utilities, etc.)
+  totalCost         Float    @default(0) // inputTotalCost + processingCost
+  
+  // Notes
+  notes             String?
+  
+  // Status
+  status            String   @default("completed") // completed, cancelled
+  
+  // Metadata
+  processedBy       String?  // User who processed
+  processedAt       DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([poolId])
+  @@index([inputItemId])
+  @@index([warehouseId])
+  @@index([processedAt])
+  @@map("processing_transactions")
+}
+
+// Processing Recipe - Remembers what items were created from each raw material
+model ProcessingRecipe {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  
+  // Pool Reference
+  poolId            String   @db.ObjectId
+  pool              ProcessingPool @relation(fields: [poolId], references: [id])
+  
+  // Input Item (Raw Material)
+  inputItemId       String   @db.ObjectId
+  inputItemName     String
+  
+  // Output Item (Finished Product)
+  outputItemId      String   @db.ObjectId
+  outputItemName    String
+  outputUom         String
+  
+  // Statistics
+  timesCreated      Int      @default(1) // How many times this output was created
+  totalQuantity     Float    @default(0) // Total quantity created across all transactions
+  
+  // Timestamps
+  firstCreatedAt    DateTime @default(now())
+  lastCreatedAt     DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([poolId, outputItemId]) // One recipe entry per output item per pool
+  @@index([poolId])
+  @@index([inputItemId])
+  @@index([outputItemId])
+  @@map("processing_recipes")
+}
